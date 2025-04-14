@@ -1,4 +1,4 @@
-# 🧪 mump2p — CLI
+# mump2p—cli
 
 `mump2p` is the command-line tool to interact with [OptimumP2P](https://github.com/getoptimum/optimum-p2p) — a high-performance RLNC-enhanced pubsub protocol.
 
@@ -30,20 +30,13 @@ TODO
 ### Publish Message
 
 ```sh
-./mump2p publish \
-  --topic=test-topic \
-  --message="new block 1234" \
-  --algorithm=optimump2p \
-  --config=app_conf.yml
+./mump2p publish  --topic=test-topic --message="new block 1234" --algorithm=optimump2p --config=app_conf.yml
 ```
 
 ### Subscribe
 
 ```sh
-./mump2p subscribe \
-  --topic=data \
-  --algorithm=optimump2p \
-  --config=app_conf.yml
+./mump2p subscribe  --topic=data --algorithm=optimump2p --config=app_conf.yml
 ```
 
 ## Roadmap
