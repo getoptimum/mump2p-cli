@@ -1,0 +1,41 @@
+# === General App Settings ===
+app_port: 23422
+cluster_id: "sample_cluster"
+data_directory: /tmp
+file_storage_directory: /tmp
+silent_mode_enabled: false
+interactive_cli_enabled: false
+
+# === Protocol Settings ===
+enable_gossipsub: false
+enable_optimum_p2p: true
+use_whitelist_filter: true
+
+# === PubSub Mesh Settings ===
+mesh_degree_target: 6
+mesh_degree_min: 5
+mesh_degree_max: 12
+rlnc_shard_factor: 32  # number of shards each message is divided into (for RLNC)
+
+# === Random Message Generation ===
+random_message_size_bytes: 3145728  # ~3MB
+publisher_shard_multiplier: # rlnc_shard_factor * publisher_shard_multiplier shards will be pushed when publishing a message
+forward_shard_threshold: 0.75 # we only forward incoming shards if we have more than rlnc_shard_factor * forward_shard_threshold shards
+
+# === Peer Nodes ===
+gossipsub_peer_nodes:
+  - 127.0.0.1:14080
+  - 127.0.0.1:14080
+  - 127.0.0.1:14080
+
+optimum_p2p_peer_nodes:
+  - 127.0.0.1:14080
+  - 127.0.0.1:14080
+  - 127.0.0.1:14080
+
+# === Bootstrap Nodes (for Peer Discovery) ===
+bootstrap_nodes_gossipsub:
+  - /ip4/127.0.0.1/tcp/10000/p2p/12D3KooWLVpUEEy36VgM2ZNqiGbSuQynF8sMKZKBYWMwdt5AAQs4
+
+bootstrap_nodes_optimum_p2p:
+  - /ip4/127.0.0.1/tcp/10000/p2p/12D3KooWLVpUEEy36VgM2ZNqiGbSuQynF8sMKZKBYWMwdt5AAQs4

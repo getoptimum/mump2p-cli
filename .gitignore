@@ -1,0 +1,12 @@
+/mump2p
+/sim
+
+# IDE
+.idea
+.vscode
+
+.DS_Store
+
+app_conf.yml
+!app_conf_docker.yml.sample
+cover.out
