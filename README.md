@@ -1,13 +1,18 @@
-# mump2p—cli
+# mump2p — OptimumP2P CLI
 
-`mump2p` is the command-line tool to interact with [OptimumP2P](https://github.com/getoptimum/optimum-p2p) — a high-performance RLNC-enhanced pubsub protocol.
+`mump2p` is the command-line interface for interacting with [OptimumP2P](https://github.com/getoptimum/optimum-p2p) — a high-performance RLNC-enhanced pubsub protocol.
+
+It supports authenticated publishing, subscribing, rate-limited usage tracking, and JWT session management.
+
+---
 
 This CLI allows you to:
 
-- [ ] Register nodes and keys
 - [x] Publish messages to topics
-- [x] Subscribe to topics
-- [ ] live message stream
+- [ ] Subscribe to real-time message streams
+- [x] JWT-based login/logout and token refresh
+- [x] Local rate-limiting (publish count, quota, max size)
+- [x] Usage statistics reporting
 
 ---
 
