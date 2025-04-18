@@ -7,10 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	ConfigPath string // shared across CLI commands
-)
-
 var rootCmd = &cobra.Command{
 	Use:   "mump2p",
 	Short: "CLI to interact with OptimumP2P directly via Go",
@@ -26,5 +22,6 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&ConfigPath, "config", "app_conf.yml", "Path to YAML config file")
+	// disable completion option
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }

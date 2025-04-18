@@ -2,37 +2,66 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 
-	"github.com/getoptimum/optcli/internal/service"
+	"github.com/getoptimum/optcli/internal/auth"
+	"github.com/getoptimum/optcli/internal/config"
+	"github.com/getoptimum/optcli/internal/ratelimit"
 	"github.com/spf13/cobra"
 )
 
 var (
-	pubTopic     string
-	pubMessage   string
-	pubAlgorithm string
-)
-
-const (
-	defaultMessageSize = 2 << 20 // 2MB
+	pubTopic   string
+	pubMessage string
 )
 
 var publishCmd = &cobra.Command{
 	Use:   "publish",
-	Short: "Publish a message to the P2P network using direct service calls",
+	Short: "Publish a message to the OptimumP2P via HTTP",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		s := service.GetP2PService(ConfigPath)
-		messageSize := int64(len(pubMessage))
-		// TODO:: discuss default message size
-		if messageSize == 0 {
-			messageSize = defaultMessageSize // fallback default size
+		authClient := auth.NewClient()
+		storage := auth.NewStorage()
+		token, err := authClient.GetValidToken(storage)
+		if err != nil {
+			return fmt.Errorf("authentication required: %v", err)
+		}
+		srcUrl := config.LoadConfig().ServiceUrl
+		// TODO:: change the API, use only optimump2p and message size based on the message itself
+		reqBody := fmt.Sprintf(`{"topic": "%s", "protocol": ["%s"], "message_size": %d}`, pubTopic, "optimump2p", config.DefaultMaxMessageSize)
+
+		request, err := http.NewRequest("POST", srcUrl+"/api/publish", strings.NewReader(reqBody))
+		if err != nil {
+			return err
+		}
+		request.Header.Set("Authorization", "Bearer "+token.Token)
+		request.Header.Set("Content-Type", "application/json")
+
+		client := &http.Client{}
+		resp, err := client.Do(request)
+		if err != nil {
+			return fmt.Errorf("HTTP publish failed: %v", err)
+		}
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("❌ publish error: %s", string(body))
 		}
 
-		optNode, gossipNode := s.SendRandomMessage(pubTopic, messageSize, []string{pubAlgorithm})
-		fmt.Println("✅ Published")
-		fmt.Printf("Topic: %s\n", pubTopic)
-		fmt.Printf("Optimum node: %s\n", optNode)
-		fmt.Printf("Gossip node:  %s\n", gossipNode)
+		fmt.Println("✅ Published via HTTP")
+		fmt.Println(string(body))
+		// Record local usage
+		parser := auth.NewTokenParser()
+		claims, err := parser.ParseToken(token.Token)
+		if err == nil {
+			limiter, err := ratelimit.NewRateLimiter(claims)
+			if err == nil {
+				// TODO:: as per the message itself.
+				_ = limiter.RecordPublish(config.DefaultMaxMessageSize) // ignore error silently
+			}
+		}
 		return nil
 	},
 }
@@ -40,7 +69,6 @@ var publishCmd = &cobra.Command{
 func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
 	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string (used to estimate message size)")
-	publishCmd.Flags().StringVar(&pubAlgorithm, "algorithm", "", "Protocol to use (optimump2p or gossipsub)")
 	publishCmd.MarkFlagRequired("topic")
 	publishCmd.MarkFlagRequired("algorithm")
 	rootCmd.AddCommand(publishCmd)

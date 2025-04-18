@@ -10,3 +10,6 @@
 app_conf.yml
 !app_conf_docker.yml.sample
 cover.out
+
+# build
+dist

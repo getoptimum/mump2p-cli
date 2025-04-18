@@ -1,0 +1,39 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    env:
+      AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
+      AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
+          args: --timeout 5m
+
+      - name: Install GitHub CLI
+        uses: cli/cli-action@v2
+
+      - name: Auth GH CLI using PAT
+        run: echo "${{ secrets.RELEASE_GH_TOKEN }}" | gh auth login --with-token
+
+      - name: Run Make Release
+        run: make release

@@ -1,14 +1,40 @@
 GO_BIN ?= go
 CLI_NAME := mump2p
-CONFIG_PATH ?= app_conf.yml
+BUILD_DIR := dist
+VERSION := $(shell git describe --tags --abbrev=0)-rc
 
-.PHONY: all build run clean test help
 
-all: build
+LD_FLAGS := -X github.com/getoptimum/optcli/config.Domain=$(DOMAIN) \
+            -X github.com/getoptimum/optcli/config.ClientID=$(CLIENT_ID) \
+            -X github.com/getoptimum/optcli/config.Audience=$(AUDIENCE) \
+            -X github.com/getoptimum/optcli/config.ServiceURL=$(SERVICE_URL)
+
+.PHONY: all build run clean test help lint build tag release
+
+all: lint build
+
+lint: ## Run linter
+	golangci-lint run ./...
 
 build: ## Build the CLI binary
-	$(GO_BIN) build -o $(CLI_NAME) .
+	GOOS=darwin GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" \
+		-o $(BUILD_DIR)/$(CLI_NAME) .
 
+tag:
+	@echo "Calculating next RC tag..."
+	@latest_tag=$$(git tag --sort=-creatordate | grep '^v0\.' | grep -E 'rc[0-9]+$$' | head -n1); \
+	if [ -z "$$latest_tag" ]; then \
+		new_tag="v0.0.1-rc1"; \
+	else \
+		version=$$(echo $$latest_tag | sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+)-rc([0-9]+)$$/\1/'); \
+		rc_num=$$(echo $$latest_tag | sed -E 's/^v[0-9]+\.[0-9]+\.[0-9]+-rc([0-9]+)$$/\1/'); \
+		new_rc_num=$$(expr $$rc_num + 1); \
+		new_tag="v$$version-rc$$new_rc_num"; \
+	fi; \
+	echo "New tag: $$new_tag"; \
+	git tag -a $$new_tag -m "Release $$new_tag"; \
+	git push origin $$new_tag
+	
 run: build ## Run the CLI with default config
 	./$(CLI_NAME) --config=$(CONFIG_PATH)
 

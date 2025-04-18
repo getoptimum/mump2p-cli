@@ -30,13 +30,13 @@ TODO
 ### Publish Message
 
 ```sh
-./mump2p publish  --topic=test-topic --message="new block 1234" --algorithm=optimump2p --config=app_conf.yml
+./mump2p publish  --topic=test-topic --message="new block 1234" --algorithm=optimump2p 
 ```
 
 ### Subscribe
 
 ```sh
-./mump2p subscribe  --topic=data --algorithm=optimump2p --config=app_conf.yml
+./mump2p subscribe  --topic=data --algorithm=optimump2p 
 ```
 
 ## Roadmap
