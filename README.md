@@ -24,31 +24,67 @@ cd optcli
 make build
 ```
 
-## Usage
+## Authentication
 
-### Register a node/key to a topic
+Before publishing or subscribing, login via device flow:
 
 ```sh
-TODO
+./mump2p login
 ```
+
+To check the current session:
+
+```sh
+./mump2p whoami
+```
+
+To refresh the session token manually:
+
+```sh
+./mump2p refresh
+```
+
+To logout:
+
+```sh
+./mump2p logout
+```
+
+## Usage
 
 ### Publish Message
 
 ```sh
-./mump2p publish  --topic=test-topic --message="new block 1234" --algorithm=optimump2p 
+./mump2p publish --topic=test-topic --message="new block 1234"
 ```
 
-### Subscribe
+Message size and rate limits will be validated using the authenticated token claims. CLI do it internally.
+
+### Subscribe to a Topic
 
 ```sh
-./mump2p subscribe  --topic=data --algorithm=optimump2p 
+TODO::
 ```
+
+## Check Rate Limits & Usage
+
+```sh
+./mump2p usage
+```
+
+This shows:
+
+- Current publish count
+- Daily data quota used
+- Time until reset
+- Token expiry info
 
 ## Roadmap
 
 - [x] Publish Message
-- [x] Subscribe Message
-- [ ] Register Node/Key
-- [ ] Keyring support for signing
-- [ ] JWT Session auth
-- [ ] Message Listener
+- [ ] Subscribe Message
+- [x] JWT-based login/logout/refresh
+- [x] Token-based rate limits
+- [x] Usage tracking (usage command)
+- [ ] Real-time stream mode
+- [ ] `follow` mode for replaying logs
