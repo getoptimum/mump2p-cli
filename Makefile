@@ -1,13 +1,20 @@
-GO_BIN ?= go
-CLI_NAME := mump2p
-BUILD_DIR := dist
-VERSION := $(shell git describe --tags --abbrev=0)-rc
+GO_BIN       ?= go
+CLI_NAME     := mump2p
+BUILD_DIR    := dist
 
+VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")-rc
+COMMIT_HASH  ?= $(shell git rev-parse --short HEAD)
+DOMAIN       ?= ""
+CLIENT_ID    ?= ""
+AUDIENCE     ?= opt-login
+SERVICE_URL  ?= http://localhost:12080
 
-LD_FLAGS := -X github.com/getoptimum/optcli/config.Domain=$(DOMAIN) \
-            -X github.com/getoptimum/optcli/config.ClientID=$(CLIENT_ID) \
-            -X github.com/getoptimum/optcli/config.Audience=$(AUDIENCE) \
-            -X github.com/getoptimum/optcli/config.ServiceURL=$(SERVICE_URL)
+LD_FLAGS := -X github.com/getoptimum/optcli/internal/config.Domain=$(DOMAIN) \
+            -X github.com/getoptimum/optcli/internal/config.ClientID=$(CLIENT_ID) \
+            -X github.com/getoptimum/optcli/internal/config.Audience=$(AUDIENCE) \
+            -X github.com/getoptimum/optcli/internal/config.ServiceURL=$(SERVICE_URL) \
+            -X github.com/getoptimum/optcli/internal/config.Version=$(VERSION) \
+            -X github.com/getoptimum/optcli/internal/config.CommitHash=$(COMMIT_HASH)
 
 .PHONY: all build run clean test help lint build tag release
 
@@ -17,9 +24,9 @@ lint: ## Run linter
 	golangci-lint run ./...
 
 build: ## Build the CLI binary
-	GOOS=darwin GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" \
-		-o $(BUILD_DIR)/$(CLI_NAME) .
-
+	GOOS=darwin GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-mac .
+	GOOS=linux GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-linux .
+	GOOS=windows GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-window .
 tag:
 	@echo "Calculating next RC tag..."
 	@latest_tag=$$(git tag --sort=-creatordate | grep '^v0\.' | grep -E 'rc[0-9]+$$' | head -n1); \

@@ -39,20 +39,19 @@ var usageCmd = &cobra.Command{
 		stats := limiter.GetUsageStats()
 
 		// display usage statistics
-		fmt.Println("Usage Statistics and Rate Limits")
-		fmt.Println("================================")
-		fmt.Printf("Publish:      %d/%d operations\n", stats["publish_count"], stats["publish_limit"])
-		fmt.Printf("Subscribe:    %d/%d operations\n", stats["subscribe_count"], stats["subscribe_limit"])
-		fmt.Printf("Data Usage:   %s/%s\n", stats["bytes_published"], stats["daily_quota"])
-		fmt.Printf("Next Reset:   %s (%s from now)\n",
-			stats["next_reset"].(time.Time).Format(time.RFC822),
-			stats["time_until_reset"])
+		publishCount := stats["publish_count"].(int)
+		publishLimit := stats["publish_limit"].(int)
+		subscribeCount := stats["subscribe_count"].(int)
+		subscribeLimit := stats["subscribe_limit"].(int)
+		bytesUsed := stats["bytes_published"].(int64)
+		dailyQuota := stats["daily_quota"].(int64)
+		nextReset := stats["next_reset"].(time.Time)
+		timeUntilReset := stats["time_until_reset"].(time.Duration)
 
-		// token information
-		fmt.Println("\nToken Information")
-		fmt.Println("=================")
-		fmt.Printf("Expires At:   %s\n", token.ExpiresAt.Format(time.RFC822))
-		fmt.Printf("Valid For:    %s\n", time.Until(token.ExpiresAt).Round(time.Minute))
+		fmt.Printf("Publish:    %d/%d operations\n", publishCount, publishLimit)
+		fmt.Printf("Subscribe:  %d/%d operations\n", subscribeCount, subscribeLimit)
+		fmt.Printf("Data Usage: %.2f MB / %.2f MB\n", float64(bytesUsed)/(1<<20), float64(dailyQuota)/(1<<20))
+		fmt.Printf("Next Reset: %s (%s from now)\n", nextReset.Format(time.RFC822), timeUntilReset.Round(time.Minute))
 
 		return nil
 	},

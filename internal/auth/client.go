@@ -76,7 +76,7 @@ func (c *Client) requestDeviceCode() (*DeviceCodeResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("device code request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c *Client) pollForToken(deviceCode *DeviceCodeResponse) (*StoredToken, err
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		resp.Body.Close() //nolint:errcheck
 		if err != nil {
 			continue // try again on read errors
 		}
@@ -198,7 +198,7 @@ func (c *Client) RefreshToken(refreshToken string) (*StoredToken, error) {
 	if err != nil {
 		return nil, fmt.Errorf("refresh token request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -87,12 +87,13 @@ var whoamiCmd = &cobra.Command{
 			fmt.Printf("Valid for: %s\n", time.Until(claims.ExpiresAt).Round(time.Minute))
 		}
 
+		fmt.Printf("Is Active:  %t\n", claims.IsActive)
 		// display rate limit information
 		fmt.Println("\nRate Limits:")
 		fmt.Println("------------")
 		fmt.Printf("Publish Rate:  %d per hour\n", claims.MaxPublishRate)
-		fmt.Printf("Max Message Size: %s\n", claims.MaxMessageSize)
-		fmt.Printf("Daily Quota: %s\n", claims.DailyQuota)
+		fmt.Printf("Max Message Size:  %.2f MB\n", float64(claims.MaxMessageSize)/(1<<20))
+		fmt.Printf("Daily Quota:       %.2f MB\n", float64(claims.DailyQuota)/(1<<20))
 
 		return nil
 	},

@@ -22,13 +22,11 @@ type RateLimiter struct {
 
 // NewRateLimiter creates a new rate limiter
 func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
-	// Create usage file path
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("could not determine home directory: %v", err)
 	}
 
-	// Use subject from token claims as identifier, fallback to "default"
 	identifier := "default"
 	if claims.Subject != "" {
 		identifier = claims.Subject
@@ -37,7 +35,6 @@ func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
 	usageDir := filepath.Join(homeDir, ".optimum")
 	usageFile := filepath.Join(usageDir, fmt.Sprintf("%s_usage.json", identifier))
 
-	// Ensure directory exists
 	if err := os.MkdirAll(usageDir, 0700); err != nil {
 		return nil, fmt.Errorf("could not create usage directory: %v", err)
 	}
@@ -47,7 +44,6 @@ func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
 		usageFile:   usageFile,
 	}
 
-	// Load or initialize usage data
 	usage, err := limiter.loadUsage()
 	if err != nil {
 		// If file doesn't exist or is corrupted, create new usage data
@@ -58,7 +54,6 @@ func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
 
 	limiter.usage = usage
 
-	// Check if reset is needed
 	limiter.checkAndResetCounters()
 
 	return limiter, nil
@@ -69,15 +64,20 @@ func (r *RateLimiter) CheckPublishAllowed(messageSize int64) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Reset counters if a day has passed
+	// reset counters if a day has passed
 	r.checkAndResetCounters()
 
-	// Check message size limit
+	// check if the user is active
+	if !r.tokenClaims.IsActive {
+		return fmt.Errorf("your token is inactive; please contact support or check your subscription status")
+	}
+
+	// message size limit
 	if messageSize > r.tokenClaims.MaxMessageSize {
 		return fmt.Errorf("message size exceeds limit of %d bytes", r.tokenClaims.MaxMessageSize)
 	}
 
-	// Check publish rate limit
+	// publish rate limit
 	if r.usage.PublishCount >= r.tokenClaims.MaxPublishRate {
 		nextReset := r.usage.LastReset.Add(24 * time.Hour)
 		timeLeft := time.Until(nextReset).Round(time.Minute)
@@ -85,7 +85,7 @@ func (r *RateLimiter) CheckPublishAllowed(messageSize int64) error {
 			r.usage.PublishCount, r.tokenClaims.MaxPublishRate, timeLeft)
 	}
 
-	// Check daily quota
+	// daily quota
 	if r.usage.BytesPublished+messageSize > r.tokenClaims.DailyQuota {
 		nextReset := r.usage.LastReset.Add(24 * time.Hour)
 		timeLeft := time.Until(nextReset).Round(time.Minute)
@@ -105,7 +105,6 @@ func (r *RateLimiter) RecordPublish(messageSize int64) error {
 	r.usage.BytesPublished += messageSize
 	r.usage.LastPublishTime = time.Now()
 
-	// Save updated usage data
 	return r.saveUsage()
 }
 

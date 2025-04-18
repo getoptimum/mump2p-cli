@@ -43,7 +43,7 @@ var publishCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("HTTP publish failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 
 		body, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode != 200 {
@@ -69,7 +69,7 @@ var publishCmd = &cobra.Command{
 func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
 	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string (used to estimate message size)")
-	publishCmd.MarkFlagRequired("topic")
-	publishCmd.MarkFlagRequired("algorithm")
+	publishCmd.MarkFlagRequired("topic")     //nolint:errcheck
+	publishCmd.MarkFlagRequired("algorithm") //nolint:errcheck
 	rootCmd.AddCommand(publishCmd)
 }
