@@ -33,10 +33,10 @@ jobs:
           args: --timeout 5m
 
       - name: Install GitHub CLI
-        uses: cli/cli-action@v2
+        uses: cli/setup-gh@v1
 
       - name: Auth GH CLI using PAT
-        run: echo "${{ secrets.RELEASE_GH_TOKEN }}" | gh auth login --with-token
+        run: gh auth login --with-token
 
       - name: Build and Release
         run: |
