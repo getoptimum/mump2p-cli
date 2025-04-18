@@ -32,8 +32,9 @@ jobs:
           version: latest
           args: --timeout 5m
 
-      - name: Install GitHub CLI
-        uses: cli/setup-gh@v1
+      - name: Setup GitHub CLI
+        run: |
+          gh --version || (sudo apt-get update && sudo apt-get install -y gh)
 
       - name: Auth GH CLI using PAT
         run: gh auth login --with-token
