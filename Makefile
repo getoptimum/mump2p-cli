@@ -27,6 +27,17 @@ build: ## Build the CLI binary
 	GOOS=darwin GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-mac .
 	GOOS=linux GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-linux .
 	GOOS=windows GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-window .
+
+release: build ## Build and create GitHub release
+	@echo "Creating release for $(VERSION)"
+	mkdir -p $(BUILD_DIR)
+	gh release create $(VERSION) \
+		--title "Release $(VERSION)" \
+		--notes "Release notes for $(VERSION)" \
+		$(BUILD_DIR)/$(CLI_NAME)-mac \
+		$(BUILD_DIR)/$(CLI_NAME)-linux \
+		$(BUILD_DIR)/$(CLI_NAME)-window
+		
 tag:
 	@echo "Calculating next RC tag..."
 	@latest_tag=$$(git tag --sort=-creatordate | grep '^v0\.' | grep -E 'rc[0-9]+$$' | head -n1); \

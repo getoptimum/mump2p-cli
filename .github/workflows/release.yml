@@ -10,7 +10,8 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     env:
       DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
       CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
@@ -37,12 +38,21 @@ jobs:
           gh --version || (sudo apt-get update && sudo apt-get install -y gh)
 
       - name: Auth GH CLI using PAT
-        run: gh auth login --with-token
+        run: echo "${{ secrets.RELEASE_GH_TOKEN }}" | gh auth login --with-token
 
-      - name: Build and Release
+      - name: Build
         run: |
-          make release \
+          make build \
             DOMAIN="${DOMAIN}" \
             CLIENT_ID="${CLIENT_ID}" \
             AUDIENCE="${AUDIENCE}" \
             SERVICE_URL="${SERVICE_URL}"
+      
+      - name: Create Release
+        run: |
+          gh release create $(VERSION) \
+            --title "Release $(VERSION)" \
+            --notes "Release notes for $(VERSION)" \
+            dist/$(CLI_NAME)-mac \
+            dist/$(CLI_NAME)-linux \
+            dist/$(CLI_NAME)-window
