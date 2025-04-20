@@ -109,7 +109,7 @@ func (r *RateLimiter) RecordPublish(messageSize int64) error {
 }
 
 // GetUsageStats returns current usage statistics
-func (r *RateLimiter) GetUsageStats() map[string]interface{} {
+func (r *RateLimiter) GetUsageStats() UsageStats {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -117,15 +117,15 @@ func (r *RateLimiter) GetUsageStats() map[string]interface{} {
 
 	nextReset := r.usage.LastReset.Add(24 * time.Hour)
 
-	return map[string]interface{}{
-		"publish_count":       r.usage.PublishCount,
-		"publish_limit":       r.tokenClaims.MaxPublishRate,
-		"bytes_published":     r.usage.BytesPublished,
-		"daily_quota":         r.tokenClaims.DailyQuota,
-		"next_reset":          nextReset,
-		"time_until_reset":    time.Until(nextReset).Round(time.Minute).String(),
-		"last_publish_time":   r.usage.LastPublishTime,
-		"last_subscribe_time": r.usage.LastSubTime,
+	return UsageStats{
+		PublishCount:      r.usage.PublishCount,
+		PublishLimit:      r.tokenClaims.MaxPublishRate,
+		BytesPublished:    r.usage.BytesPublished,
+		DailyQuota:        r.tokenClaims.DailyQuota,
+		NextReset:         nextReset,
+		TimeUntilReset:    time.Until(nextReset).Round(time.Minute),
+		LastPublishTime:   r.usage.LastPublishTime,
+		LastSubscribeTime: r.usage.LastSubTime,
 	}
 }
 

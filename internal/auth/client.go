@@ -26,7 +26,7 @@ func NewClient() *Client {
 		domain:   cfg.AuthDomain,
 		clientID: cfg.AuthClientID,
 		audience: cfg.AuthAudience,
-		scope:    "openid,email",
+		scope:    "openid,email,offline_access",
 	}
 }
 

@@ -37,8 +37,9 @@ jobs:
         run: |
           gh --version || (sudo apt-get update && sudo apt-get install -y gh)
 
-      - name: Auth GH CLI using PAT
-        run: echo "${{ secrets.RELEASE_GH_TOKEN }}" | gh auth login --with-token
+        # todo:: change it to org release token @santiago
+      - name: Auth GH CLI using PAT 
+        run: ${{ secrets.RELEASE_GH_TOKEN }}
 
       - name: Build
         run: |

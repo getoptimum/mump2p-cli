@@ -11,6 +11,18 @@ type UsageData struct {
 	LastSubTime     time.Time `json:"last_subscribe_time,omitempty"`
 }
 
+// UsageStats represents usage statistics and rate limits
+type UsageStats struct {
+	PublishCount      int
+	PublishLimit      int
+	BytesPublished    int64
+	DailyQuota        int64
+	NextReset         time.Time
+	TimeUntilReset    time.Duration
+	LastPublishTime   time.Time
+	LastSubscribeTime time.Time
+}
+
 // LimitError represents a rate limit exceeded error
 type LimitError struct {
 	Message      string

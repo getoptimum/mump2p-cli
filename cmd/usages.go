@@ -39,19 +39,9 @@ var usageCmd = &cobra.Command{
 		stats := limiter.GetUsageStats()
 
 		// display usage statistics
-		publishCount := stats["publish_count"].(int)
-		publishLimit := stats["publish_limit"].(int)
-		subscribeCount := stats["subscribe_count"].(int)
-		subscribeLimit := stats["subscribe_limit"].(int)
-		bytesUsed := stats["bytes_published"].(int64)
-		dailyQuota := stats["daily_quota"].(int64)
-		nextReset := stats["next_reset"].(time.Time)
-		timeUntilReset := stats["time_until_reset"].(time.Duration)
-
-		fmt.Printf("Publish:    %d/%d operations\n", publishCount, publishLimit)
-		fmt.Printf("Subscribe:  %d/%d operations\n", subscribeCount, subscribeLimit)
-		fmt.Printf("Data Usage: %.2f MB / %.2f MB\n", float64(bytesUsed)/(1<<20), float64(dailyQuota)/(1<<20))
-		fmt.Printf("Next Reset: %s (%s from now)\n", nextReset.Format(time.RFC822), timeUntilReset.Round(time.Minute))
+		fmt.Printf("Publish:    %d/%d operations\n", stats.PublishCount, stats.PublishLimit)
+		fmt.Printf("Data Usage: %.2f MB / %.2f MB\n", float64(stats.BytesPublished)/(1<<20), float64(stats.DailyQuota)/(1<<20))
+		fmt.Printf("Next Reset: %s (%s from now)\n", stats.NextReset.Format(time.RFC822), stats.TimeUntilReset)
 
 		return nil
 	},
