@@ -1,131 +1,105 @@
 package cmd
 
-// TODO::
-// lets fix the gateway socket and add listener
-// add dumper for local (flag --path) also exporter for now lets add --webhook (post all the trace on given endpoint)
-// either @har_preet or @bergasov do it
-// var (
-// 	subTopic     string
-// 	useWebSocket bool
-// )
+import (
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 
-// var subscribeCmd = &cobra.Command{
-// 	Use:   "subscribe",
-// 	Short: "Subscribe to a topic via HTTP API (and optionally WebSocket)",
-// 	RunE: func(cmd *cobra.Command, args []string) error {
-// 		cfg, err := config.LoadConfig(ConfigFile)
-// 		if err != nil {
-// 			return fmt.Errorf("error loading config: %v", err)
-// 		}
+	"github.com/getoptimum/optcli/internal/auth"
+	"github.com/getoptimum/optcli/internal/config"
+	"github.com/gorilla/websocket"
+	"github.com/spf13/cobra"
+)
 
-// 		authClient := auth.NewClient(cfg.Domain, cfg.ClientID, cfg.Audience, cfg.Scope)
-// 		storage := auth.NewStorage()
-// 		token, err := authClient.GetValidToken(storage)
-// 		if err != nil {
-// 			return fmt.Errorf("authentication required: %v", err)
-// 		}
+var (
+	subTopic string
+)
 
-// 		parser := auth.NewTokenParser()
-// 		claims, err := parser.ParseToken(token.Token)
-// 		if err == nil {
-// 			limiter, err := ratelimit.NewRateLimiter(claims)
-// 			if err == nil {
-// 				_ = limiter.RecordSubscribe()
-// 			}
-// 		}
+var subscribeCmd = &cobra.Command{
+	Use:   "subscribe",
+	Short: "Subscribe to a topic via WebSocket",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// auth
+		authClient := auth.NewClient()
+		storage := auth.NewStorage()
+		token, err := authClient.GetValidToken(storage)
+		if err != nil {
+			return fmt.Errorf("authentication required: %v", err)
+		}
+		// parse token to check if the account is active
+		parser := auth.NewTokenParser()
+		claims, err := parser.ParseToken(token.Token)
+		if err != nil {
+			return fmt.Errorf("error parsing token: %v", err)
+		}
+		// check if the account is active
+		if !claims.IsActive {
+			return fmt.Errorf("your account is inactive, please contact support")
+		}
+		//signal handling for graceful shutdown
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		srcUrl := config.LoadConfig().ServiceUrl
+		// setup ws connection
+		fmt.Println("Opening WebSocket connection...")
 
-// 		// signal handling
-// 		sigChan := make(chan os.Signal, 1)
-// 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		// convert HTTP URL to WebSocket URL
+		wsURL := strings.Replace(srcUrl, "http://", "ws://", 1)
+		wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
+		wsURL = fmt.Sprintf("%s/ws/api/v1/subscribe/%s", wsURL, subTopic)
 
-// 		// webSocket mode
-// 		if useWebSocket {
-// 			fmt.Println("Opening WebSocket listener...")
-// 			wsURL := strings.Replace(cfg.ServiceUrl, "http", "ws", 1) + "/ws/api/v1"
+		// setup ws headers for authentication
+		header := http.Header{}
+		header.Set("Authorization", "Bearer "+token.Token)
 
-// 			header := http.Header{}
-// 			header.Set("Authorization", "Bearer "+token.Token)
+		// connect
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, header)
+		if err != nil {
+			return fmt.Errorf("websocket connection failed: %v", err)
+		}
+		defer conn.Close()
 
-// 			conn, _, err := websocket.DefaultDialer.Dial(wsURL, header)
-// 			if err != nil {
-// 				return fmt.Errorf("websocket connection failed: %v", err)
-// 			}
-// 			defer conn.Close()
+		fmt.Printf("Listening for messages on topic '%s'... Press Ctrl+C to exit\n", subTopic)
 
-// 			fmt.Println("Listening for messages (WebSocket)... Press Ctrl+C to exit")
+		// message receiver goroutine
+		doneChan := make(chan struct{})
+		go func() {
+			defer close(doneChan)
+			for {
+				_, msg, err := conn.ReadMessage()
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+						fmt.Printf("❌ WebSocket read error: %v\n", err)
+					}
+					return
+				}
+				fmt.Printf("%s\n", string(msg))
+			}
+		}()
 
-// 			go func() {
-// 				for {
-// 					_, msg, err := conn.ReadMessage()
-// 					if err != nil {
-// 						fmt.Printf("❌ WebSocket read error: %v\n", err)
-// 						return
-// 					}
-// 					fmt.Printf("%s\n", string(msg))
-// 				}
-// 			}()
+		// wait for interrupt signal or connection close
+		select {
+		case <-sigChan:
+			fmt.Println("\nClosing connection...")
+			// cleanly close the connection by sending a close message
+			err := conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			if err != nil {
+				return fmt.Errorf("error closing connection: %v", err)
+			}
+		case <-doneChan:
+			fmt.Println("\nConnection closed by server")
+		}
 
-// 			<-sigChan
-// 			fmt.Println("\nWebSocket closed")
-// 			return nil
-// 		}
+		return nil
+	},
+}
 
-// 		// HTTP polling mode
-// 		fmt.Println("Starting HTTP subscribe polling... Press Ctrl+C to exit")
-// 		ticker := time.NewTicker(time.Duration(refreshSeconds) * time.Second)
-// 		defer ticker.Stop()
-
-// 		tokenRefresh := time.NewTicker(15 * time.Minute)
-// 		defer tokenRefresh.Stop()
-
-// 		for {
-// 			select {
-// 			case <-ticker.C:
-// 				// refresh data
-// 				reqBody := fmt.Sprintf(`{"topic": "%s", "protocol": ["%s"], "message_size": 0}`, subTopic, subAlgorithm)
-// 				request, err := http.NewRequest("POST", cfg.ServiceUrl+"/api/subscribe", strings.NewReader(reqBody))
-// 				if err != nil {
-// 					fmt.Println("❌ Failed to build request:", err)
-// 					continue
-// 				}
-// 				request.Header.Set("Authorization", "Bearer "+token.Token)
-// 				request.Header.Set("Content-Type", "application/json")
-
-// 				resp, err := http.DefaultClient.Do(request)
-// 				if err != nil {
-// 					fmt.Println("❌ HTTP error:", err)
-// 					continue
-// 				}
-// 				body, _ := io.ReadAll(resp.Body)
-// 				resp.Body.Close()
-
-// 				if resp.StatusCode != 200 {
-// 					fmt.Printf("❌ Subscribe error: %s\n", string(body))
-// 					continue
-// 				}
-// 				fmt.Printf("[%s] Subscribed successfully: %s\n", time.Now().Format(time.Kitchen), string(body))
-
-// 			case <-tokenRefresh.C:
-// 				newToken, err := authClient.GetValidToken(storage)
-// 				if err != nil {
-// 					fmt.Printf("Token refresh failed: %v\n", err)
-// 				} else {
-// 					token = newToken
-// 					fmt.Println("Token refreshed")
-// 				}
-
-// 			case <-sigChan:
-// 				fmt.Println("\nExiting HTTP polling")
-// 				return nil
-// 			}
-// 		}
-// 	},
-// }
-
-// func init() {
-// 	subscribeCmd.Flags().StringVar(&subTopic, "topic", "", "Topic to subscribe to")
-// 	subscribeCmd.Flags().BoolVar(&useWebSocket, "websocket", false, "Enable WebSocket stream after subscribing")
-// 	subscribeCmd.MarkFlagRequired("topic")
-// 	subscribeCmd.MarkFlagRequired("algorithm")
-// 	rootCmd.AddCommand(subscribeCmd)
-// }
+func init() {
+	subscribeCmd.Flags().StringVar(&subTopic, "topic", "", "Topic to subscribe to")
+	subscribeCmd.MarkFlagRequired("topic")
+	rootCmd.AddCommand(subscribeCmd)
+}

@@ -27,6 +27,17 @@ var publishCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("authentication required: %v", err)
 		}
+		// parse token to check if the account is active
+		parser := auth.NewTokenParser()
+		claims, err := parser.ParseToken(token.Token)
+		if err != nil {
+			return fmt.Errorf("error parsing token: %v", err)
+		}
+		// check if the account is active
+		if !claims.IsActive {
+			return fmt.Errorf("your account is inactive, please contact support")
+		}
+		// service url
 		srcUrl := config.LoadConfig().ServiceUrl
 		// TODO:: change the API, use only optimump2p and message size based on the message itself
 		reqBody := fmt.Sprintf(`{"topic": "%s", "protocol": ["%s"], "message_size": %d}`, pubTopic, "optimump2p", config.DefaultMaxMessageSize)
@@ -53,8 +64,6 @@ var publishCmd = &cobra.Command{
 		fmt.Println("✅ Published via HTTP")
 		fmt.Println(string(body))
 		// Record local usage
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
 		if err == nil {
 			limiter, err := ratelimit.NewRateLimiter(claims)
 			if err == nil {
@@ -69,7 +78,6 @@ var publishCmd = &cobra.Command{
 func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
 	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string (used to estimate message size)")
-	publishCmd.MarkFlagRequired("topic")     //nolint:errcheck
-	publishCmd.MarkFlagRequired("algorithm") //nolint:errcheck
+	publishCmd.MarkFlagRequired("topic") //nolint:errcheck
 	rootCmd.AddCommand(publishCmd)
 }
