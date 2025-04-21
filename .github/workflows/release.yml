@@ -33,6 +33,9 @@ jobs:
           version: latest
           args: --timeout 5m
 
+      - name: Test
+        run: make test 
+
       - name: Setup GitHub CLI
         run: |
           gh --version || (sudo apt-get update && sudo apt-get install -y gh)
