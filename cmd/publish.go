@@ -40,6 +40,8 @@ var publishCmd = &cobra.Command{
 		// service url
 		srcUrl := config.LoadConfig().ServiceUrl
 		// TODO:: change the API, use only optimump2p and message size based on the message itself
+		// TODO:: validate message as per allowed size
+		// TODO:: send message correctly (after merging optp2p PR it should be ready to be addressed)
 		reqBody := fmt.Sprintf(`{"topic": "%s", "protocol": ["%s"], "message_size": %d}`, pubTopic, "optimump2p", config.DefaultMaxMessageSize)
 
 		request, err := http.NewRequest("POST", srcUrl+"/api/publish", strings.NewReader(reqBody))

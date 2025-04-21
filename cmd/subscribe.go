@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -18,9 +19,11 @@ import (
 )
 
 var (
-	subTopic    string
-	persistPath string
-	webhookURL  string
+	subTopic           string
+	persistPath        string
+	webhookURL         string
+	webhookQueueSize   int
+	webhookTimeoutSecs int
 )
 
 var subscribeCmd = &cobra.Command{
@@ -95,8 +98,40 @@ var subscribeCmd = &cobra.Command{
 		defer conn.Close()
 
 		fmt.Printf("Listening for messages on topic '%s'... Press Ctrl+C to exit\n", subTopic)
+		// webhook queue and worker
+		type webhookMsg struct {
+			data []byte
+		}
+		webhookQueue := make(chan webhookMsg, webhookQueueSize)
 
-		// message receiver goroutine
+		go func() {
+			for msg := range webhookQueue {
+				go func(payload []byte) {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Duration(webhookTimeoutSecs)*time.Second)
+					defer cancel()
+
+					req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(payload))
+					if err != nil {
+						fmt.Printf("Failed to create webhook request: %v\n", err)
+						return
+					}
+					req.Header.Set("Content-Type", "application/json")
+
+					resp, err := http.DefaultClient.Do(req)
+					if err != nil {
+						fmt.Printf("Webhook request error: %v\n", err)
+						return
+					}
+					defer resp.Body.Close()
+
+					if resp.StatusCode >= 400 {
+						fmt.Printf("Webhook responded with status code: %d\n", resp.StatusCode)
+					}
+				}(msg.data)
+			}
+		}()
+
+		// receiver
 		doneChan := make(chan struct{})
 		go func() {
 			defer close(doneChan)
@@ -111,7 +146,7 @@ var subscribeCmd = &cobra.Command{
 				msgStr := string(msg)
 				fmt.Println(msgStr)
 
-				// handle persistence to file
+				// persist
 				if persistFile != nil {
 					timestamp := time.Now().Format(time.RFC3339)
 					if _, err := persistFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, msgStr)); err != nil {
@@ -119,31 +154,21 @@ var subscribeCmd = &cobra.Command{
 					}
 				}
 
-				// forward to webhook if configured
+				// forward
 				if webhookURL != "" {
-					go func(payload []byte) {
-						resp, err := http.Post(webhookURL, "application/json", bytes.NewBuffer(payload))
-						if err != nil {
-							fmt.Printf("Webhook forwarding error: %v\n", err)
-							return
-						}
-						defer resp.Body.Close()
-
-						if resp.StatusCode >= 400 {
-							fmt.Printf("Webhook responded with status code: %d\n", resp.StatusCode)
-						}
-					}(msg)
+					select {
+					case webhookQueue <- webhookMsg{data: msg}:
+					default:
+						fmt.Println("⚠️ Webhook queue full, message dropped")
+					}
 				}
 			}
 		}()
 
-		// wait for interrupt signal or connection close
 		select {
 		case <-sigChan:
 			fmt.Println("\nClosing connection...")
-			// cleanly close the connection by sending a close message
-			err := conn.WriteMessage(websocket.CloseMessage,
-				websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
 				return fmt.Errorf("error closing connection: %v", err)
 			}
@@ -160,5 +185,7 @@ func init() {
 	subscribeCmd.MarkFlagRequired("topic")
 	subscribeCmd.Flags().StringVar(&persistPath, "persist", "", "Path to file where messages will be stored")
 	subscribeCmd.Flags().StringVar(&webhookURL, "webhook", "", "URL to forward messages to")
+	subscribeCmd.Flags().IntVar(&webhookQueueSize, "webhook-queue-size", 100, "Max number of webhook messages to queue before dropping")
+	subscribeCmd.Flags().IntVar(&webhookTimeoutSecs, "webhook-timeout", 3, "Timeout in seconds for each webhook POST request")
 	rootCmd.AddCommand(subscribeCmd)
 }

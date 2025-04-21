@@ -86,6 +86,17 @@ You can combine both persistence and webhook forwarding:
 ./mump2p subscribe --topic=test-topic --persist=/path/to/storage.log --webhook=https://your-server.com/webhook
 ```
 
+Advanced webhook options:
+
+```sh
+./mump2p subscribe --topic=test-topic --webhook=https://your-server.com/webhook --webhook-queue-size=200 --webhook-timeout=5
+```
+
+here:
+
+- `--webhook-queue-size:` Max number of webhook messages to queue before dropping (default: 100)
+- `--webhook-timeout:` Timeout in seconds for each webhook POST request (default: 3)
+
 ## Check Rate Limits & Usage
 
 ```sh
