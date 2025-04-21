@@ -10,7 +10,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "mump2p",
 	Short: "CLI to interact with OptimumP2P directly via Go",
-	Long: `optcli is a developer tool for interacting with OptimumP2P
+	Long: `mump2p is a developer tool for interacting with OptimumP2P
 without relying on the HTTP server. It directly invokes Go services.`,
 }
 

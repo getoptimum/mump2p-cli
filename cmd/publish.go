@@ -58,7 +58,7 @@ var publishCmd = &cobra.Command{
 
 		body, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode != 200 {
-			return fmt.Errorf("❌ publish error: %s", string(body))
+			return fmt.Errorf("publish error: %s", string(body))
 		}
 
 		fmt.Println("✅ Published via HTTP")

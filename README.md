@@ -9,11 +9,13 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 This CLI allows you to:
 
 - [x] Publish messages to topics
-- [ ] Subscribe to real-time message streams
+- [x] Subscribe to real-time message streams
 - [x] JWT-based login/logout and token refresh
 - [x] Local rate-limiting (publish count, quota, max size)
 - [x] Usage statistics reporting
-
+- [x] Persist messages to local storage
+- [x] Forward messages to webhook endpoints (important: webhook take `POST` http method)
+  
 ---
 
 ## Installation
@@ -63,7 +65,25 @@ Message size and rate limits will be validated using the authenticated token cla
 ### Subscribe to a Topic
 
 ```sh
-TODO::
+./mump2p subscribe --topic=test-topic
+```
+
+Subscribe and persist messages to a local file:
+
+```sh
+./mump2p subscribe --topic=test-topic --persist=/path/to/storage/messages.log
+```
+
+Subscribe and forward messages to a webhook:
+
+```sh
+./mump2p subscribe --topic=test-topic --webhook=https://your-server.com/webhook
+```
+
+You can combine both persistence and webhook forwarding:
+
+```sh
+./mump2p subscribe --topic=test-topic --persist=/path/to/storage.log --webhook=https://your-server.com/webhook
 ```
 
 ## Check Rate Limits & Usage
@@ -82,9 +102,10 @@ This shows:
 ## Roadmap
 
 - [x] Publish Message
-- [ ] Subscribe Message
+- [x] Subscribe Message
 - [x] JWT-based login/logout/refresh
 - [x] Token-based rate limits
 - [x] Usage tracking (usage command)
-- [ ] Real-time stream mode
-- [ ] `follow` mode for replaying logs
+- [x] Real-time stream mode
+- [x] Message persistence
+- [x] Webhook forwarding
