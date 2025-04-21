@@ -23,7 +23,15 @@ This CLI allows you to:
 ```sh
 git clone https://github.com/getoptimum/optcli
 cd optcli
+# config ldflags
+export DOMAIN="xxx"
+export CLIENT_ID="xxx"
+export SERVICE_URL="xxx"
 make build
+
+# or
+DOMAIN="xxx" CLIENT_ID="xxx" SERVICE_URL="xxx" make build
+
 ```
 
 ## Authentication
