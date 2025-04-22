@@ -79,7 +79,7 @@ Message size and rate limits will be validated using the authenticated token cla
 Subscribe and persist messages to a local file:
 
 ```sh
-./mump2p subscribe --topic=test-topic --persist=/path/to/storage/messages.log
+./mump2p subscribe --topic=test-topic --persist=/path/to/
 ```
 
 Subscribe and forward messages to a webhook:
@@ -91,7 +91,7 @@ Subscribe and forward messages to a webhook:
 You can combine both persistence and webhook forwarding:
 
 ```sh
-./mump2p subscribe --topic=test-topic --persist=/path/to/storage.log --webhook=https://your-server.com/webhook
+./mump2p subscribe --topic=test-topic --persist=/path/to/ --webhook=https://your-server.com/webhook
 ```
 
 Advanced webhook options:

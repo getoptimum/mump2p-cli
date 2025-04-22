@@ -41,7 +41,7 @@ var usageCmd = &cobra.Command{
 		// display usage statistics
 		fmt.Printf("  Publish (hour):     %d / %d\n", stats.PublishCount, stats.PublishLimitPerHour)
 		fmt.Printf("  Publish (second):   %d / %d\n", stats.SecondPublishCount, stats.PublishLimitPerSec)
-		fmt.Printf("  Data Used:          %.2f MB / %.2f MB\n", float64(stats.BytesPublished)/(1<<20), float64(stats.DailyQuota)/(1<<20))
+		fmt.Printf("  Data Used:          %.4f MB / %.4f MB\n", float64(stats.BytesPublished)/(1<<20), float64(stats.DailyQuota)/(1<<20))
 		fmt.Printf("  Next Reset:         %s (%s from now)\n", stats.NextReset.Format(time.RFC822), stats.TimeUntilReset)
 
 		if !stats.LastPublishTime.IsZero() {

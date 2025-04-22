@@ -51,6 +51,13 @@ var subscribeCmd = &cobra.Command{
 		// setup persistence if path is provided
 		var persistFile *os.File
 		if persistPath != "" {
+			// check if persistPath is a directory or ends with a directory separator
+			fileInfo, err := os.Stat(persistPath)
+			if err == nil && fileInfo.IsDir() || strings.HasSuffix(persistPath, "/") || strings.HasSuffix(persistPath, "\\") {
+				// If it's a directory, append a default filename
+				persistPath = filepath.Join(persistPath, "messages.log")
+			}
+
 			// create directory if it doesn't exist
 			if err := os.MkdirAll(filepath.Dir(persistPath), 0755); err != nil {
 				return fmt.Errorf("failed to create persistence directory: %v", err)
