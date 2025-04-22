@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/getoptimum/optcli/internal/auth"
@@ -15,12 +19,28 @@ import (
 var (
 	pubTopic   string
 	pubMessage string
+	file       string
 )
+
+// PublishPayload matches the expected JSON body on the server
+type PublishPayload struct {
+	Topic       string   `json:"topic"`
+	Protocol    []string `json:"protocol"`
+	MessageSize int64    `json:"message_size"`
+	Payload     string   `json:"payload"`
+}
 
 var publishCmd = &cobra.Command{
 	Use:   "publish",
 	Short: "Publish a message to the OptimumP2P via HTTP",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if pubMessage == "" && file == "" {
+			return errors.New("either --message or --file must be provided")
+		}
+		if pubMessage != "" && file != "" {
+			return errors.New("only one of --message or --file should be used at a time")
+		}
+
 		authClient := auth.NewClient()
 		storage := auth.NewStorage()
 		token, err := authClient.GetValidToken(storage)
@@ -37,41 +57,70 @@ var publishCmd = &cobra.Command{
 		if !claims.IsActive {
 			return fmt.Errorf("your account is inactive, please contact support")
 		}
-		// service url
-		srcUrl := config.LoadConfig().ServiceUrl
-		// TODO:: change the API, use only optimump2p and message size based on the message itself
-		// TODO:: validate message as per allowed size
-		// TODO:: send message correctly (after merging optp2p PR it should be ready to be addressed)
-		reqBody := fmt.Sprintf(`{"topic": "%s", "protocol": ["%s"], "message_size": %d}`, pubTopic, "optimump2p", config.DefaultMaxMessageSize)
+		var (
+			data   []byte
+			source string
+		)
 
-		request, err := http.NewRequest("POST", srcUrl+"/api/publish", strings.NewReader(reqBody))
+		if file != "" {
+			content, err := os.ReadFile(file)
+			if err != nil {
+				return fmt.Errorf("failed to read file: %v", err)
+			}
+			data = content
+			source = file
+		} else {
+			data = []byte(pubMessage)
+			source = "inline message"
+		}
+		// message size
+		messageSize := int64(len(data))
+
+		limiter, err := ratelimit.NewRateLimiter(claims)
+		if err != nil {
+			return fmt.Errorf("rate limiter setup failed: %v", err)
+		}
+
+		// check all rate limits: size, quota, per-hr, per-sec
+		if err := limiter.CheckPublishAllowed(messageSize); err != nil {
+			return err
+		}
+
+		// encode and prepare
+		reqData := PublishPayload{
+			Topic:       pubTopic,
+			Protocol:    []string{"optimump2p"},
+			MessageSize: messageSize,
+			Payload:     hex.EncodeToString(data),
+		}
+		reqBytes, err := json.Marshal(reqData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal publish request: %v", err)
+		}
+
+		url := config.LoadConfig().ServiceUrl + "/api/publish?use_real=true"
+		req, err := http.NewRequest("POST", url, strings.NewReader(string(reqBytes)))
 		if err != nil {
 			return err
 		}
-		request.Header.Set("Authorization", "Bearer "+token.Token)
-		request.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token.Token)
+		req.Header.Set("Content-Type", "application/json")
 
-		client := &http.Client{}
-		resp, err := client.Do(request)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return fmt.Errorf("HTTP publish failed: %v", err)
 		}
-		defer resp.Body.Close() //nolint:errcheck
-
+		defer resp.Body.Close()
 		body, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode != 200 {
 			return fmt.Errorf("publish error: %s", string(body))
 		}
 
-		fmt.Println("✅ Published via HTTP")
+		fmt.Println("✅ Published", source)
 		fmt.Println(string(body))
-		// Record local usage
-		if err == nil {
-			limiter, err := ratelimit.NewRateLimiter(claims)
-			if err == nil {
-				// TODO:: as per the message itself.
-				_ = limiter.RecordPublish(config.DefaultMaxMessageSize) // ignore error silently
-			}
+
+		if limiter, err := ratelimit.NewRateLimiter(claims); err == nil {
+			_ = limiter.RecordPublish(messageSize) // update quota (fail silently)
 		}
 		return nil
 	},
@@ -79,7 +128,8 @@ var publishCmd = &cobra.Command{
 
 func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
-	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string (used to estimate message size)")
+	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string (should be more than allowed size)")
+	publishCmd.Flags().StringVar(&file, "file", "", "File (should be more than allowed size)")
 	publishCmd.MarkFlagRequired("topic") //nolint:errcheck
 	rootCmd.AddCommand(publishCmd)
 }

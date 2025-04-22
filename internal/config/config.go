@@ -2,7 +2,9 @@ package config
 
 const (
 	// Maximum publish message per hour.
-	DefaultMaxPublishRate = 100
+	DefaultMaxPublishPerHour = 100
+	// Maximum publish message per second.
+	DefaultMaxPublishPerSec = 2
 	// Maximum message size in bytes each operation.
 	DefaultMaxMessageSize = 2 << 20 // 2MB
 	// Maximum message bytes per day.

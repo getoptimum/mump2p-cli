@@ -91,7 +91,8 @@ var whoamiCmd = &cobra.Command{
 		// display rate limit information
 		fmt.Println("\nRate Limits:")
 		fmt.Println("------------")
-		fmt.Printf("Publish Rate:  %d per hour\n", claims.MaxPublishRate)
+		fmt.Printf("Publish Rate:  %d per hour\n", claims.MaxPublishPerHour)
+		fmt.Printf("Publish Rate:  %d per second\n", claims.MaxPublishPerSec)
 		fmt.Printf("Max Message Size:  %.2f MB\n", float64(claims.MaxMessageSize)/(1<<20))
 		fmt.Printf("Daily Quota:       %.2f MB\n", float64(claims.DailyQuota)/(1<<20))
 

@@ -4,23 +4,27 @@ import "time"
 
 // UsageData represents persistent usage metrics
 type UsageData struct {
-	PublishCount    int       `json:"publish_count"`
-	BytesPublished  int64     `json:"bytes_published"`
-	LastReset       time.Time `json:"last_reset"`
-	LastPublishTime time.Time `json:"last_publish_time,omitempty"`
-	LastSubTime     time.Time `json:"last_subscribe_time,omitempty"`
+	PublishCount       int
+	BytesPublished     int64
+	LastReset          time.Time
+	LastPublishTime    time.Time
+	LastSubTime        time.Time
+	LastSecondTime     time.Time
+	SecondPublishCount int
 }
 
 // UsageStats represents usage statistics and rate limits
 type UsageStats struct {
-	PublishCount      int
-	PublishLimit      int
-	BytesPublished    int64
-	DailyQuota        int64
-	NextReset         time.Time
-	TimeUntilReset    time.Duration
-	LastPublishTime   time.Time
-	LastSubscribeTime time.Time
+	PublishCount        int
+	PublishLimitPerHour int
+	PublishLimitPerSec  int
+	SecondPublishCount  int
+	BytesPublished      int64
+	DailyQuota          int64
+	NextReset           time.Time
+	TimeUntilReset      time.Duration
+	LastPublishTime     time.Time
+	LastSubscribeTime   time.Time
 }
 
 // LimitError represents a rate limit exceeded error

@@ -36,10 +36,11 @@ type TokenClaims struct {
 	ExpiresAt time.Time
 
 	// Custom claims for rate limiting
-	IsActive       bool   // Is active allows/rejects the request
-	MaxPublishRate int    // Max publish operations per hour
-	MaxMessageSize int64  // Maximum message size in bytes
-	DailyQuota     int64  // Maximum bytes per day
-	ClientID       string // Client ID that requested the token
-	LimitsSetAt    int64  // Timestamp when limits were set
+	IsActive          bool   // Is active allows/rejects the request
+	MaxMessageSize    int64  // Maximum message size in bytes
+	MaxPublishPerHour int    // Max publish operations per hour
+	MaxPublishPerSec  int    // Max publish operations per sec
+	DailyQuota        int64  // Maximum bytes per day
+	ClientID          string // Client ID that requested the token
+	LimitsSetAt       int64  // Timestamp when limits were set
 }

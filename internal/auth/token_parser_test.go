@@ -29,24 +29,26 @@ func TestParseToken(t *testing.T) {
 		{
 			name: "full valid claims",
 			claims: jwt.MapClaims{
-				"sub":              "user123",
-				"iat":              float64(now),
-				"exp":              float64(now + 3600),
-				"client_id":        "cli-app",
-				"limits_set_at":    float64(now - 100),
-				"is_active":        true,
-				"max_publish_rate": float64(100),
-				"max_message_size": float64(1048576),
-				"daily_quota":      float64(1073741824),
+				"sub":                  "user123",
+				"iat":                  float64(now),
+				"exp":                  float64(now + 3600),
+				"client_id":            "cli-app",
+				"limits_set_at":        float64(now - 100),
+				"is_active":            true,
+				"max_publish_per_hour": float64(100),
+				"max_publish_per_sec":  float64(2),
+				"max_message_size":     float64(1048576),
+				"daily_quota":          float64(1073741824),
 			},
 			expectErr: false,
 			expectProps: TokenClaims{
-				Subject:        "user123",
-				ClientID:       "cli-app",
-				IsActive:       true,
-				MaxPublishRate: 100,
-				MaxMessageSize: 1048576,
-				DailyQuota:     1073741824,
+				Subject:           "user123",
+				ClientID:          "cli-app",
+				IsActive:          true,
+				MaxPublishPerHour: 100,
+				MaxPublishPerSec:  2,
+				MaxMessageSize:    1048576,
+				DailyQuota:        1073741824,
 			},
 		},
 		{
@@ -57,11 +59,12 @@ func TestParseToken(t *testing.T) {
 			},
 			expectErr: false,
 			expectProps: TokenClaims{
-				Subject:        "anon",
-				IsActive:       false,
-				MaxPublishRate: config.DefaultMaxPublishRate,
-				MaxMessageSize: config.DefaultMaxMessageSize,
-				DailyQuota:     config.DefaultDailyQuota,
+				Subject:           "anon",
+				IsActive:          false,
+				MaxPublishPerHour: config.DefaultMaxPublishPerHour,
+				MaxPublishPerSec:  config.DefaultMaxPublishPerSec,
+				MaxMessageSize:    config.DefaultMaxMessageSize,
+				DailyQuota:        config.DefaultDailyQuota,
 			},
 		},
 		{
@@ -92,7 +95,8 @@ func TestParseToken(t *testing.T) {
 				require.Equal(t, tc.expectProps.Subject, claims.Subject)
 				require.Equal(t, tc.expectProps.ClientID, claims.ClientID)
 				require.Equal(t, tc.expectProps.IsActive, claims.IsActive)
-				require.Equal(t, tc.expectProps.MaxPublishRate, claims.MaxPublishRate)
+				require.Equal(t, tc.expectProps.MaxPublishPerHour, claims.MaxPublishPerHour)
+				require.Equal(t, tc.expectProps.MaxPublishPerSec, claims.MaxPublishPerSec)
 				require.Equal(t, tc.expectProps.MaxMessageSize, claims.MaxMessageSize)
 				require.Equal(t, tc.expectProps.DailyQuota, claims.DailyQuota)
 			}

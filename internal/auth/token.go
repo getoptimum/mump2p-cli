@@ -49,53 +49,43 @@ func (p *TokenParser) ParseToken(tokenString string) (*TokenClaims, error) {
 		}
 	}
 
-	// standard claims
-	tokenClaims := &TokenClaims{}
+	tc := &TokenClaims{
+		IsActive:          claims["is_active"] == true,
+		MaxPublishPerHour: intFromClaims(claims, "max_publish_per_hour", config.DefaultMaxPublishPerHour),
+		MaxPublishPerSec:  intFromClaims(claims, "max_publish_per_sec", config.DefaultMaxPublishPerSec),
+		MaxMessageSize:    int64FromClaims(claims, "max_message_size", config.DefaultMaxMessageSize),
+		DailyQuota:        int64FromClaims(claims, "daily_quota", config.DefaultDailyQuota),
+	}
 
 	if sub, ok := claims["sub"].(string); ok {
-		tokenClaims.Subject = sub
+		tc.Subject = sub
 	}
-
 	if iat, ok := claims["iat"].(float64); ok {
-		tokenClaims.IssuedAt = time.Unix(int64(iat), 0)
+		tc.IssuedAt = time.Unix(int64(iat), 0)
 	}
-
 	if exp, ok := claims["exp"].(float64); ok {
-		tokenClaims.ExpiresAt = time.Unix(int64(exp), 0)
+		tc.ExpiresAt = time.Unix(int64(exp), 0)
+	}
+	if cid, ok := claims["client_id"].(string); ok {
+		tc.ClientID = cid
+	}
+	if lsa, ok := claims["limits_set_at"].(float64); ok {
+		tc.LimitsSetAt = int64(lsa)
 	}
 
-	if clientID, ok := claims["client_id"].(string); ok {
-		tokenClaims.ClientID = clientID
-	}
+	return tc, nil
+}
 
-	if limitsSetAt, ok := claims["limits_set_at"].(float64); ok {
-		tokenClaims.LimitsSetAt = int64(limitsSetAt)
+func intFromClaims(c jwt.MapClaims, key string, def int) int {
+	if v, ok := c[key].(float64); ok {
+		return int(v)
 	}
+	return def
+}
 
-	// custom claims
-	if active, ok := claims["is_active"].(bool); ok {
-		tokenClaims.IsActive = active
-	} else {
-		tokenClaims.IsActive = false
+func int64FromClaims(c jwt.MapClaims, key string, def int64) int64 {
+	if v, ok := c[key].(float64); ok {
+		return int64(v)
 	}
-
-	if rate, ok := claims["max_publish_rate"].(float64); ok {
-		tokenClaims.MaxPublishRate = int(rate)
-	} else {
-		tokenClaims.MaxPublishRate = config.DefaultMaxPublishRate
-	}
-
-	if size, ok := claims["max_message_size"].(float64); ok {
-		tokenClaims.MaxMessageSize = int64(size)
-	} else {
-		tokenClaims.MaxMessageSize = config.DefaultMaxMessageSize
-	}
-
-	if quota, ok := claims["daily_quota"].(float64); ok {
-		tokenClaims.DailyQuota = int64(quota)
-	} else {
-		tokenClaims.DailyQuota = config.DefaultDailyQuota
-	}
-
-	return tokenClaims, nil
+	return def
 }
