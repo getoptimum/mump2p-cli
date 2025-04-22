@@ -26,7 +26,7 @@ func NewClient() *Client {
 		domain:   cfg.AuthDomain,
 		clientID: cfg.AuthClientID,
 		audience: cfg.AuthAudience,
-		scope:    "openid,email,offline_access",
+		scope:    "openid email offline_access",
 	}
 }
 
@@ -102,6 +102,7 @@ func (c *Client) pollForToken(deviceCode *DeviceCodeResponse) (*StoredToken, err
 		"grant_type":  "urn:ietf:params:oauth:grant-type:device_code",
 		"device_code": deviceCode.DeviceCode,
 		"client_id":   c.clientID,
+		"scope":       c.scope,
 	}
 
 	payloadBytes, err := json.Marshal(payload)
