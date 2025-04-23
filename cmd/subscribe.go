@@ -68,7 +68,7 @@ var subscribeCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to open persistence file: %v", err)
 			}
-			defer persistFile.Close()
+			defer persistFile.Close() //nolint:errcheck
 
 			fmt.Printf("Persisting data to: %s\n", persistPath)
 		}
@@ -102,7 +102,7 @@ var subscribeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("websocket connection failed: %v", err)
 		}
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 
 		fmt.Printf("Listening for messages on topic '%s'... Press Ctrl+C to exit\n", subTopic)
 		// webhook queue and worker
@@ -129,7 +129,7 @@ var subscribeCmd = &cobra.Command{
 						fmt.Printf("Webhook request error: %v\n", err)
 						return
 					}
-					defer resp.Body.Close()
+					defer resp.Body.Close() //nolint:errcheck
 
 					if resp.StatusCode >= 400 {
 						fmt.Printf("Webhook responded with status code: %d\n", resp.StatusCode)
@@ -156,7 +156,7 @@ var subscribeCmd = &cobra.Command{
 				// persist
 				if persistFile != nil {
 					timestamp := time.Now().Format(time.RFC3339)
-					if _, err := persistFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, msgStr)); err != nil {
+					if _, err := persistFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, msgStr)); err != nil { //nolint:staticcheck
 						fmt.Printf("Error writing to persistence file: %v\n", err)
 					}
 				}
@@ -189,7 +189,7 @@ var subscribeCmd = &cobra.Command{
 
 func init() {
 	subscribeCmd.Flags().StringVar(&subTopic, "topic", "", "Topic to subscribe to")
-	subscribeCmd.MarkFlagRequired("topic")
+	subscribeCmd.MarkFlagRequired("topic") //nolint:errcheck
 	subscribeCmd.Flags().StringVar(&persistPath, "persist", "", "Path to file where messages will be stored")
 	subscribeCmd.Flags().StringVar(&webhookURL, "webhook", "", "URL to forward messages to")
 	subscribeCmd.Flags().IntVar(&webhookQueueSize, "webhook-queue-size", 100, "Max number of webhook messages to queue before dropping")

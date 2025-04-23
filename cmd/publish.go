@@ -110,7 +110,7 @@ var publishCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("HTTP publish failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 		body, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode != 200 {
 			return fmt.Errorf("publish error: %s", string(body))
