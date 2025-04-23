@@ -4,6 +4,8 @@
 
 It supports authenticated publishing, subscribing, rate-limited usage tracking, and JWT session management.
 
+**[Detailed User Guide - Step-by-step instructions for all features](./docs/guide.md)**
+
 ---
 
 This CLI allows you to:
