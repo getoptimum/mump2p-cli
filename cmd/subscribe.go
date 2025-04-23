@@ -202,6 +202,6 @@ func init() {
 	subscribeCmd.Flags().StringVar(&webhookURL, "webhook", "", "URL to forward messages to")
 	subscribeCmd.Flags().IntVar(&webhookQueueSize, "webhook-queue-size", 100, "Max number of webhook messages to queue before dropping")
 	subscribeCmd.Flags().IntVar(&webhookTimeoutSecs, "webhook-timeout", 3, "Timeout in seconds for each webhook POST request")
-	publishCmd.Flags().StringVar(&subServiceURL, "service-url", "", "Override the default service URL")
+	subscribeCmd.Flags().StringVar(&subServiceURL, "service-url", "", "Override the default service URL")
 	rootCmd.AddCommand(subscribeCmd)
 }
