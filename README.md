@@ -72,6 +72,12 @@ To logout:
 
 Message size and rate limits will be validated using the authenticated token claims. CLI do it internally.
 
+(optional, custom endpoint)
+
+```sh
+./mump2p publish --topic=test-topic --message="new block 1234" --service-url="https://your-custom-endpoint.com"
+```
+
 ### Subscribe to a Topic
 
 ```sh
@@ -102,10 +108,17 @@ Advanced webhook options:
 ./mump2p subscribe --topic=test-topic --webhook=https://your-server.com/webhook --webhook-queue-size=200 --webhook-timeout=5
 ```
 
+(optional, custom endpoint)
+
+```sh
+./mump2p subscribe --topic=test-topic --service-url="https://your-custom-endpoint.com"
+```
+
 here:
 
 - `--webhook-queue-size:` Max number of webhook messages to queue before dropping (default: 100)
 - `--webhook-timeout:` Timeout in seconds for each webhook POST request (default: 3)
+- `--service-url`: Optional custom service url
 
 ## Check Rate Limits & Usage
 

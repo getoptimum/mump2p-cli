@@ -20,6 +20,8 @@ var (
 	pubTopic   string
 	pubMessage string
 	file       string
+	//optional
+	serviceURL string
 )
 
 // PublishPayload matches the expected JSON body on the server
@@ -98,7 +100,13 @@ var publishCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal publish request: %v", err)
 		}
 
-		url := config.LoadConfig().ServiceUrl + "/api/publish?use_real=true"
+		// use custom service URL if provided, otherwise use the default
+		baseURL := config.LoadConfig().ServiceUrl
+		if serviceURL != "" {
+			baseURL = serviceURL
+		}
+
+		url := baseURL + "/api/publish?use_real=true"
 		req, err := http.NewRequest("POST", url, strings.NewReader(string(reqBytes)))
 		if err != nil {
 			return err
@@ -130,6 +138,7 @@ func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
 	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string (should be more than allowed size)")
 	publishCmd.Flags().StringVar(&file, "file", "", "File (should be more than allowed size)")
+	publishCmd.Flags().StringVar(&serviceURL, "service-url", "", "Override the default service URL")
 	publishCmd.MarkFlagRequired("topic") //nolint:errcheck
 	rootCmd.AddCommand(publishCmd)
 }

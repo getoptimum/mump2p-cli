@@ -24,6 +24,8 @@ var (
 	webhookURL         string
 	webhookQueueSize   int
 	webhookTimeoutSecs int
+	//optional
+	subServiceURL string
 )
 
 var subscribeCmd = &cobra.Command{
@@ -84,7 +86,13 @@ var subscribeCmd = &cobra.Command{
 		//signal handling for graceful shutdown
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
 		srcUrl := config.LoadConfig().ServiceUrl
+		// use custom service URL if provided, otherwise use the default
+		if subServiceURL != "" {
+			srcUrl = subServiceURL
+			fmt.Printf("Using custom service URL: %s\n", srcUrl)
+		}
 		// setup ws connection
 		fmt.Println("Opening WebSocket connection...")
 
@@ -194,5 +202,6 @@ func init() {
 	subscribeCmd.Flags().StringVar(&webhookURL, "webhook", "", "URL to forward messages to")
 	subscribeCmd.Flags().IntVar(&webhookQueueSize, "webhook-queue-size", 100, "Max number of webhook messages to queue before dropping")
 	subscribeCmd.Flags().IntVar(&webhookTimeoutSecs, "webhook-timeout", 3, "Timeout in seconds for each webhook POST request")
+	publishCmd.Flags().StringVar(&subServiceURL, "service-url", "", "Override the default service URL")
 	rootCmd.AddCommand(subscribeCmd)
 }
