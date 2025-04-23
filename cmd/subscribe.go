@@ -3,7 +3,9 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,6 +29,11 @@ var (
 	//optional
 	subServiceURL string
 )
+
+// SubscribeRequest represents the HTTP POST payload
+type SubscribeRequest struct {
+	Topic string `json:"topic"`
+}
 
 var subscribeCmd = &cobra.Command{
 	Use:   "subscribe",
@@ -93,6 +100,39 @@ var subscribeCmd = &cobra.Command{
 			srcUrl = subServiceURL
 			fmt.Printf("Using custom service URL: %s\n", srcUrl)
 		}
+
+		// send HTTP POST subscription request first
+		fmt.Println("Sending HTTP POST subscription request...")
+		httpEndpoint := fmt.Sprintf("%s/api/subscribe", srcUrl)
+		reqData := SubscribeRequest{
+			Topic: subTopic,
+		}
+		reqBytes, err := json.Marshal(reqData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal subscription request: %v", err)
+		}
+
+		req, err := http.NewRequest("POST", httpEndpoint, bytes.NewBuffer(reqBytes))
+		if err != nil {
+			return fmt.Errorf("failed to create HTTP request: %v", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token.Token)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("HTTP POST subscribe failed: %v", err)
+		}
+
+		defer resp.Body.Close() //nolint:errcheck
+		body, _ := io.ReadAll(resp.Body)
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("HTTP POST subscribe error: %s", string(body))
+		}
+
+		fmt.Printf("HTTP POST subscription successful: %s\n", string(body))
+
 		// setup ws connection
 		fmt.Println("Opening WebSocket connection...")
 
