@@ -26,7 +26,6 @@ lint: ## Run linter
 build: ## Build the CLI binary
 	GOOS=darwin GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-mac .
 	GOOS=linux GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-linux .
-	GOOS=windows GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-window .
 
 release: build ## Build and create GitHub release
 	@echo "Creating release for $(VERSION)"
@@ -36,7 +35,6 @@ release: build ## Build and create GitHub release
 		--notes "Release notes for $(VERSION)" \
 		$(BUILD_DIR)/$(CLI_NAME)-mac \
 		$(BUILD_DIR)/$(CLI_NAME)-linux \
-		$(BUILD_DIR)/$(CLI_NAME)-window
 		
 tag:
 	@echo "Calculating next RC tag..."

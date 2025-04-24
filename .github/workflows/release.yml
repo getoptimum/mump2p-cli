@@ -51,6 +51,12 @@ jobs:
             CLIENT_ID="${CLIENT_ID}" \
             AUDIENCE="${AUDIENCE}" \
             SERVICE_URL="${SERVICE_URL}"
+
+      - name: Set Release Variables
+        id: vars
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "CLI_NAME=$(make -s print-cli-name)" >> $GITHUB_ENV
       
       - name: Create Release
         run: |
@@ -58,5 +64,4 @@ jobs:
             --title "Release $(VERSION)" \
             --notes "Release notes for $(VERSION)" \
             dist/$(CLI_NAME)-mac \
-            dist/$(CLI_NAME)-linux \
-            dist/$(CLI_NAME)-window
+            dist/$(CLI_NAME)-linux
