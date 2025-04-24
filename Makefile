@@ -16,7 +16,7 @@ LD_FLAGS := -X github.com/getoptimum/optcli/internal/config.Domain=$(DOMAIN) \
             -X github.com/getoptimum/optcli/internal/config.Version=$(VERSION) \
             -X github.com/getoptimum/optcli/internal/config.CommitHash=$(COMMIT_HASH)
 
-.PHONY: all build run clean test help lint build tag release
+.PHONY: all build run clean test help lint build tag release print-cli-name
 
 all: lint build
 
@@ -26,6 +26,9 @@ lint: ## Run linter
 build: ## Build the CLI binary
 	GOOS=darwin GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-mac .
 	GOOS=linux GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-linux .
+
+print-cli-name: ## Print CLI name for CI/CD usage
+	@echo -n "$(CLI_NAME)"
 
 release: build ## Build and create GitHub release
 	@echo "Creating release for $(VERSION)"

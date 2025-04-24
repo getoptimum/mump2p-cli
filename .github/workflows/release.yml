@@ -40,7 +40,6 @@ jobs:
         run: |
           gh --version || (sudo apt-get update && sudo apt-get install -y gh)
 
-        # todo:: change it to org release token @santiago
       - name: Auth GH CLI using PAT 
         run: echo "${{ secrets.RELEASE_GH_TOKEN }}" | gh auth login --with-token
 
