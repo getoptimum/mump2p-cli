@@ -6,7 +6,6 @@ Download the appropriate binary for your system from the GitHub releases page:
 
 - `mump2p-mac` for macOS
 - `mump2p-linux` for Linux
-- `mump2p-window` for Windows
 
 Make the binary executable (Mac/Linux):
 
