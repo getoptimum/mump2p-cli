@@ -50,6 +50,8 @@ This will display:
 - Token validity status
 - Rate limits associated with your account
 
+**Important: After logging in, please share the email ID you used to sign up in the group, so we can activate your access.**
+
 ### Refresh Token
 
 If your token is about to expire, you can refresh it:
