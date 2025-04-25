@@ -1,4 +1,7 @@
 /mump2p
+/mump2p-linux
+/mump2p-mac
+
 /sim
 
 # IDE
@@ -13,3 +16,5 @@ cover.out
 
 # build
 dist
+
+.env
