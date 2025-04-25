@@ -59,8 +59,4 @@ jobs:
       
       - name: Create Release
         run: |
-          gh release create "${VERSION}" \
-            --title "Release ${VERSION}" \
-            --notes "Release notes for ${VERSION}" \
-            dist/"${CLI_NAME}"-mac \
-            dist/"${CLI_NAME}"-linux
+          make release
