@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getoptimum/optcli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/config"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/require"
 )

@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/getoptimum/optcli/internal/auth"
-	"github.com/getoptimum/optcli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/auth"
+	"github.com/getoptimum/mump2p-cli/internal/config"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )

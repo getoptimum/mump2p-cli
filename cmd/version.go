@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/getoptimum/optcli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

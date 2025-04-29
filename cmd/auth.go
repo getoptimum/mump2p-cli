@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/getoptimum/optcli/internal/auth"
+	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/spf13/cobra"
 )
 

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getoptimum/optcli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/config"
 )
 
 // Client handles Auth0 API interactions

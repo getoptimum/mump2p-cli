@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getoptimum/optcli/internal/auth"
+	"github.com/getoptimum/mump2p-cli/internal/auth"
 )
 
 // RateLimiter tracks and enforces rate limits
