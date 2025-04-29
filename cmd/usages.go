@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/getoptimum/optcli/internal/auth"
-	"github.com/getoptimum/optcli/internal/ratelimit"
+	"github.com/getoptimum/mump2p-cli/internal/auth"
+	"github.com/getoptimum/mump2p-cli/internal/ratelimit"
 	"github.com/spf13/cobra"
 )
 

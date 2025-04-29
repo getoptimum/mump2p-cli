@@ -9,12 +9,12 @@ CLIENT_ID    ?= ""
 AUDIENCE     ?= opt-login
 SERVICE_URL  ?= http://localhost:12080
 
-LD_FLAGS := -X github.com/getoptimum/optcli/internal/config.Domain=$(DOMAIN) \
-            -X github.com/getoptimum/optcli/internal/config.ClientID=$(CLIENT_ID) \
-            -X github.com/getoptimum/optcli/internal/config.Audience=$(AUDIENCE) \
-            -X github.com/getoptimum/optcli/internal/config.ServiceURL=$(SERVICE_URL) \
-            -X github.com/getoptimum/optcli/internal/config.Version=$(VERSION) \
-            -X github.com/getoptimum/optcli/internal/config.CommitHash=$(COMMIT_HASH)
+LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN) \
+            -X github.com/getoptimum/mump2p-cli/internal/config.ClientID=$(CLIENT_ID) \
+            -X github.com/getoptimum/mump2p-cli/internal/config.Audience=$(AUDIENCE) \
+            -X github.com/getoptimum/mump2p-cli/internal/config.ServiceURL=$(SERVICE_URL) \
+            -X github.com/getoptimum/mump2p-cli/internal/config.Version=$(VERSION) \
+            -X github.com/getoptimum/mump2p-cli/internal/config.CommitHash=$(COMMIT_HASH)
 
 .PHONY: all build run clean test help lint build tag release print-cli-name
 

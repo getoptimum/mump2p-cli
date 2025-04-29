@@ -23,8 +23,8 @@ This CLI allows you to:
 ## Installation
 
 ```sh
-git clone https://github.com/getoptimum/optcli
-cd optcli
+git clone https://github.com/getoptimum/mump2p-cli
+cd mump2p-cli
 # config ldflags
 export DOMAIN="xxx"
 export CLIENT_ID="xxx"

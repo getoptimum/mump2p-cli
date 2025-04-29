@@ -1,4 +1,4 @@
-module github.com/getoptimum/optcli
+module github.com/getoptimum/mump2p-cli
 
 go 1.24.1
 
