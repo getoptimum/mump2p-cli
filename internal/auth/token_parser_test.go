@@ -59,6 +59,7 @@ func TestParseToken(t *testing.T) {
 			},
 			expectErr: false,
 			expectProps: TokenClaims{
+				ClientID:          "anon", // if there is no client_id, subject is used as client_id
 				Subject:           "anon",
 				IsActive:          false,
 				MaxPublishPerHour: config.DefaultMaxPublishPerHour,
