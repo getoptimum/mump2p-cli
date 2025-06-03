@@ -222,7 +222,10 @@ By default, the CLI uses the first gateway in the list below. You can override t
 | `35.221.118.95` | Tokyo | `http://35.221.118.95:8080` | |
 | `34.142.205.26` | Singapore | `http://34.142.205.26:8080` | |
 
+> **Note:** More geo-locations coming soon!
+
 **Example: Using a different gateway:**
+
 ```sh
 ./mump2p-mac publish --topic=example-topic --message="Hello" --service-url="http://35.221.118.95:8080"
 ./mump2p-mac subscribe --topic=example-topic --service-url="http://34.142.205.26:8080"
