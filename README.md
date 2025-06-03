@@ -212,6 +212,22 @@ zsh: no such file or directory: ./mump2p
 
 ### **3. Service URL & Connectivity Issues**
 
+#### **Available Service URLs**
+
+By default, the CLI uses the first gateway in the list below. You can override this using the `--service-url` flag or by rebuilding with a different `SERVICE_URL`.
+
+| **Gateway Address** | **Location** | **URL** | **Notes** |
+|---------------------|--------------|---------|-----------|
+| `34.146.222.111` | Tokyo | `http://34.146.222.111:8080` | **Default** |
+| `35.221.118.95` | Tokyo | `http://35.221.118.95:8080` | |
+| `34.142.205.26` | Singapore | `http://34.142.205.26:8080` | |
+
+**Example: Using a different gateway:**
+```sh
+./mump2p-mac publish --topic=example-topic --message="Hello" --service-url="http://35.221.118.95:8080"
+./mump2p-mac subscribe --topic=example-topic --service-url="http://34.142.205.26:8080"
+```
+
 #### **Error: Connection refused**
 ```
 Error: HTTP publish failed: dial tcp [::1]:8080: connect: connection refused
@@ -228,6 +244,7 @@ Error: HTTP publish failed: dial tcp [::1]:8080: connect: connection refused
 - Verify correct hostname and port
 - Check `docker ps` for running containers
 - Use correct service URL
+- Try a different gateway from the table above
 
 ### **4. Rate Limiting & Usage Issues**
 
