@@ -70,6 +70,20 @@ To remove your stored authentication token:
 
 ---
 
+## Service URLs
+
+The CLI connects to different gateway servers around the world. By default, it uses the first available gateway, but you can specify a different one using the `--service-url` flag.
+
+For a complete list of available gateways and their locations, see: [Available Service URLs](../README.md#available-service-urls) in the README.
+
+**Example using a specific gateway:**
+```sh
+./mump2p publish --topic=test --message="Hello" --service-url="http://35.221.118.95:8080"
+./mump2p subscribe --topic=test --service-url="http://34.142.205.26:8080"
+```
+
+---
+
 ## Publishing Messages
 
 ### Publish a Text Message
