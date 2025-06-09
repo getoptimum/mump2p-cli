@@ -36,6 +36,14 @@ DOMAIN="xxx" CLIENT_ID="xxx" SERVICE_URL="xxx" make build
 
 ```
 
+## Version Compatibility
+
+**Important:** Always use the latest version binaries (currently **v0.0.1-rc3**) from the releases page. 
+
+**Deprecated Versions:**
+- ⚠️ **v0.0.1-rc2** and **v0.0.1-rc1** are deprecated and no longer supported
+- Please upgrade to **v0.0.1-rc3**
+
 ## Authentication
 
 Before publishing or subscribing, login via device flow:
