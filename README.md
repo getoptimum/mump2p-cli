@@ -36,6 +36,12 @@ DOMAIN="xxx" CLIENT_ID="xxx" SERVICE_URL="xxx" make build
 
 ```
 
+## Version Compatibility
+
+**Important:** Always use the latest version binaries (currently **v0.0.1-rc3**) from the releases page. The OptimumP2P CLI is designed to be backward compatible, so the latest binary will work with all supported gateway versions. 
+
+Using older CLI versions may result in compatibility issues or missing features. To ensure optimal performance and access to the latest improvements, rebuild or download the most recent binary release.
+
 ## Authentication
 
 Before publishing or subscribing, login via device flow:
