@@ -6,7 +6,7 @@ VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0
 COMMIT_HASH  ?= $(shell git rev-parse --short HEAD)
 DOMAIN       ?= ""
 CLIENT_ID    ?= ""
-AUDIENCE     ?= opt-login
+AUDIENCE     ?= optimum-login
 SERVICE_URL  ?= http://localhost:12080
 
 LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN) \
