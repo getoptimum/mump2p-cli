@@ -128,6 +128,21 @@ here:
 - `--webhook-timeout:` Timeout in seconds for each webhook POST request (default: 3)
 - `--service-url`: Optional custom service url
 
+## Example: Subscribe to a topic using WebSocket (default)
+
+```sh
+mump2p-cli subscribe --topic my-topic
+```
+
+## Example: Subscribe to a topic using gRPC stream
+
+```sh
+mump2p-cli subscribe --topic my-topic --grpc
+```
+
+- Use `--grpc` to enable gRPC streaming subscription instead of WebSocket.
+- All other flags (e.g., --persist, --webhook, --threshold) are supported in both modes.
+
 ## Check Rate Limits & Usage
 
 ```sh
