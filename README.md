@@ -131,13 +131,13 @@ here:
 ## Example: Subscribe to a topic using WebSocket (default)
 
 ```sh
-mump2p-cli subscribe --topic my-topic
+./mump2p-cli subscribe --topic my-topic
 ```
 
 ## Example: Subscribe to a topic using gRPC stream
 
 ```sh
-mump2p-cli subscribe --topic my-topic --grpc
+./mump2p-cli subscribe --topic my-topic --grpc
 ```
 
 - Use `--grpc` to enable gRPC streaming subscription instead of WebSocket.
