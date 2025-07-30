@@ -194,4 +194,17 @@ This will display:
 - **Rate Limit Errors:** Use mump2p usage to check your current usage against limits
 - **Connection Issues:** Verify your internet connection and firewall settings
 - **Webhook Failures:** Check that your webhook endpoint is accessible and properly configured to accept POST requests
+
+---
+
+## Next Steps
+
+Once you're comfortable with the basic CLI operations, explore advanced features and patterns in the **[Advanced Usage Guide](./advanced-guide.md)**, which covers:
+
+- Multi-topic concurrent subscriptions
+- Webhook integrations and data pipelines
+- Cross-region message distribution
+- Performance optimization and rate limiting
+- Real-time communication patterns
+- Integration with external systems
   
