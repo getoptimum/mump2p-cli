@@ -211,20 +211,20 @@ zsh: no such file or directory: ./mump2p
 **Causes:**
 - Using localhost when should use remote URL
 - Using remote URL when should use localhost
-- Service URL not matching actual gateway
+- Service URL not matching actual proxy
 
 **Solutions:**
 - Rebuild with correct SERVICE_URL
 - Use `--service-url` flag to override
-- Match SERVICE_URL to your actual gateway endpoint
+- Match SERVICE_URL to your actual proxy endpoint
 
 ### **3. Service URL & Connectivity Issues**
 
 #### **Available Service URLs**
 
-By default, the CLI uses the first gateway in the list below. You can override this using the `--service-url` flag or by rebuilding with a different `SERVICE_URL`.
+By default, the CLI uses the first proxy in the list below. You can override this using the `--service-url` flag or by rebuilding with a different `SERVICE_URL`.
 
-| **Gateway Address** | **Location** | **URL** | **Notes** |
+| **Proxy Address** | **Location** | **URL** | **Notes** |
 |---------------------|--------------|---------|-----------|
 | `34.146.222.111` | Tokyo | `http://34.146.222.111:8080` | **Default** |
 | `35.221.118.95` | Tokyo | `http://35.221.118.95:8080` | |
@@ -232,7 +232,7 @@ By default, the CLI uses the first gateway in the list below. You can override t
 
 > **Note:** More geo-locations coming soon!
 
-**Example: Using a different gateway:**
+**Example: Using a different proxy:**
 
 ```sh
 ./mump2p-mac publish --topic=example-topic --message="Hello" --service-url="http://35.221.118.95:8080"
@@ -245,17 +245,17 @@ Error: HTTP publish failed: dial tcp [::1]:8080: connect: connection refused
 ```
 
 **Causes:**
-- Gateway not running
+- Proxy not running
 - Wrong port or hostname
 - Firewall blocking connection
 - Service not listening on specified port
 
 **Solutions:**
-- Start gateway service
+- Start proxy service
 - Verify correct hostname and port
 - Check `docker ps` for running containers
 - Use correct service URL
-- Try a different gateway from the table above
+- Try a different proxy from the table above
 
 ### **4. Rate Limiting & Usage Issues**
 
@@ -348,6 +348,6 @@ Error: required flag(s) "topic" not set
 - Use `--help` flag liberally to understand command options
 - Test authentication first with `whoami` before trying other operations
 - Start with simple publish/subscribe before advanced features
-- Keep gateway and CLI logs visible during troubleshooting
+- Keep proxy and CLI logs visible during troubleshooting
 - Use [webhook.site](https://webhook.site/) for easy webhook testing
 - Check `usage` command regularly to monitor limits

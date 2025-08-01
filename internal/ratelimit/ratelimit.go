@@ -12,7 +12,7 @@ import (
 )
 
 // RateLimiter tracks and enforces rate limits
-// The CLI records locally the limit, and the gateway records it as well.
+// The CLI records locally the limit, and the proxy records it as well.
 type RateLimiter struct {
 	mu          sync.Mutex
 	tokenClaims *auth.TokenClaims
