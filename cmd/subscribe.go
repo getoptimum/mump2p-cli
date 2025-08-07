@@ -211,7 +211,7 @@ var subscribeCmd = &cobra.Command{
 				// persist
 				if persistFile != nil {
 					timestamp := time.Now().Format(time.RFC3339)
-					if _, err := persistFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, msgStr)); err != nil { //nolint:staticcheck
+					if _, err := persistFile.WriteString(fmt.Sprintf("[%s] [%s] %s\n", timestamp, subTopic, msgStr)); err != nil { //nolint:staticcheck
 						fmt.Printf("Error writing to persistence file: %v\n", err)
 					}
 				}
