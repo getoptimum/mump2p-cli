@@ -22,6 +22,34 @@ This CLI allows you to:
 
 ## Installation
 
+### Quick Install (Recommended)
+
+```sh
+curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash
+```
+
+This script will:
+- Automatically detect your OS and architecture
+- Download the latest release binary
+- Make it executable and ready to use
+- Works on Linux and macOS
+
+### Manual Installation
+
+Download the latest binary from [releases](https://github.com/getoptimum/mump2p-cli/releases/latest):
+
+```sh
+# For macOS
+curl -L -o mump2p https://github.com/getoptimum/mump2p-cli/releases/latest/download/mump2p-mac
+
+# For Linux
+curl -L -o mump2p https://github.com/getoptimum/mump2p-cli/releases/latest/download/mump2p-linux
+
+chmod +x mump2p
+```
+
+### Build from Source
+
 ```sh
 git clone https://github.com/getoptimum/mump2p-cli
 cd mump2p-cli
@@ -33,7 +61,6 @@ make build
 
 # or
 DOMAIN="xxx" CLIENT_ID="xxx" SERVICE_URL="xxx" make build
-
 ```
 
 ## Version Compatibility
