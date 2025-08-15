@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
+	// should be replaced by optimum-common
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
 	"github.com/getoptimum/mump2p-cli/internal/ratelimit"
 	"github.com/spf13/cobra"
+
+	ocauth "github.com/getoptimum/optimum-common/auth"
 )
 
 var (
@@ -47,9 +49,11 @@ var publishCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("authentication required: %v", err)
 		}
+		// old version before optimum-common
 		// parse token to check if the account is active
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
+		//parser := auth.NewTokenParser()
+		//claims, err := parser.ParseToken(token.Token)
+		claims, err := ocauth.ParseUnverified(token.Token)
 		if err != nil {
 			return fmt.Errorf("error parsing token: %v", err)
 		}

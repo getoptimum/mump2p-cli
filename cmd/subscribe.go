@@ -16,6 +16,7 @@ import (
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
+	ocauth "github.com/getoptimum/optimum-common/auth"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
@@ -49,9 +50,12 @@ var subscribeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("authentication required: %v", err)
 		}
+		// old way:
 		// parse token to check if the account is active
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
+		// parser := auth.NewTokenParser()
+		// claims, err := parser.ParseToken(token.Token)
+		// new version
+		claims, err := ocauth.ParseUnverified(token.Token)
 		if err != nil {
 			return fmt.Errorf("error parsing token: %v", err)
 		}
