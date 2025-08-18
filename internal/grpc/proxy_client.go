@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"time"
 
 	proto "github.com/getoptimum/mump2p-cli/proto"
 	grpcClient "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
 )
 
 // ProxyClient handles gRPC streaming connections to the proxy
@@ -27,11 +25,6 @@ func NewProxyClient(proxyAddr string) (*ProxyClient, error) {
 			grpcClient.MaxCallRecvMsgSize(math.MaxInt),
 			grpcClient.MaxCallSendMsgSize(math.MaxInt),
 		),
-		grpcClient.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                2 * time.Minute,
-			Timeout:             20 * time.Second,
-			PermitWithoutStream: false,
-		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to proxy: %v", err)
@@ -45,7 +38,7 @@ func NewProxyClient(proxyAddr string) (*ProxyClient, error) {
 }
 
 // Subscribe starts a gRPC stream subscription and returns a channel for receiving messages
-func (pc *ProxyClient) Subscribe(ctx context.Context, clientID string) (<-chan *proto.ProxyMessage, error) {
+func (pc *ProxyClient) Subscribe(ctx context.Context, clientID string, bufferSize int) (<-chan *proto.ProxyMessage, error) {
 	stream, err := pc.client.ClientStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open stream: %v", err)
@@ -60,7 +53,7 @@ func (pc *ProxyClient) Subscribe(ctx context.Context, clientID string) (<-chan *
 	}
 
 	// Create channel for receiving messages
-	msgChan := make(chan *proto.ProxyMessage, 100)
+	msgChan := make(chan *proto.ProxyMessage, bufferSize)
 
 	// Start goroutine to receive messages
 	go func() {

@@ -29,8 +29,9 @@ var (
 	webhookTimeoutSecs int
 	subThreshold       float32
 	//optional
-	subServiceURL string
-	useGRPC       bool // <-- new flag
+	subServiceURL  string
+	useGRPC        bool // <-- new flag
+	grpcBufferSize int  // gRPC message buffer size
 )
 
 // SubscribeRequest represents the HTTP POST payload
@@ -157,7 +158,7 @@ var subscribeCmd = &cobra.Command{
 			}
 			defer client.Close()
 
-			msgChan, err := client.Subscribe(ctx, claims.ClientID)
+			msgChan, err := client.Subscribe(ctx, claims.ClientID, grpcBufferSize)
 			if err != nil {
 				return fmt.Errorf("gRPC subscribe failed: %v", err)
 			}
@@ -340,5 +341,6 @@ func init() {
 	subscribeCmd.Flags().Float32Var(&subThreshold, "threshold", 0.1, "Delivery threshold (0.1 to 1.0)")
 	subscribeCmd.Flags().StringVar(&subServiceURL, "service-url", "", "Override the default service URL")
 	subscribeCmd.Flags().BoolVar(&useGRPC, "grpc", false, "Use gRPC stream for subscription instead of WebSocket")
+	subscribeCmd.Flags().IntVar(&grpcBufferSize, "grpc-buffer-size", 100, "gRPC message buffer size (default: 100)")
 	rootCmd.AddCommand(subscribeCmd)
 }
