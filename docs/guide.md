@@ -72,37 +72,17 @@ To remove your stored authentication token:
 
 ## Service URLs
 
-The CLI connects to different gateway servers around the world. By default, it uses the first available gateway, but you can specify a different one using the `--service-url` flag.
+The CLI connects to different proxy servers around the world. By default, it uses the first available proxy, but you can specify a different one using the `--service-url` flag.
 
-For a complete list of available gateways and their locations, see: [Available Service URLs](../README.md#available-service-urls) in the README.
+For a complete list of available proxies and their locations, see: [Available Service URLs](../README.md#available-service-urls) in the README.
 
-**Example using a specific gateway:**
+**Example using a specific proxy:**
 ```sh
 ./mump2p publish --topic=test --message="Hello" --service-url="http://35.221.118.95:8080"
 ./mump2p subscribe --topic=test --service-url="http://34.142.205.26:8080"
 ```
 
 ---
-
-## Publishing Messages
-
-### Publish a Text Message
-
-To publish a simple text message to a topic:
-
-```sh
-./mump2p publish --topic=your-topic-name --message="Your message content"
-```
-
-### Publish a File
-
-To publish the contents of a file:
-
-```sh
-./mump2p publish --topic=your-topic-name --file=/path/to/your/file.json
-```
-
-Rate limits will be automatically applied based on your authentication token.
 
 ## Subscribing to Messages
 
@@ -161,6 +141,28 @@ You can both save messages locally and forward them to a webhook:
   --persist=/path/to/messages.log \
   --webhook=https://your-server.com/webhook
 ```
+
+---
+
+## Publishing Messages
+
+### Publish a Text Message
+
+To publish a simple text message to a topic:
+
+```sh
+./mump2p publish --topic=your-topic-name --message="Your message content"
+```
+
+### Publish a File
+
+To publish the contents of a file:
+
+```sh
+./mump2p publish --topic=your-topic-name --file=/path/to/your/file.json
+```
+
+Rate limits will be automatically applied based on your authentication token.
 
 ---
 
