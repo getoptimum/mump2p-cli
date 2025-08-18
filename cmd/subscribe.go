@@ -151,9 +151,9 @@ var subscribeCmd = &cobra.Command{
 			}
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			client, err := grpcsub.NewGatewayClient(grpcAddr)
+			client, err := grpcsub.NewProxyClient(grpcAddr)
 			if err != nil {
-				return fmt.Errorf("failed to connect to gRPC gateway: %v", err)
+				return fmt.Errorf("failed to connect to gRPC proxy: %v", err)
 			}
 			defer client.Close()
 

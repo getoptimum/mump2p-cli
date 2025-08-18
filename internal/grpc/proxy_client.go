@@ -7,21 +7,21 @@ import (
 	"math"
 	"time"
 
-	proto "github.com/getoptimum/mump2p-cli/proto/grpc"
+	proto "github.com/getoptimum/mump2p-cli/proto"
 	grpcClient "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 )
 
-// GatewayClient handles gRPC streaming connections to the gateway
-type GatewayClient struct {
+// ProxyClient handles gRPC streaming connections to the proxy
+type ProxyClient struct {
 	conn   *grpcClient.ClientConn
-	client proto.GatewayStreamClient
+	client proto.ProxyStreamClient
 }
 
-// NewGatewayClient creates a new gRPC gateway client
-func NewGatewayClient(gatewayAddr string) (*GatewayClient, error) {
-	conn, err := grpcClient.Dial(gatewayAddr,
+// NewProxyClient creates a new gRPC proxy client
+func NewProxyClient(proxyAddr string) (*ProxyClient, error) {
+	conn, err := grpcClient.Dial(proxyAddr,
 		grpcClient.WithTransportCredentials(insecure.NewCredentials()),
 		grpcClient.WithDefaultCallOptions(
 			grpcClient.MaxCallRecvMsgSize(math.MaxInt),
@@ -34,25 +34,25 @@ func NewGatewayClient(gatewayAddr string) (*GatewayClient, error) {
 		}),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to gateway: %v", err)
+		return nil, fmt.Errorf("failed to connect to proxy: %v", err)
 	}
 
-	client := proto.NewGatewayStreamClient(conn)
-	return &GatewayClient{
+	client := proto.NewProxyStreamClient(conn)
+	return &ProxyClient{
 		conn:   conn,
 		client: client,
 	}, nil
 }
 
 // Subscribe starts a gRPC stream subscription and returns a channel for receiving messages
-func (gc *GatewayClient) Subscribe(ctx context.Context, clientID string) (<-chan *proto.GatewayMessage, error) {
-	stream, err := gc.client.ClientStream(ctx)
+func (pc *ProxyClient) Subscribe(ctx context.Context, clientID string) (<-chan *proto.ProxyMessage, error) {
+	stream, err := pc.client.ClientStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open stream: %v", err)
 	}
 
 	// Send initial client ID message
-	if err := stream.Send(&proto.GatewayMessage{
+	if err := stream.Send(&proto.ProxyMessage{
 		ClientId: clientID,
 		Type:     "subscribe",
 	}); err != nil {
@@ -60,7 +60,7 @@ func (gc *GatewayClient) Subscribe(ctx context.Context, clientID string) (<-chan
 	}
 
 	// Create channel for receiving messages
-	msgChan := make(chan *proto.GatewayMessage, 100)
+	msgChan := make(chan *proto.ProxyMessage, 100)
 
 	// Start goroutine to receive messages
 	go func() {
@@ -90,6 +90,26 @@ func (gc *GatewayClient) Subscribe(ctx context.Context, clientID string) (<-chan
 }
 
 // Close closes the gRPC connection
-func (gc *GatewayClient) Close() error {
-	return gc.conn.Close()
+func (pc *ProxyClient) Close() error {
+	return pc.conn.Close()
+}
+
+// Publish sends a message to a topic via gRPC
+func (pc *ProxyClient) Publish(ctx context.Context, clientID, topic string, message []byte) error {
+	req := &proto.PublishRequest{
+		ClientId: clientID,
+		Topic:    topic,
+		Message:  message,
+	}
+
+	resp, err := pc.client.Publish(ctx, req)
+	if err != nil {
+		return fmt.Errorf("gRPC publish failed: %v", err)
+	}
+
+	if resp.Status != "published" {
+		return fmt.Errorf("publish failed with status: %s", resp.Status)
+	}
+
+	return nil
 }
