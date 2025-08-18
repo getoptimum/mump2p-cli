@@ -84,26 +84,6 @@ For a complete list of available proxies and their locations, see: [Available Se
 
 ---
 
-## Publishing Messages
-
-### Publish a Text Message
-
-To publish a simple text message to a topic:
-
-```sh
-./mump2p publish --topic=your-topic-name --message="Your message content"
-```
-
-### Publish a File
-
-To publish the contents of a file:
-
-```sh
-./mump2p publish --topic=your-topic-name --file=/path/to/your/file.json
-```
-
-Rate limits will be automatically applied based on your authentication token.
-
 ## Subscribing to Messages
 
 ### Basic Subscription
@@ -161,6 +141,28 @@ You can both save messages locally and forward them to a webhook:
   --persist=/path/to/messages.log \
   --webhook=https://your-server.com/webhook
 ```
+
+---
+
+## Publishing Messages
+
+### Publish a Text Message
+
+To publish a simple text message to a topic:
+
+```sh
+./mump2p publish --topic=your-topic-name --message="Your message content"
+```
+
+### Publish a File
+
+To publish the contents of a file:
+
+```sh
+./mump2p publish --topic=your-topic-name --file=/path/to/your/file.json
+```
+
+Rate limits will be automatically applied based on your authentication token.
 
 ---
 
