@@ -2,7 +2,7 @@ GO_BIN       ?= go
 CLI_NAME     := mump2p
 BUILD_DIR    := dist
 
-VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")-rc
+VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 COMMIT_HASH  ?= $(shell git rev-parse --short HEAD)
 DOMAIN       ?= ""
 CLIENT_ID    ?= ""
