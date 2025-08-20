@@ -18,6 +18,6 @@ cover.out
 dist
 
 .env
-# Used for testing
-history_of_comms.log
+# ignore files used for debugging
+*.txt
 *.log
