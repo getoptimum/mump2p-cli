@@ -3,7 +3,7 @@ CLI_NAME     := mump2p
 BUILD_DIR    := dist
 
 VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-COMMIT_HASH  ?= $(shell git rev-parse --short HEAD)
+COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DOMAIN       ?= ""
 CLIENT_ID    ?= ""
 AUDIENCE     ?= optimum-login
