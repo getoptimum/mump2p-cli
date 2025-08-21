@@ -147,7 +147,12 @@ var subscribeCmd = &cobra.Command{
 			// gRPC subscription logic
 			grpcAddr := strings.Replace(srcUrl, "http://", "", 1)
 			grpcAddr = strings.Replace(grpcAddr, "https://", "", 1)
-			if !strings.Contains(grpcAddr, ":") {
+			// Replace the port with 50051 for gRPC (default gRPC port)
+			if strings.Contains(grpcAddr, ":") {
+				// Extract host part and append gRPC port
+				host := strings.Split(grpcAddr, ":")[0]
+				grpcAddr = host + ":50051"
+			} else {
 				grpcAddr += ":50051" // default port if not specified
 			}
 			ctx, cancel := context.WithCancel(context.Background())
