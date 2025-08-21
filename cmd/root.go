@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/getoptimum/mump2p-cli/internal/config"
+	ocauth "github.com/getoptimum/optimum-common/auth"
 	"github.com/spf13/cobra"
 )
 
@@ -24,4 +26,11 @@ func Execute() {
 func init() {
 	// disable completion option
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	ocauth.SetDefaultLimits(ocauth.LimitsDefaults{
+		MaxPublishPerHour: config.DefaultMaxPublishPerHour,
+		MaxPublishPerSec:  config.DefaultMaxPublishPerSec,
+		MaxMessageSize:    config.DefaultMaxMessageSize,
+		DailyQuota:        config.DefaultDailyQuota,
+	})
 }

@@ -8,20 +8,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getoptimum/mump2p-cli/internal/auth"
+	//"github.com/getoptimum/mump2p-cli/internal/auth"
+	ocauth "github.com/getoptimum/optimum-common/auth"
 )
 
 // RateLimiter tracks and enforces rate limits
 // The CLI records locally the limit, and the proxy records it as well.
 type RateLimiter struct {
 	mu          sync.Mutex
-	tokenClaims *auth.TokenClaims
+	tokenClaims *ocauth.Claims // stores the JWT claims extracted from an authentication token, avoids naming collision
 	usageFile   string
 	usage       *UsageData
 }
 
 // NewRateLimiter creates a new rate limiter
-func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
+func NewRateLimiter(claims *ocauth.Claims) (*RateLimiter, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("could not determine home directory: %v", err)

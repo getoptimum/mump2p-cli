@@ -13,8 +13,8 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
             -X github.com/getoptimum/mump2p-cli/internal/config.ClientID=$(CLIENT_ID) \
             -X github.com/getoptimum/mump2p-cli/internal/config.Audience=$(AUDIENCE) \
             -X github.com/getoptimum/mump2p-cli/internal/config.ServiceURL=$(SERVICE_URL) \
-            -X github.com/getoptimum/mump2p-cli/internal/config.Version=$(VERSION) \
-            -X github.com/getoptimum/mump2p-cli/internal/config.CommitHash=$(COMMIT_HASH)
+            -X github.com/getoptimum/optimum-common/version.Version=$(VERSION) \
+            -X github.com/getoptimum/optimum-common/version.CommitHash=$(COMMIT_HASH)
 
 .PHONY: all build run clean test help lint build tag release print-cli-name
 

@@ -7,6 +7,8 @@ import (
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/ratelimit"
 	"github.com/spf13/cobra"
+
+	ocauth "github.com/getoptimum/optimum-common/auth"
 )
 
 // usageCmd represents the usage command
@@ -23,8 +25,9 @@ var usageCmd = &cobra.Command{
 		}
 
 		// parse token to get rate limits
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
+		//parser := auth.NewTokenParser()
+		//claims, err := parser.ParseToken(token.Token)
+		claims, err := ocauth.ParseUnverified(token.Token)
 		if err != nil {
 			return fmt.Errorf("error parsing token: %v", err)
 		}

@@ -6,6 +6,8 @@ import (
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/spf13/cobra"
+
+	ocauth "github.com/getoptimum/optimum-common/auth"
 )
 
 // loginCmd represents the login command
@@ -63,12 +65,16 @@ var whoamiCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("not authenticated: %v", err)
 		}
-
+		//old version before substituting
 		// parse token
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
+		//parser := auth.NewTokenParser()
+		//claims, err := parser.ParseToken(token.Token)
+		//if err != nil {
+		//	return fmt.Errorf("error parsing token: %v", err)
+		//}
+		claims, err := ocauth.ParseUnverified(token.Token)
 		if err != nil {
-			return fmt.Errorf("error parsing token: %v", err)
+			return fmt.Errorf("error: failed to parse token: %v", err)
 		}
 
 		// display token information
