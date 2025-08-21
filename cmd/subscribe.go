@@ -111,7 +111,7 @@ var subscribeCmd = &cobra.Command{
 
 		// send HTTP POST subscription request first
 		fmt.Println("Sending HTTP POST subscription request...")
-		httpEndpoint := fmt.Sprintf("%s/api/subscribe", srcUrl)
+		httpEndpoint := fmt.Sprintf("%s/api/v1/subscribe", srcUrl)
 		reqData := SubscribeRequest{
 			ClientID:  claims.ClientID,
 			Topic:     subTopic,
@@ -235,7 +235,7 @@ var subscribeCmd = &cobra.Command{
 		// convert HTTP URL to WebSocket URL
 		wsURL := strings.Replace(srcUrl, "http://", "ws://", 1)
 		wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
-		wsURL = fmt.Sprintf("%s/api/ws?client_id=%s", wsURL, claims.ClientID)
+		wsURL = fmt.Sprintf("%s/api/v1/ws?client_id=%s", wsURL, claims.ClientID)
 
 		// setup ws headers for authentication
 		header := http.Header{}

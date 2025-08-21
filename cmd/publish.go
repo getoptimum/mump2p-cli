@@ -128,7 +128,7 @@ var publishCmd = &cobra.Command{
 				return fmt.Errorf("failed to marshal publish request: %v", err)
 			}
 
-			url := baseURL + "/api/publish"
+			url := baseURL + "/api/v1/publish"
 			req, err := http.NewRequest("POST", url, strings.NewReader(string(reqBytes)))
 			if err != nil {
 				return err
