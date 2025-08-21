@@ -182,6 +182,50 @@ This will display:
 - Time until usage counters reset
 - Timestamps of your last publish and subscribe operations
 
+## Health Monitoring
+
+### Check Proxy Server Health
+
+To monitor the health and system metrics of the proxy server you're connected to:
+
+```sh
+./mump2p health
+```
+
+This will display:
+
+- **Status**: Current health status of the proxy ("ok" if healthy)
+- **Memory Used**: Memory usage percentage
+- **CPU Used**: CPU usage percentage  
+- **Disk Used**: Disk usage percentage
+
+**Example output:**
+
+```text
+Proxy Health Status:
+-------------------
+Status:      ok
+Memory Used: 7.02%
+CPU Used:    0.25%
+Disk Used:   44.05%
+```
+
+### Check Health of Specific Proxy
+
+You can check the health of a specific proxy server:
+
+```sh
+./mump2p health --service-url="http://35.221.118.95:8080"
+```
+
+This is useful for:
+- Monitoring multiple proxy servers
+- Checking proxy health before switching service URLs
+- Troubleshooting connection issues
+- Performance monitoring and capacity planning
+
+---
+
 ## Tips for Effective Use
 
 1. **Topic Names:** Choose descriptive and unique topic names to avoid message conflicts
@@ -192,8 +236,12 @@ This will display:
 
 ## Troubleshooting
 
-- **Authentication Errors:** Run mump2p whoami to check token status, and mump2p login to re-authenticate
-- **Rate Limit Errors:** Use mump2p usage to check your current usage against limits
-- **Connection Issues:** Verify your internet connection and firewall settings
+- **Authentication Errors:** Run `./mump2p whoami` to check token status, and `./mump2p login` to re-authenticate
+- **Rate Limit Errors:** Use `./mump2p usage` to check your current usage against limits
+- **Connection Issues:** 
+  - Verify your internet connection and firewall settings
+  - Check proxy server health with `./mump2p health`
+  - Try a different proxy server with `--service-url` flag
+- **Proxy Health Issues:** Use `./mump2p health` to check system metrics and server status
 - **Webhook Failures:** Check that your webhook endpoint is accessible and properly configured to accept POST requests
   
