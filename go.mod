@@ -1,8 +1,9 @@
 module github.com/getoptimum/mump2p-cli
 
-go 1.24.1
+go 1.24.6
 
 require (
+	github.com/getoptimum/optimum-common v0.0.0-20250820155834-aa661d810c90
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/cobra v1.9.1

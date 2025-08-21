@@ -14,8 +14,6 @@ const (
 
 // These will be injected at build time using -ldflags
 var (
-	Version    string // e.g., v0.0.1-rc1
-	CommitHash string // git commit hash
 	Domain     string
 	ClientID   string
 	Audience   string

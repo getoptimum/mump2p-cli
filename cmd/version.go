@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/getoptimum/mump2p-cli/internal/config"
+	"github.com/getoptimum/optimum-common/version"
 	"github.com/spf13/cobra"
 )
 
@@ -13,8 +13,8 @@ var versionCmd = &cobra.Command{
 	Short: "Show CLI version",
 	Long:  `Display the current version and Git commit used to build this binary.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Version:", config.Version)
-		fmt.Println("Commit: ", config.CommitHash)
+		fmt.Println("Version:", version.Version)
+		fmt.Println("Commit: ", version.CommitHash)
 	},
 }
 
