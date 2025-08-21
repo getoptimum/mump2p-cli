@@ -16,6 +16,7 @@ import (
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
+	grpcsub "github.com/getoptimum/mump2p-cli/internal/grpc"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +29,9 @@ var (
 	webhookTimeoutSecs int
 	subThreshold       float32
 	//optional
-	subServiceURL string
+	subServiceURL  string
+	useGRPC        bool // <-- new flag
+	grpcBufferSize int  // gRPC message buffer size
 )
 
 // SubscribeRequest represents the HTTP POST payload
@@ -40,7 +43,7 @@ type SubscribeRequest struct {
 
 var subscribeCmd = &cobra.Command{
 	Use:   "subscribe",
-	Short: "Subscribe to a topic via WebSocket",
+	Short: "Subscribe to a topic via WebSocket or gRPC stream",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// auth
 		authClient := auth.NewClient()
@@ -108,7 +111,7 @@ var subscribeCmd = &cobra.Command{
 
 		// send HTTP POST subscription request first
 		fmt.Println("Sending HTTP POST subscription request...")
-		httpEndpoint := fmt.Sprintf("%s/api/subscribe", srcUrl)
+		httpEndpoint := fmt.Sprintf("%s/api/v1/subscribe", srcUrl)
 		reqData := SubscribeRequest{
 			ClientID:  claims.ClientID,
 			Topic:     subTopic,
@@ -140,13 +143,99 @@ var subscribeCmd = &cobra.Command{
 
 		fmt.Printf("HTTP POST subscription successful: %s\n", string(body))
 
+		if useGRPC {
+			// gRPC subscription logic
+			grpcAddr := strings.Replace(srcUrl, "http://", "", 1)
+			grpcAddr = strings.Replace(grpcAddr, "https://", "", 1)
+			if !strings.Contains(grpcAddr, ":") {
+				grpcAddr += ":50051" // default port if not specified
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			client, err := grpcsub.NewProxyClient(grpcAddr)
+			if err != nil {
+				return fmt.Errorf("failed to connect to gRPC proxy: %v", err)
+			}
+			defer client.Close()
+
+			msgChan, err := client.Subscribe(ctx, claims.ClientID, grpcBufferSize)
+			if err != nil {
+				return fmt.Errorf("gRPC subscribe failed: %v", err)
+			}
+
+			fmt.Printf("Listening for messages on topic '%s' via gRPC... Press Ctrl+C to exit\n", subTopic)
+
+			// webhook queue and worker (same as before)
+			type webhookMsg struct {
+				data []byte
+			}
+			webhookQueue := make(chan webhookMsg, webhookQueueSize)
+			go func() {
+				for msg := range webhookQueue {
+					go func(payload []byte) {
+						ctx, cancel := context.WithTimeout(context.Background(), time.Duration(webhookTimeoutSecs)*time.Second)
+						defer cancel()
+						req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(payload))
+						if err != nil {
+							fmt.Printf("Failed to create webhook request: %v\n", err)
+							return
+						}
+						req.Header.Set("Content-Type", "application/json")
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							fmt.Printf("Webhook request error: %v\n", err)
+							return
+						}
+						defer resp.Body.Close() //nolint:errcheck
+						if resp.StatusCode >= 400 {
+							fmt.Printf("Webhook responded with status code: %d\n", resp.StatusCode)
+						}
+					}(msg.data)
+				}
+			}()
+
+			// receiver
+			doneChan := make(chan struct{})
+			go func() {
+				defer close(doneChan)
+				for msg := range msgChan {
+					msgStr := string(msg.Message)
+					fmt.Println(msgStr)
+					// persist
+					if persistFile != nil {
+						timestamp := time.Now().Format(time.RFC3339)
+						if _, err := persistFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, msgStr)); err != nil {
+							fmt.Printf("Error writing to persistence file: %v\n", err)
+						}
+					}
+					// forward
+					if webhookURL != "" {
+						select {
+						case webhookQueue <- webhookMsg{data: msg.Message}:
+						default:
+							fmt.Println("⚠️ Webhook queue full, message dropped")
+						}
+					}
+				}
+			}()
+
+			select {
+			case <-sigChan:
+				fmt.Println("\nClosing connection...")
+				cancel()
+			case <-doneChan:
+				fmt.Println("\nConnection closed by server")
+			}
+			return nil
+		}
+
 		// setup ws connection
 		fmt.Println("Opening WebSocket connection...")
 
 		// convert HTTP URL to WebSocket URL
 		wsURL := strings.Replace(srcUrl, "http://", "ws://", 1)
 		wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
-		wsURL = fmt.Sprintf("%s/api/ws?client_id=%s", wsURL, claims.ClientID)
+		wsURL = fmt.Sprintf("%s/api/v1/ws?client_id=%s", wsURL, claims.ClientID)
 
 		// setup ws headers for authentication
 		header := http.Header{}
@@ -251,5 +340,7 @@ func init() {
 	subscribeCmd.Flags().IntVar(&webhookTimeoutSecs, "webhook-timeout", 3, "Timeout in seconds for each webhook POST request")
 	subscribeCmd.Flags().Float32Var(&subThreshold, "threshold", 0.1, "Delivery threshold (0.1 to 1.0)")
 	subscribeCmd.Flags().StringVar(&subServiceURL, "service-url", "", "Override the default service URL")
+	subscribeCmd.Flags().BoolVar(&useGRPC, "grpc", false, "Use gRPC stream for subscription instead of WebSocket")
+	subscribeCmd.Flags().IntVar(&grpcBufferSize, "grpc-buffer-size", 100, "gRPC message buffer size (default: 100)")
 	rootCmd.AddCommand(subscribeCmd)
 }

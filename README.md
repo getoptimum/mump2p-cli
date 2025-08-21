@@ -42,12 +42,24 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 ### 3. Basic Usage
 
 ```sh
-# Subscribe to a topic
+# Subscribe to a topic (WebSocket)
 ./mump2p subscribe --topic=test-topic
 
-# Publish a message
+# Subscribe via gRPC stream
+./mump2p subscribe --topic=test-topic --grpc
+
+# Publish a message (HTTP)
 ./mump2p publish --topic=test-topic --message="Hello World"
+
+# Publish via gRPC
+./mump2p publish --topic=test-topic --message="Hello World" --grpc
 ```
+
+### Transport Protocols
+
+- **HTTP/WebSocket (Default)**: Traditional REST API with WebSocket streaming
+- **gRPC**: High-performance binary protocol with streaming support
+- Use `--grpc` flag for both publishing and subscribing
 
 ---
 
