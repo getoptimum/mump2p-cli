@@ -71,11 +71,11 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 ## Version Compatibility
 
-**Important:** Always use the latest version binaries (currently **v0.0.1-rc3**) from the releases page. 
+**Important:** Always use the latest version binaries (currently **v0.0.1-rc4**) from the releases page. 
 
 **Deprecated Versions:**
-- ⚠️ **v0.0.1-rc2** and **v0.0.1-rc1** are deprecated and no longer supported
-- Please upgrade to **v0.0.1-rc3**
+- ⚠️ **v0.0.1-rc3**, **v0.0.1-rc2** and **v0.0.1-rc1** are deprecated and no longer supported
+- Please upgrade to **v0.0.1-rc4**
 
 ---
 
@@ -219,38 +219,9 @@ Error: token has expired, please login again
 - Login again: `./mump2p login`
 - Check system time
 
-### **5. Docker & Networking Issues**
 
-#### **Error: Container name conflicts**
-```
-Error: Conflict. The container name "/p2pnode1" is already in use
-```
 
-**Causes:**
-- Container with same name already running
-- Previous container not cleaned up
-
-**Solutions:**
-- Stop and remove existing container: `docker stop <name> && docker rm <name>`
-- Use different container name
-- Clean up containers: `docker container prune`
-
-#### **Error: Name resolution in Docker**
-```
-Error: name resolver error: produced zero addresses
-```
-
-**Causes:**
-- Containers not on same Docker network
-- Using container names without custom network
-- Hostname not resolvable between containers
-
-**Solutions:**
-- Create custom Docker network: `docker network create optimum-net`
-- Run containers on same network: `--network optimum-net`
-- Use container names as hostnames in configuration
-
-### **6. CLI Usage & Syntax Issues**
+### **5. CLI Usage & Syntax Issues**
 
 #### **Error: Missing required flags**
 ```
