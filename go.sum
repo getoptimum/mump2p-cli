@@ -2,8 +2,6 @@ github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6N
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/getoptimum/optimum-common v0.0.0-20250820155834-aa661d810c90 h1:RhsUQzsut+McGjwyTR+qT0QHuOTnZN/+EXGkAghXHGs=
-github.com/getoptimum/optimum-common v0.0.0-20250820155834-aa661d810c90/go.mod h1:TAzGitXM3ONTQbETcwSBqd5c0E7kUgaQTJ6pMmqTa4k=
 github.com/getoptimum/optimum-common v0.0.0-20250825094640-194f7a2796a0 h1:l/5Djiug8Q3Q2Hg3xCx4+eUd4KCZ/9qPV/WCTaOEKMs=
 github.com/getoptimum/optimum-common v0.0.0-20250825094640-194f7a2796a0/go.mod h1:TAzGitXM3ONTQbETcwSBqd5c0E7kUgaQTJ6pMmqTa4k=
 github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
