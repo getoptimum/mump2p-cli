@@ -39,7 +39,7 @@ tag:
 	@echo "Calculating next RC tag..."
 	@latest_tag=$$(git tag --sort=-creatordate | grep '^v0\.' | grep -E 'rc[0-9]+$$' | head -n1); \
 	if [ -z "$$latest_tag" ]; then \
-		new_tag="v0.0.1-rc1"; \
+		new_tag="v0.0.1-rc4"; \
 	else \
 		version=$$(echo $$latest_tag | sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+)-rc([0-9]+)$$/\1/'); \
 		rc_num=$$(echo $$latest_tag | sed -E 's/^v[0-9]+\.[0-9]+\.[0-9]+-rc([0-9]+)$$/\1/'); \

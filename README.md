@@ -12,11 +12,13 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 
 - [x] Publish messages to topics
 - [x] Subscribe to real-time message streams
+- [x] gRPC support for high-performance streaming
 - [x] JWT-based login/logout and token refresh
 - [x] Local rate-limiting (publish count, quota, max size)
 - [x] Usage statistics reporting
 - [x] Persist messages to local storage
 - [x] Forward messages to webhook endpoints (POST method)
+- [x] Health monitoring and system metrics
   
 ---
 
@@ -25,9 +27,14 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 ### 1. Installation
 
 **Quick Install (Recommended):**
+The install script automatically detects your OS (Linux/macOS), downloads the latest release binary, makes it executable, and verifies the installation.
+
 ```sh
 curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash
 ```
+
+**Expected Output:**
+![CLI Installation Output](./docs/img/cli_command.png)
 
 **Manual Installation:**
 Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/latest) and make executable.
@@ -73,9 +80,8 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 **Important:** Always use the latest version binaries (currently **v0.0.1-rc4**) from the releases page. 
 
-**Deprecated Versions:**
-- ⚠️ **v0.0.1-rc3**, **v0.0.1-rc2** and **v0.0.1-rc1** are deprecated and no longer supported
-- Please upgrade to **v0.0.1-rc4**
+**Current Release:**
+- ✅ **v0.0.1-rc4** is the latest release
 
 ---
 
