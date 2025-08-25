@@ -14,7 +14,7 @@ var versionCmd = &cobra.Command{
 	Long:  `Display the current version and Git commit used to build this binary.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Version:", version.Version)
-		fmt.Println("Commit: ", version.CommitHash)
+		fmt.Println("Commit: ", version.LastCommitHashShort)
 	},
 }
 

@@ -3,11 +3,13 @@ module github.com/getoptimum/mump2p-cli
 go 1.24.6
 
 require (
-	github.com/getoptimum/optimum-common v0.0.0-20250820155834-aa661d810c90
+	github.com/getoptimum/optimum-common v0.0.0-20250825094640-194f7a2796a0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
+	google.golang.org/grpc v1.73.0
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -26,7 +28,5 @@ require (
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
-	google.golang.org/grpc v1.73.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

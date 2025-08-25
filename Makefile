@@ -2,8 +2,6 @@ GO_BIN       ?= go
 CLI_NAME     := mump2p
 BUILD_DIR    := dist
 
-VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DOMAIN       ?= ""
 CLIENT_ID    ?= ""
 AUDIENCE     ?= optimum-login
@@ -13,8 +11,6 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
             -X github.com/getoptimum/mump2p-cli/internal/config.ClientID=$(CLIENT_ID) \
             -X github.com/getoptimum/mump2p-cli/internal/config.Audience=$(AUDIENCE) \
             -X github.com/getoptimum/mump2p-cli/internal/config.ServiceURL=$(SERVICE_URL) \
-            -X github.com/getoptimum/optimum-common/version.Version=$(VERSION) \
-            -X github.com/getoptimum/optimum-common/version.CommitHash=$(COMMIT_HASH)
 
 .PHONY: all build run clean test help lint build tag release print-cli-name
 
