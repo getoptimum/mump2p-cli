@@ -60,7 +60,8 @@ run-publish: build ## Run publish command
 	./$(CLI_NAME) publish --topic=demo --protocols=optimump2p --config=$(CONFIG_PATH)
 
 clean: ## Clean up build artifacts
-	rm -f $(CLI_NAME)
+	@echo "🧹 cleaning $(BUILD_DIR)…"
+	@rm -rf "$(BUILD_DIR)"
 
 test: ## Run unit tests
 	$(GO_BIN) test ./... -v -count=1
