@@ -29,21 +29,62 @@ categories:
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 change-title-escapes: '\<*_&'
 
-# We manage versions manually, so disable automatic versioning
+# Sort releases by creation date (newest first)
+sort-by: created_at
+sort-direction: descending
+
+# Enhanced auto-labeling to ensure proper categorization
 autolabeler:
-  - label: 'documentation'
-    files:
-      - '*.md'
-      - 'docs/**/*'
-  - label: 'feature'
+  # Feature/enhancement detection (check first for specificity)
+  - label: 'feat'
+    branch:
+      - '^feat\/.+'
+    title:
+      - '^feat(\(.+\))?:.+'
+  
+  - label: 'enhancement'
     files:
       - 'cmd/**/*'
       - 'internal/**/*'
     branch:
-      - '/^feat\/.+/'
+      - '^enhance\/.+'
+      - '^feature\/.+'
+  
+  # Bug fixes
   - label: 'fix'
     branch:
-      - '/^fix\/.+/'
+      - '^fix\/.+'
+      - '^bugfix\/.+'
+    title:
+      - '^fix(\(.+\))?:.+'
+  
+  # Documentation changes
+  - label: 'docs'
+    files:
+      - '*.md'
+      - 'docs/**/*'
+    title:
+      - '^docs(\(.+\))?:.+'
+  
+  # Maintenance/chores
+  - label: 'chore'
+    files:
+      - 'Makefile'
+      - '*.yml'
+      - '*.yaml'
+      - '.github/**/*'
+    branch:
+      - '^chore\/.+'
+    title:
+      - '^chore(\(.+\))?:.+'
+  
+  # Infrastructure/CI changes
+  - label: 'dependencies'
+    files:
+      - 'go.mod'
+      - 'go.sum'
+      - 'package.json'
+      - 'package-lock.json'
 
 template: |
   # OptimumP2P CLI v[UPDATE-VERSION] Release
