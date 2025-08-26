@@ -1,5 +1,9 @@
-name-template: 'OptimumP2P CLI v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
+# Release Drafter should only create drafts - we manage actual releases via Makefile
+name-template: 'OptimumP2P CLI [DRAFT - Update Version Before Publishing]'
+tag-template: '[UPDATE-TAG-BEFORE-PUBLISHING]'
+
+# Include pre-releases to track all our RC versions
+include-pre-releases: true
 
 categories:
   - title: '🚀 New Features'
@@ -22,39 +26,76 @@ categories:
       - 'dependencies'
       - 'refactor'
 
-
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 change-title-escapes: '\<*_&'
 
-version-resolver:
-  major:
-    labels:
-      - 'major'
-  minor:
-    labels:
-      - 'minor'
-      - 'feature'
-      - 'enhancement'
-  patch:
-    labels:
-      - 'patch'
-      - 'fix'
-      - 'bugfix'
-      - 'bug'
-      - 'documentation'
-      - 'chore'
-  default: patch
+# Sort releases by creation date (newest first)
+sort-by: created_at
+sort-direction: descending
+
+# Enhanced auto-labeling to ensure proper categorization
+autolabeler:
+  # Feature/enhancement detection (check first for specificity)
+  - label: 'feat'
+    branch:
+      - '^feat\/.+'
+    title:
+      - '^feat(\(.+\))?:.+'
+  
+  - label: 'enhancement'
+    files:
+      - 'cmd/**/*'
+      - 'internal/**/*'
+    branch:
+      - '^enhance\/.+'
+      - '^feature\/.+'
+  
+  # Bug fixes
+  - label: 'fix'
+    branch:
+      - '^fix\/.+'
+      - '^bugfix\/.+'
+    title:
+      - '^fix(\(.+\))?:.+'
+  
+  # Documentation changes
+  - label: 'docs'
+    files:
+      - '*.md'
+      - 'docs/**/*'
+    title:
+      - '^docs(\(.+\))?:.+'
+  
+  # Maintenance/chores
+  - label: 'chore'
+    files:
+      - 'Makefile'
+      - '*.yml'
+      - '*.yaml'
+      - '.github/**/*'
+    branch:
+      - '^chore\/.+'
+    title:
+      - '^chore(\(.+\))?:.+'
+  
+  # Infrastructure/CI changes
+  - label: 'dependencies'
+    files:
+      - 'go.mod'
+      - 'go.sum'
+      - 'package.json'
+      - 'package-lock.json'
 
 template: |
-  # OptimumP2P CLI $RESOLVED_VERSION Release
+  # OptimumP2P CLI v[UPDATE-VERSION] Release
   
-  We're excited to announce the release of OptimumP2P CLI $RESOLVED_VERSION - command-line interface for our high-performance RLNC-enhanced pubsub protocol.
+  We're excited to announce the release of OptimumP2P CLI v[UPDATE-VERSION] - command-line interface for our high-performance RLNC-enhanced pubsub protocol.
   
   ## 📦 Download & Install
   
   Get the latest binaries for your platform:
   
-  **[Download Release $RESOLVED_VERSION](https://github.com/getoptimum/mump2p-cli/releases/tag/$RESOLVED_VERSION)**
+  **[Download Release v[UPDATE-VERSION]](https://github.com/getoptimum/mump2p-cli/releases/tag/v[UPDATE-VERSION])**
   
   - `mump2p-linux` - Linux x86_64
   - `mump2p-mac` - macOS x86_64
@@ -72,7 +113,4 @@ template: |
   
   - [User Guide](https://github.com/getoptimum/mump2p-cli/blob/main/docs/guide.md) - Step-by-step usage instructions
   - [README](https://github.com/getoptimum/mump2p-cli/blob/main/README.md) - Complete overview and troubleshooting FAQ
- 
-  
-
-
+  - [Repository](https://github.com/getoptimum/mump2p-cli) - Source code
