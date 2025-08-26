@@ -29,8 +29,8 @@ categories:
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 change-title-escapes: '\<*_&'
 
-# Sort releases by creation date (newest first)
-sort-by: created_at
+# Sort releases by merge date (newest first)
+sort-by: merged_at
 sort-direction: descending
 
 # Enhanced auto-labeling to ensure proper categorization
