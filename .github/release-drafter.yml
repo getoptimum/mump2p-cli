@@ -1,0 +1,75 @@
+# Release Drafter should only create drafts - we manage actual releases via Makefile
+name-template: 'OptimumP2P CLI [DRAFT - Update Version Before Publishing]'
+tag-template: '[UPDATE-TAG-BEFORE-PUBLISHING]'
+
+# Include pre-releases to track all our RC versions
+include-pre-releases: true
+
+categories:
+  - title: '🚀 New Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '📚 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+  - title: '🔧 Maintenance'
+    labels:
+      - 'chore'
+      - 'dependencies'
+      - 'refactor'
+
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+change-title-escapes: '\<*_&'
+
+# We manage versions manually, so disable automatic versioning
+autolabeler:
+  - label: 'documentation'
+    files:
+      - '*.md'
+      - 'docs/**/*'
+  - label: 'feature'
+    files:
+      - 'cmd/**/*'
+      - 'internal/**/*'
+    branch:
+      - '/^feat\/.+/'
+  - label: 'fix'
+    branch:
+      - '/^fix\/.+/'
+
+template: |
+  # OptimumP2P CLI v[UPDATE-VERSION] Release
+  
+  We're excited to announce the release of OptimumP2P CLI v[UPDATE-VERSION] - command-line interface for our high-performance RLNC-enhanced pubsub protocol.
+  
+  ## 📦 Download & Install
+  
+  Get the latest binaries for your platform:
+  
+  **[Download Release v[UPDATE-VERSION]](https://github.com/getoptimum/mump2p-cli/releases/tag/v[UPDATE-VERSION])**
+  
+  - `mump2p-linux` - Linux x86_64
+  - `mump2p-mac` - macOS x86_64
+  
+  **Quick Install:**
+  ```bash
+  curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash
+  ```
+  
+  ## 🔄 What's Changed
+  
+  $CHANGES
+  
+  ## 📖 Documentation & Resources
+  
+  - [User Guide](https://github.com/getoptimum/mump2p-cli/blob/main/docs/guide.md) - Step-by-step usage instructions
+  - [README](https://github.com/getoptimum/mump2p-cli/blob/main/README.md) - Complete overview and troubleshooting FAQ
+  - [Repository](https://github.com/getoptimum/mump2p-cli) - Source code

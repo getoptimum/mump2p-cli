@@ -1,56 +1,64 @@
-# OptimumP2P CLI User Guide
+# OptimumP2P CLI - Complete User Guide
 
-This guide explains how to use the OptimumP2P CLI tool (mump2p) for publishing and subscribing to messages using the OptimumP2P protocol.
+*This guide assumes you've completed the [Quick Start](../README.md#quick-start) from the README and are ready to explore advanced features, detailed configuration, and best practices.*
 
-Download the appropriate binary for your system from the GitHub releases page:
+## What You'll Learn
 
-- `mump2p-mac` for macOS
-- `mump2p-linux` for Linux
+After completing the README's quick start, this guide will teach you:
 
-Make the binary executable (Mac/Linux):
+- **Authentication Management**: Token management, refresh, and troubleshooting
+- **Service Configuration**: Using different proxy servers and custom URLs  
+- **Protocol Deep Dive**: When to use HTTP/WebSocket vs gRPC
+- **Advanced Features**: Message persistence, webhooks, and monitoring
+- **Production Best Practices**: Performance optimization and troubleshooting
 
-```sh
-chmod +x mump2p-mac
-# For convenience, you may want to rename and move to your PATH
-mv mump2p-mac /usr/local/bin/mump2p
-```
+---
+
+## Prerequisites
+
+Before following this guide, ensure you have:
+- ✅ **Installed the CLI** via the [install script](../README.md#1-installation) or manual download
+- ✅ **Completed authentication** with `./mump2p login`
+- ✅ **Tested basic publish/subscribe** from the README examples
+
+*If you haven't done these steps yet, please start with the [README Quick Start](../README.md#quick-start) first.*
 
 ---
 
 ## Authentication
 
-### Login
+*You should already be authenticated from the README quick start. This section covers authentication management and troubleshooting.*
 
-Before you can publish or subscribe to messages, you need to authenticate:
+### Managing Your Session
 
-```sh
-./mump2p login
-```
-
-This will start the device authorization flow:
-
-1. A URL and a code will be displayed in your terminal
-2. Open the URL in your browser
-3. Enter the code when prompted
-4. Complete the authentication process in the browser
-5. The CLI will automatically receive and store your authentication token
-
-### Check Authentication Status
-
-To verify your current authentication status:
+Check your current authentication status and token details:
 
 ```sh
 ./mump2p whoami
 ```
 
-This will display:
+This displays:
+- Your client ID and email
+- Token expiration time (24 hours from login)
+- Token validity status  
+- Rate limits and quotas for your account
 
-- Your client ID
-- Token expiration time
-- Token validity status
-- Rate limits associated with your account
+**Example output:**
+```text
+Authentication Status:
+----------------------
+Client ID: google-oauth2|100677750055416883405
+Expires: 24 Sep 25 20:44 IST
+Valid for: 706h53m0s
+Is Active:  true
 
-**Important: After logging in, please share the email ID you used to sign up in the group, so we can activate your access.**
+Rate Limits:
+------------
+Publish Rate:  1000 per hour
+Publish Rate:  8 per second
+Max Message Size:  4.00 MB
+Daily Quota:       5120.00 MB
+```
 
 ### Refresh Token
 
@@ -70,9 +78,11 @@ To remove your stored authentication token:
 
 ---
 
-## Service URLs
+## Service URL Configuration
 
-The CLI connects to different proxy servers around the world. By default, it uses the first available proxy, but you can specify a different one using the `--service-url` flag.
+*The README used the default proxy. This section shows how to configure different proxy servers for better performance or geographic proximity.*
+
+The CLI connects to different proxy servers around the world. By default, it uses the first available proxy, but you can specify a different one using the `--service-url` flag for better performance or closer geographic location.
 
 For a complete list of available proxies and their locations, see: [Available Service URLs](../README.md#available-service-urls) in the README.
 
@@ -82,13 +92,36 @@ For a complete list of available proxies and their locations, see: [Available Se
 ./mump2p subscribe --topic=test --service-url="http://34.142.205.26:8080"
 ```
 
+**Example output when using custom service URL:**
+```text
+Using custom service URL: http://34.142.205.26:8080
+✅ Published via HTTP inline message
+{"message_id":"f5f51132c83da5a0209d6348bffe7eb1dafc91544e9240b98ac2c8e6da25c410","status":"published","topic":"demo"}
+```
+
 ---
 
-## Subscribing to Messages
+## Subscribing to Messages - Deep Dive
 
-### Basic Subscription
+*You've already tried basic subscription from the README. This section covers advanced options, protocols, and configuration.*
 
-To subscribe to a topic in real-time:
+### Understanding WebSocket vs gRPC
+
+The README showed you both protocols. Here's when to use each:
+
+**WebSocket (Default)** - Good for:
+- Getting started and testing
+- Lower resource usage
+- Standard web-compatible streaming
+
+**gRPC** - Best for:
+- High-throughput scenarios (1000+ messages/sec)
+- Production environments
+- Better performance and reliability
+
+### Basic WebSocket Subscription
+
+You've seen this from the README:
 
 ```sh
 ./mump2p subscribe --topic=your-topic-name
@@ -96,12 +129,48 @@ To subscribe to a topic in real-time:
 
 This will open a WebSocket connection and display incoming messages in real-time. Press `Ctrl+C` to exit.
 
+**Example output (WebSocket):**
+```text
+Using custom service URL: http://34.142.205.26:8080
+Sending HTTP POST subscription request...
+HTTP POST subscription successful: {"client":"google-oauth2|100677750055416883405","status":"subscribed"}
+Opening WebSocket connection...
+Listening for messages on topic 'demo'... Press Ctrl+C to exit
+```
+
+### gRPC Subscription (Advanced)
+
+From the README, you saw the `--grpc` flag. Here's the detailed breakdown:
+
+```sh
+./mump2p subscribe --topic=your-topic-name --grpc
+```
+
+**Example output:**
+```text
+Using custom service URL: http://34.142.205.26:8080
+Sending HTTP POST subscription request...
+HTTP POST subscription successful: {"client":"google-oauth2|100677750055416883405","status":"subscribed"}
+Listening for messages on topic 'demo' via gRPC... Press Ctrl+C to exit
+```
+
+gRPC provides:
+- **Better performance** than WebSocket for high-throughput scenarios
+- **Binary protocol** with smaller message overhead  
+- **Bidirectional streaming** support
+- **Built-in retry and error handling**
+
 ### Save Messages to a File
 
 To persist messages to a local file while subscribing:
 
 ```sh
 ./mump2p subscribe --topic=your-topic-name --persist=/path/to/save/
+```
+
+With gRPC:
+```sh
+./mump2p subscribe --topic=your-topic-name --persist=/path/to/save/ --grpc
 ```
 
 If you provide just a directory path, messages will be saved to a file named `messages.log` in that directory.
@@ -112,6 +181,11 @@ To forward messages to an HTTP webhook:
 
 ```sh
 ./mump2p subscribe --topic=your-topic-name --webhook=https://your-server.com/webhook
+```
+
+With gRPC:
+```sh
+./mump2p subscribe --topic=your-topic-name --webhook=https://your-server.com/webhook --grpc
 ```
 
 **Note: The webhook endpoint must be configured to accept POST requests.**
@@ -142,24 +216,65 @@ You can both save messages locally and forward them to a webhook:
   --webhook=https://your-server.com/webhook
 ```
 
+With gRPC:
+```sh
+./mump2p subscribe --topic=your-topic-name \
+  --persist=/path/to/messages.log \
+  --webhook=https://your-server.com/webhook \
+  --grpc
+```
+
 ---
 
-## Publishing Messages
+## Publishing Messages - Deep Dive
 
-### Publish a Text Message
+*You've tried basic publishing from the README. This section covers advanced publishing options, protocols, and file handling.*
 
-To publish a simple text message to a topic:
+### HTTP Publishing (From README)
+
+You've already used this basic command:
 
 ```sh
 ./mump2p publish --topic=your-topic-name --message="Your message content"
 ```
 
+**Example output:**
+```text
+✅ Published via HTTP inline message
+{"message_id":"9cbf2612dd4371d154babad4e7b88e1f98b34cdf740283a406600f0959bdffff","status":"published","topic":"demo"}
+```
+
+### gRPC Publishing (Advanced)
+
+From the README, you saw the `--grpc` flag for publishing. Here's when and how to use it:
+
+```sh
+./mump2p publish --topic=your-topic-name --message="Your message content" --grpc
+```
+
+**Example output:**
+```text
+✅ Published via gRPC inline message
+```
+
+**With custom service URL:**
+```text
+Using custom service URL: http://34.142.205.26:8080
+✅ Published via gRPC inline message
+```
+
 ### Publish a File
 
-To publish the contents of a file:
+To publish the contents of a file (HTTP):
 
 ```sh
 ./mump2p publish --topic=your-topic-name --file=/path/to/your/file.json
+```
+
+To publish a file via gRPC:
+
+```sh
+./mump2p publish --topic=your-topic-name --file=/path/to/your/file.json --grpc
 ```
 
 Rate limits will be automatically applied based on your authentication token.
@@ -233,6 +348,8 @@ This is useful for:
 3. **Token Refresh:** For long-running operations, refresh your token before it expires
 4. **Persistent Subscriptions:** Use the --persist option when you need a record of messages
 5. **Webhook Reliability:** Increase the queue size for high-volume topics to prevent message drops
+6. **gRPC Performance:** Use `--grpc` flag for high-throughput scenarios and better performance
+7. **Health Monitoring:** Check proxy health with `./mump2p health` before long operations
 
 ## Troubleshooting
 
