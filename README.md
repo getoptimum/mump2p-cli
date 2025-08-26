@@ -4,8 +4,6 @@
 
 It supports authenticated publishing, subscribing, rate-limited usage tracking, and JWT session management.
 
-**[📖 Detailed User Guide - Complete step-by-step instructions for all features](./docs/guide.md)**
-
 ---
 
 ## Features
