@@ -88,7 +88,7 @@ For a complete list of available proxies and their locations, see: [Available Se
 
 **Example using a specific proxy:**
 ```sh
-./mump2p publish --topic=test --message="Hello" --service-url="http://35.221.118.95:8080"
+./mump2p publish --topic=test --message='Hello' --service-url="http://35.221.118.95:8080"
 ./mump2p subscribe --topic=test --service-url="http://34.142.205.26:8080"
 ```
 
@@ -235,7 +235,7 @@ With gRPC:
 You've already used this basic command:
 
 ```sh
-./mump2p publish --topic=your-topic-name --message="Your message content"
+./mump2p publish --topic=your-topic-name --message='Your message content'
 ```
 
 **Example output:**
@@ -249,7 +249,7 @@ You've already used this basic command:
 From the README, you saw the `--grpc` flag for publishing. Here's when and how to use it:
 
 ```sh
-./mump2p publish --topic=your-topic-name --message="Your message content" --grpc
+./mump2p publish --topic=your-topic-name --message='Your message content' --grpc
 ```
 
 **Example output:**
@@ -352,6 +352,10 @@ This is useful for:
 7. **Health Monitoring:** Check proxy health with `./mump2p health` before long operations
 
 ## Troubleshooting
+
+For common setup and usage issues, see the [FAQ section in the README](../README.md#faq---common-issues--troubleshooting).
+
+**Advanced troubleshooting:**
 
 - **Authentication Errors:** Run `./mump2p whoami` to check token status, and `./mump2p login` to re-authenticate
 - **Rate Limit Errors:** Use `./mump2p usage` to check your current usage against limits

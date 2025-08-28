@@ -54,10 +54,10 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 ./mump2p subscribe --topic=test-topic --grpc
 
 # Publish a message (HTTP)
-./mump2p publish --topic=test-topic --message="Hello World"
+./mump2p publish --topic=test-topic --message='Hello World'
 
 # Publish via gRPC
-./mump2p publish --topic=test-topic --message="Hello World" --grpc
+./mump2p publish --topic=test-topic --message='Hello World' --grpc
 ```
 
 ### Transport Protocols
@@ -164,7 +164,7 @@ By default, the CLI uses the first proxy in the list below. You can override thi
 **Example: Using a different proxy:**
 
 ```sh
-./mump2p-mac publish --topic=example-topic --message="Hello" --service-url="http://35.221.118.95:8080"
+./mump2p-mac publish --topic=example-topic --message='Hello' --service-url="http://35.221.118.95:8080"
 ./mump2p-mac subscribe --topic=example-topic --service-url="http://34.142.205.26:8080"
 ```
 
