@@ -227,6 +227,30 @@ Error: token has expired, please login again
 
 ### **5. CLI Usage & Syntax Issues**
 
+#### **Error: Terminal stuck at `dquote>` prompt**
+```
+./mump2p publish --topic=chat --message="[Alice] Hello everyone!"
+dquote> 
+```
+
+**Causes:**
+- Unescaped double quotes in message content
+- Special characters like brackets `[User]` causing shell parsing issues
+- Command line wrapping with unclosed quotes
+
+**Solutions:**
+```sh
+# ✅ Use single quotes for messages with brackets or special characters:
+./mump2p publish --topic=chat --message='[Alice] Hello everyone!'
+
+# ✅ Or escape inner quotes with backslashes:
+./mump2p publish --topic=test --message="Message with \"quotes\" inside"
+
+# ✅ For complex messages, use a file instead:
+echo '[Alice] Hello "everyone"!' > message.txt
+./mump2p publish --topic=chat --file=message.txt
+```
+
 #### **Error: Missing required flags**
 ```
 Error: required flag(s) "topic" not set

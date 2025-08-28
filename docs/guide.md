@@ -353,6 +353,10 @@ This is useful for:
 
 ## Troubleshooting
 
+For common setup and usage issues, see the [FAQ section in the README](../README.md#faq---common-issues--troubleshooting).
+
+**Advanced troubleshooting:**
+
 - **Authentication Errors:** Run `./mump2p whoami` to check token status, and `./mump2p login` to re-authenticate
 - **Rate Limit Errors:** Use `./mump2p usage` to check your current usage against limits
 - **Connection Issues:** 
