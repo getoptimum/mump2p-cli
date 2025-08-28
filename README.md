@@ -54,10 +54,10 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 ./mump2p subscribe --topic=test-topic --grpc
 
 # Publish a message (HTTP)
-./mump2p publish --topic=test-topic --message="Hello World"
+./mump2p publish --topic=test-topic --message='Hello World'
 
 # Publish via gRPC
-./mump2p publish --topic=test-topic --message="Hello World" --grpc
+./mump2p publish --topic=test-topic --message='Hello World' --grpc
 ```
 
 ### Transport Protocols
@@ -164,7 +164,7 @@ By default, the CLI uses the first proxy in the list below. You can override thi
 **Example: Using a different proxy:**
 
 ```sh
-./mump2p-mac publish --topic=example-topic --message="Hello" --service-url="http://35.221.118.95:8080"
+./mump2p-mac publish --topic=example-topic --message='Hello' --service-url="http://35.221.118.95:8080"
 ./mump2p-mac subscribe --topic=example-topic --service-url="http://34.142.205.26:8080"
 ```
 
@@ -226,30 +226,6 @@ Error: token has expired, please login again
 
 
 ### **5. CLI Usage & Syntax Issues**
-
-#### **Error: Terminal stuck at `dquote>` prompt**
-```
-./mump2p publish --topic=chat --message="[Alice] Hello everyone!"
-dquote> 
-```
-
-**Causes:**
-- Unescaped double quotes in message content
-- Special characters like brackets `[User]` causing shell parsing issues
-- Command line wrapping with unclosed quotes
-
-**Solutions:**
-```sh
-# ✅ Use single quotes for messages with brackets or special characters:
-./mump2p publish --topic=chat --message='[Alice] Hello everyone!'
-
-# ✅ Or escape inner quotes with backslashes:
-./mump2p publish --topic=test --message="Message with \"quotes\" inside"
-
-# ✅ For complex messages, use a file instead:
-echo '[Alice] Hello "everyone"!' > message.txt
-./mump2p publish --topic=chat --file=message.txt
-```
 
 #### **Error: Missing required flags**
 ```
