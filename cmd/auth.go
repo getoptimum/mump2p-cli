@@ -24,7 +24,7 @@ var loginCmd = &cobra.Command{
 		}
 
 		// store token
-		storage := auth.NewStorage()
+		storage := auth.NewStorageWithPath(GetAuthPath())
 		if err := storage.SaveToken(token); err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ var logoutCmd = &cobra.Command{
 	Short: "Log out from the P2P service",
 	Long:  `Remove the stored authentication token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		storage := auth.NewStorage()
+		storage := auth.NewStorageWithPath(GetAuthPath())
 		if err := storage.RemoveToken(); err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ var whoamiCmd = &cobra.Command{
 	Long:  `Display information about the current authentication token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// load token
-		storage := auth.NewStorage()
+		storage := auth.NewStorageWithPath(GetAuthPath())
 		token, err := storage.LoadToken()
 		if err != nil {
 			return fmt.Errorf("not authenticated: %v", err)
@@ -107,7 +107,7 @@ var refreshCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// create auth client and storage
 		authClient := auth.NewClient()
-		storage := auth.NewStorage()
+		storage := auth.NewStorageWithPath(GetAuthPath())
 
 		// load current token
 		token, err := storage.LoadToken()

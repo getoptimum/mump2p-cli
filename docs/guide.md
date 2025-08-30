@@ -68,6 +68,38 @@ If your token is about to expire, you can refresh it:
 ./mump2p refresh
 ```
 
+### Custom Authentication File Location
+
+By default, authentication tokens are stored in `~/.optimum/auth.yml`. For production deployments, security requirements, or non-root users, you can customize this location:
+
+```sh
+# Use custom authentication file path
+./mump2p --auth-path /opt/mump2p/auth/token.yml login
+
+# All subsequent commands will use the same custom path
+./mump2p --auth-path /opt/mump2p/auth/token.yml publish --topic=demo --message="Hello"
+./mump2p --auth-path /opt/mump2p/auth/token.yml logout
+```
+
+**Environment Variable Support:**
+```sh
+# Set via environment variable (applies to all commands)
+export MUMP2P_AUTH_PATH="/opt/mump2p/auth/token.yml"
+./mump2p login
+./mump2p publish --topic=demo --message="Hello"
+```
+
+**Use Cases:**
+- **Security**: Store auth files in secure, restricted directories
+- **Deployment Automation**: Use with Ansible, Terraform without root permissions
+- **Multi-user Environments**: Separate auth files per user/service
+- **Container Deployments**: Mount auth files from persistent volumes
+
+**Important Notes:**
+- The directory will be created automatically if it doesn't exist
+- Rate limiting usage files will be stored in the same directory
+- Ensure the user has write permissions to the specified directory
+
 ### Logout
 
 To remove your stored authentication token:

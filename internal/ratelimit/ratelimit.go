@@ -22,9 +22,21 @@ type RateLimiter struct {
 
 // NewRateLimiter creates a new rate limiter
 func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("could not determine home directory: %v", err)
+	return NewRateLimiterWithDir(claims, "")
+}
+
+// NewRateLimiterWithDir creates a new rate limiter with custom directory
+func NewRateLimiterWithDir(claims *auth.TokenClaims, customDir string) (*RateLimiter, error) {
+	var usageDir string
+	
+	if customDir != "" {
+		usageDir = customDir
+	} else {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("could not determine home directory: %v", err)
+		}
+		usageDir = filepath.Join(homeDir, ".optimum")
 	}
 
 	identifier := "default"
@@ -32,7 +44,6 @@ func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
 		identifier = claims.Subject
 	}
 
-	usageDir := filepath.Join(homeDir, ".optimum")
 	usageFile := filepath.Join(usageDir, fmt.Sprintf("%s_usage.json", identifier))
 
 	if err := os.MkdirAll(usageDir, 0700); err != nil {
