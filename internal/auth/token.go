@@ -50,7 +50,7 @@ func (p *TokenParser) ParseToken(tokenString string) (*TokenClaims, error) {
 	}
 
 	tc := &TokenClaims{
-		IsActive:          claims["is_active"] == true,
+		IsActive:          isActiveFromClaims(claims),
 		MaxPublishPerHour: intFromClaims(claims, "max_publish_per_hour", config.DefaultMaxPublishPerHour),
 		MaxPublishPerSec:  intFromClaims(claims, "max_publish_per_sec", config.DefaultMaxPublishPerSec),
 		MaxMessageSize:    int64FromClaims(claims, "max_message_size", config.DefaultMaxMessageSize),
@@ -90,4 +90,20 @@ func int64FromClaims(c jwt.MapClaims, key string, def int64) int64 {
 		return int64(v)
 	}
 	return def
+}
+
+func isActiveFromClaims(c jwt.MapClaims) bool {
+	if v, ok := c["is_active"]; ok {
+		switch val := v.(type) {
+		case bool:
+			return val
+		case string:
+			return val == "true"
+		case int:
+			return val != 0
+		case float64:
+			return val != 0
+		}
+	}
+	return false
 }
