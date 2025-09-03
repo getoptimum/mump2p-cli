@@ -16,7 +16,7 @@ var usageCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// get valid token (refreshes if needed)
 		authClient := auth.NewClient()
-		storage := auth.NewStorage()
+		storage := auth.NewStorageWithPath(GetAuthPath())
 		token, err := authClient.GetValidToken(storage)
 		if err != nil {
 			return fmt.Errorf("authentication required: %v", err)
@@ -30,7 +30,7 @@ var usageCmd = &cobra.Command{
 		}
 
 		// initialize rate limiter
-		limiter, err := ratelimit.NewRateLimiter(claims)
+		limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir())
 		if err != nil {
 			return fmt.Errorf("error initializing rate limiter: %v", err)
 		}

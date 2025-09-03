@@ -45,7 +45,7 @@ var publishCmd = &cobra.Command{
 		}
 
 		authClient := auth.NewClient()
-		storage := auth.NewStorage()
+		storage := auth.NewStorageWithPath(GetAuthPath())
 		token, err := authClient.GetValidToken(storage)
 		if err != nil {
 			return fmt.Errorf("authentication required: %v", err)
@@ -79,7 +79,7 @@ var publishCmd = &cobra.Command{
 		// message size
 		messageSize := int64(len(data))
 
-		limiter, err := ratelimit.NewRateLimiter(claims)
+		limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir())
 		if err != nil {
 			return fmt.Errorf("rate limiter setup failed: %v", err)
 		}
@@ -155,7 +155,7 @@ var publishCmd = &cobra.Command{
 			fmt.Println(string(body))
 		}
 
-		if limiter, err := ratelimit.NewRateLimiter(claims); err == nil {
+		if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {
 			_ = limiter.RecordPublish(messageSize) // update quota (fail silently)
 		}
 		return nil

@@ -17,9 +17,23 @@ type Storage struct {
 
 // NewStorage creates a new token storage
 func NewStorage() *Storage {
-	homeDir, _ := os.UserHomeDir()
-	tokenDir := filepath.Join(homeDir, ".optimum")
-	tokenFile := filepath.Join(tokenDir, "auth.yml")
+	return NewStorageWithPath("")
+}
+
+// NewStorageWithPath creates a new token storage with custom path
+func NewStorageWithPath(customPath string) *Storage {
+	var tokenDir, tokenFile string
+
+	if customPath != "" {
+		// If custom path is provided, use it directly
+		tokenFile = customPath
+		tokenDir = filepath.Dir(customPath)
+	} else {
+		// Default behavior: use ~/.optimum/auth.yml
+		homeDir, _ := os.UserHomeDir()
+		tokenDir = filepath.Join(homeDir, ".optimum")
+		tokenFile = filepath.Join(tokenDir, "auth.yml")
+	}
 
 	return &Storage{
 		tokenDir:  tokenDir,

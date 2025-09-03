@@ -47,7 +47,7 @@ var subscribeCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// auth
 		authClient := auth.NewClient()
-		storage := auth.NewStorage()
+		storage := auth.NewStorageWithPath(GetAuthPath())
 		token, err := authClient.GetValidToken(storage)
 		if err != nil {
 			return fmt.Errorf("authentication required: %v", err)
