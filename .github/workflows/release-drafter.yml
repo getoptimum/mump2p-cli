@@ -1,22 +1,25 @@
 name: Release Drafter
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for the release draft (optional)'
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  update_release_draft:
-    name: Update Release Draft
+  create_release_draft:
+    name: Create Release Draft
     permissions:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - name: Update release draft
+      - name: Create release draft
         uses: release-drafter/release-drafter@v6
         with:
           config-name: release-drafter.yml
