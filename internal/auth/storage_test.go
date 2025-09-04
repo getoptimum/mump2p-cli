@@ -96,3 +96,77 @@ func TestStorage(t *testing.T) {
 		require.Contains(t, err.Error(), "not logged in")
 	})
 }
+
+// TestExpandHomePath tests the tilde expansion functionality
+func TestExpandHomePath(t *testing.T) {
+	homeDir, _ := os.UserHomeDir()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "tilde path expansion",
+			input:    "~/test/auth.yml",
+			expected: filepath.Join(homeDir, "test/auth.yml"),
+		},
+		{
+			name:     "absolute path unchanged",
+			input:    "/absolute/path/auth.yml",
+			expected: "/absolute/path/auth.yml",
+		},
+		{
+			name:     "relative path unchanged",
+			input:    "relative/path/auth.yml",
+			expected: "relative/path/auth.yml",
+		},
+		{
+			name:     "just tilde",
+			input:    "~",
+			expected: "~", // Edge case: just ~ without / should remain unchanged
+		},
+		{
+			name:     "tilde in middle unchanged",
+			input:    "/path/~/auth.yml",
+			expected: "/path/~/auth.yml",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := expandHomePath(tc.input)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+// TestNewStorageWithPathTildeExpansion tests that NewStorageWithPath properly expands tilde paths
+func TestNewStorageWithPathTildeExpansion(t *testing.T) {
+	homeDir, _ := os.UserHomeDir()
+
+	t.Run("tilde path gets expanded", func(t *testing.T) {
+		storage := NewStorageWithPath("~/custom/auth.yml")
+		expectedFile := filepath.Join(homeDir, "custom/auth.yml")
+		expectedDir := filepath.Join(homeDir, "custom")
+
+		require.Equal(t, expectedFile, storage.tokenFile)
+		require.Equal(t, expectedDir, storage.tokenDir)
+	})
+
+	t.Run("absolute path unchanged", func(t *testing.T) {
+		storage := NewStorageWithPath("/tmp/auth.yml")
+
+		require.Equal(t, "/tmp/auth.yml", storage.tokenFile)
+		require.Equal(t, "/tmp", storage.tokenDir)
+	})
+
+	t.Run("empty path uses default", func(t *testing.T) {
+		storage := NewStorageWithPath("")
+		expectedFile := filepath.Join(homeDir, ".optimum/auth.yml")
+		expectedDir := filepath.Join(homeDir, ".optimum")
+
+		require.Equal(t, expectedFile, storage.tokenFile)
+		require.Equal(t, expectedDir, storage.tokenDir)
+	})
+}
