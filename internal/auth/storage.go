@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -25,9 +26,9 @@ func NewStorageWithPath(customPath string) *Storage {
 	var tokenDir, tokenFile string
 
 	if customPath != "" {
-		// If custom path is provided, use it directly
-		tokenFile = customPath
-		tokenDir = filepath.Dir(customPath)
+		// If custom path is provided, expand tilde and use it
+		tokenFile = expandHomePath(customPath)
+		tokenDir = filepath.Dir(tokenFile)
 	} else {
 		// Default behavior: use ~/.optimum/auth.yml
 		homeDir, _ := os.UserHomeDir()
@@ -39,6 +40,15 @@ func NewStorageWithPath(customPath string) *Storage {
 		tokenDir:  tokenDir,
 		tokenFile: tokenFile,
 	}
+}
+
+// expandHomePath expands ~ to the user's home directory
+func expandHomePath(path string) string {
+	if strings.HasPrefix(path, "~/") {
+		homeDir, _ := os.UserHomeDir()
+		return filepath.Join(homeDir, path[2:])
+	}
+	return path
 }
 
 // SaveToken persists a token to disk
