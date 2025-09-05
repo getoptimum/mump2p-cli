@@ -334,7 +334,7 @@ This will display:
 ```text
 📋 Subscribed Topics for Client: google-oauth2|116937893938826513819
 ═══════════════════════════════════════════════════════════════
-   Total Subscriptions: 3
+   Total Topics: 3
 
    1. test-topic-1
    2. demo-topic
@@ -346,7 +346,7 @@ This will display:
 ```text
 📋 Subscribed Topics for Client: google-oauth2|116937893938826513819
 ═══════════════════════════════════════════════════════════════
-   No active subscriptions found.
+   No active topics found.
    Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.
 ═══════════════════════════════════════════════════════════════
 ```
@@ -365,7 +365,7 @@ Using custom service URL: http://35.221.118.95:8080
 
 📋 Subscribed Topics for Client: google-oauth2|116937893938826513819
 ═══════════════════════════════════════════════════════════════
-   Total Subscriptions: 2
+   Total Topics: 2
 
    1. production-topic
    2. monitoring-topic
