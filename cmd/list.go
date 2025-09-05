@@ -26,7 +26,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List subscribed topics for the authenticated client",
 	Long: `List all topics that the authenticated client is currently subscribed to.
-This command shows your active subscriptions and their count.`,
+This command shows your active topics and their count.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Authenticate
 		authClient := auth.NewClient()
@@ -96,10 +96,10 @@ This command shows your active subscriptions and their count.`,
 		fmt.Printf("═══════════════════════════════════════════════════════════════\n")
 
 		if listResponse.Count == 0 {
-			fmt.Printf("   No active subscriptions found.\n")
+			fmt.Printf("   No active topics found.\n")
 			fmt.Printf("   Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.\n")
 		} else {
-			fmt.Printf("   Total Subscriptions: %d\n\n", listResponse.Count)
+			fmt.Printf("   Total Topics: %d\n\n", listResponse.Count)
 			for i, topic := range listResponse.Topics {
 				fmt.Printf("   %d. %s\n", i+1, topic)
 			}
