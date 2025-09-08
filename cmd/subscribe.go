@@ -58,8 +58,6 @@ var subscribeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error parsing token: %v", err)
 		}
-		fmt.Println("claims is", claims)
-		fmt.Println("claims is", claims.ClientID)
 		// check if the account is active
 		if !claims.IsActive {
 			return fmt.Errorf("your account is inactive, please contact support")
