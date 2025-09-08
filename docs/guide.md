@@ -313,6 +313,67 @@ Rate limits will be automatically applied based on your authentication token.
 
 ---
 
+## Managing Topics
+
+### List Your Active Topics
+
+To see all topics you're currently subscribed to:
+
+```sh
+./mump2p list
+```
+
+This will display:
+
+- Your client ID
+- Total number of active topics
+- List of all subscribed topics with numbering
+- Helpful guidance if no topics are found
+
+**Example output with topics:**
+```text
+📋 Subscribed Topics for Client: google-oauth2|116937893938826513819
+═══════════════════════════════════════════════════════════════
+   Total Topics: 3
+
+   1. test-topic-1
+   2. demo-topic
+   3. news-updates
+═══════════════════════════════════════════════════════════════
+```
+
+**Example output with no topics:**
+```text
+📋 Subscribed Topics for Client: google-oauth2|116937893938826513819
+═══════════════════════════════════════════════════════════════
+   No active topics found.
+   Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.
+═══════════════════════════════════════════════════════════════
+```
+
+### List Topics from Different Proxy
+
+You can check your topics on a specific proxy server:
+
+```sh
+./mump2p list --service-url="http://35.221.118.95:8080"
+```
+
+**Example output:**
+```text
+Using custom service URL: http://35.221.118.95:8080
+
+📋 Subscribed Topics for Client: google-oauth2|116937893938826513819
+═══════════════════════════════════════════════════════════════
+   Total Topics: 2
+
+   1. production-topic
+   2. monitoring-topic
+═══════════════════════════════════════════════════════════════
+```
+
+**Note:** Each proxy server maintains separate topic states, so you may have different topics on different proxies.
+
 ## Checking Usage and Limits
 
 To see your current usage statistics and rate limits:
@@ -378,10 +439,12 @@ This is useful for:
 1. **Topic Names:** Choose descriptive and unique topic names to avoid message conflicts
 2. **Message Size:** Be aware of your maximum message size limit when publishing files
 3. **Token Refresh:** For long-running operations, refresh your token before it expires
-4. **Persistent Subscriptions:** Use the --persist option when you need a record of messages
-5. **Webhook Reliability:** Increase the queue size for high-volume topics to prevent message drops
-6. **gRPC Performance:** Use `--grpc` flag for high-throughput scenarios and better performance
-7. **Health Monitoring:** Check proxy health with `./mump2p health` before long operations
+4. **Topic Management:** Use `./mump2p list` to check your active topics and avoid duplicate subscriptions
+5. **Persistent Subscriptions:** Use the --persist option when you need a record of messages
+6. **Webhook Reliability:** Increase the queue size for high-volume topics to prevent message drops
+7. **gRPC Performance:** Use `--grpc` flag for high-throughput scenarios and better performance
+8. **Health Monitoring:** Check proxy health with `./mump2p health` before long operations
+9. **Multi-Proxy Usage:** Remember that each proxy server maintains separate topic states - use `./mump2p list --service-url=<url>` to check topics on specific proxies
 
 ## Troubleshooting
 
@@ -391,6 +454,10 @@ For common setup and usage issues, see the [FAQ section in the README](../README
 
 - **Authentication Errors:** Run `./mump2p whoami` to check token status, and `./mump2p login` to re-authenticate
 - **Rate Limit Errors:** Use `./mump2p usage` to check your current usage against limits
+- **Topic Issues:** 
+  - Use `./mump2p list` to verify your active topics
+  - Check topics on different proxies with `./mump2p list --service-url=<url>`
+  - Remember that topics persist across logout/login sessions
 - **Connection Issues:** 
   - Verify your internet connection and firewall settings
   - Check proxy server health with `./mump2p health`

@@ -10,6 +10,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 
 - [x] Publish messages to topics
 - [x] Subscribe to real-time message streams
+- [x] List active topics
 - [x] gRPC support for high-performance streaming
 - [x] JWT-based login/logout and token refresh
 - [x] Local rate-limiting (publish count, quota, max size)
@@ -58,6 +59,9 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 # Publish via gRPC
 ./mump2p publish --topic=test-topic --message='Hello World' --grpc
+
+# List your active topics
+./mump2p list
 ```
 
 ### Transport Protocols
