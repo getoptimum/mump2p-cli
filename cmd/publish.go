@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
@@ -28,9 +29,10 @@ var (
 
 // PublishPayload matches the expected JSON body on the server
 type PublishRequest struct {
-	ClientID string `json:"client_id"`
-	Topic    string `json:"topic"`
-	Message  string `json:"message"`
+	ClientID  string `json:"client_id"`
+	Topic     string `json:"topic"`
+	Message   string `json:"message"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 var publishCmd = &cobra.Command{
@@ -124,9 +126,10 @@ var publishCmd = &cobra.Command{
 		} else {
 			// HTTP publish logic (existing)
 			reqData := PublishRequest{
-				ClientID: claims.ClientID,
-				Topic:    pubTopic,
-				Message:  string(data), // plain text
+				ClientID:  claims.ClientID,
+				Topic:     pubTopic,
+				Message:   string(data), // plain text
+				Timestamp: time.Now().UnixMilli(),
 			}
 			reqBytes, err := json.Marshal(reqData)
 			if err != nil {
