@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,6 +35,27 @@ type PublishRequest struct {
 	Topic     string `json:"topic"`
 	Message   string `json:"message"`
 	Timestamp int64  `json:"timestamp"`
+}
+
+// addDebugPrefix adds debug information prefix to message data
+func addDebugPrefix(data []byte, proxyAddr string) []byte {
+	currentTime := time.Now().UnixNano()
+	prefix := fmt.Sprintf("sender_addr:%s\t[send_time, size]:[%d, %d]\t", proxyAddr, currentTime, len(data))
+	prefixBytes := []byte(prefix)
+	return append(prefixBytes, data...)
+}
+
+// printDebugInfo prints debug information for publish operations
+func printDebugInfo(data []byte, proxyAddr string, topic string, isGRPC bool) {
+	currentTime := time.Now().UnixNano()
+	sum := sha256.Sum256(data)
+	hash := hex.EncodeToString(sum[:])
+	protocol := "HTTP"
+	if isGRPC {
+		protocol = "gRPC"
+	}
+	fmt.Printf("Publish:\tsender_info:%s, [send_time, size]:[%d, %d]\ttopic:%s\tmsg_hash:%s\tprotocol:%s\n",
+		proxyAddr, currentTime, len(data), topic, hash[:8], protocol)
 }
 
 var publishCmd = &cobra.Command{
@@ -110,6 +133,18 @@ var publishCmd = &cobra.Command{
 				grpcAddr += ":50051" // default port if not specified
 			}
 
+			// Extract proxy IP for debug mode
+			proxyAddr := extractIPFromURL(grpcAddr)
+			if proxyAddr == "" {
+				proxyAddr = grpcAddr // fallback to full address if no IP found
+			}
+
+			// Add debug prefix to data if debug mode is enabled
+			publishData := data
+			if IsDebugMode() {
+				publishData = addDebugPrefix(data, proxyAddr)
+			}
+
 			ctx := context.Background()
 			client, err := grpcclient.NewProxyClient(grpcAddr)
 			if err != nil {
@@ -117,18 +152,35 @@ var publishCmd = &cobra.Command{
 			}
 			defer client.Close()
 
-			err = client.Publish(ctx, claims.ClientID, pubTopic, data)
+			err = client.Publish(ctx, claims.ClientID, pubTopic, publishData)
 			if err != nil {
 				return fmt.Errorf("gRPC publish failed: %v", err)
+			}
+
+			// Print debug information if debug mode is enabled
+			if IsDebugMode() {
+				printDebugInfo(publishData, proxyAddr, pubTopic, true)
 			}
 
 			fmt.Println("✅ Published via gRPC", source)
 		} else {
 			// HTTP publish logic (existing)
+			// Extract proxy IP for debug mode
+			proxyAddr := extractIPFromURL(baseURL)
+			if proxyAddr == "" {
+				proxyAddr = baseURL // fallback to full URL if no IP found
+			}
+
+			// Add debug prefix to data if debug mode is enabled
+			publishData := data
+			if IsDebugMode() {
+				publishData = addDebugPrefix(data, proxyAddr)
+			}
+
 			reqData := PublishRequest{
 				ClientID:  claims.ClientID,
 				Topic:     pubTopic,
-				Message:   string(data), // plain text
+				Message:   string(publishData), // use modified data with debug prefix if enabled
 				Timestamp: time.Now().UnixMilli(),
 			}
 			reqBytes, err := json.Marshal(reqData)
@@ -152,6 +204,11 @@ var publishCmd = &cobra.Command{
 			body, _ := io.ReadAll(resp.Body)
 			if resp.StatusCode != 200 {
 				return fmt.Errorf("publish error: %s", string(body))
+			}
+
+			// Print debug information if debug mode is enabled
+			if IsDebugMode() {
+				printDebugInfo(publishData, proxyAddr, pubTopic, false)
 			}
 
 			fmt.Println("✅ Published via HTTP", source)

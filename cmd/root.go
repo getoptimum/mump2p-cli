@@ -10,6 +10,7 @@ import (
 
 var (
 	authPath string // Global flag for custom authentication file path
+	debug    bool   // Global flag for debug mode
 )
 
 var rootCmd = &cobra.Command{
@@ -30,6 +31,9 @@ func init() {
 	// Add global flag for custom authentication path
 	rootCmd.PersistentFlags().StringVar(&authPath, "auth-path", os.Getenv("MUMP2P_AUTH_PATH"), "Custom path for authentication file (default: ~/.optimum/auth.yml, env: MUMP2P_AUTH_PATH)")
 
+	// Add global debug flag
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode with detailed timing and proxy information")
+
 	// disable completion option
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
@@ -46,4 +50,9 @@ func GetAuthDir() string {
 	}
 	homeDir, _ := os.UserHomeDir()
 	return filepath.Join(homeDir, ".optimum")
+}
+
+// IsDebugMode returns true if debug mode is enabled
+func IsDebugMode() bool {
+	return debug
 }

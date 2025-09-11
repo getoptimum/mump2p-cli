@@ -3,6 +3,8 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,7 +12,9 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -39,6 +43,21 @@ type SubscribeRequest struct {
 	ClientID  string  `json:"client_id"`
 	Topic     string  `json:"topic"`
 	Threshold float32 `json:"threshold,omitempty"`
+}
+
+// printDebugReceiveInfo prints debug information for received messages
+func printDebugReceiveInfo(message []byte, receiverAddr string, topic string, messageNum int32, protocol string) {
+	currentTime := time.Now().UnixNano()
+	messageSize := len(message)
+	sum := sha256.Sum256(message)
+	hash := hex.EncodeToString(sum[:])
+
+	// Extract sender info from message if it contains debug prefix
+	sendInfoRegex := regexp.MustCompile(`sender_addr:\d+\.\d+\.\d+\.\d+\t\[send_time, size\]:\[\d+,\s*\d+\]`)
+	sendInfo := sendInfoRegex.FindString(string(message))
+
+	fmt.Printf("Recv:\t[%d]\treceiver_addr:%s\t[recv_time, size]:[%d, %d]\t%s\ttopic:%s\thash:%s\tprotocol:%s\n",
+		messageNum, receiverAddr, currentTime, messageSize, sendInfo, topic, hash[:8], protocol)
 }
 
 var subscribeCmd = &cobra.Command{
@@ -153,6 +172,13 @@ var subscribeCmd = &cobra.Command{
 			} else {
 				grpcAddr += ":50051" // default port if not specified
 			}
+
+			// Extract receiver IP for debug mode
+			receiverAddr := extractIPFromURL(grpcAddr)
+			if receiverAddr == "" {
+				receiverAddr = grpcAddr // fallback to full address if no IP found
+			}
+
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			client, err := grpcsub.NewProxyClient(grpcAddr)
@@ -199,11 +225,20 @@ var subscribeCmd = &cobra.Command{
 
 			// receiver
 			doneChan := make(chan struct{})
+			var messageCount int32
 			go func() {
 				defer close(doneChan)
 				for msg := range msgChan {
 					msgStr := string(msg.Message)
-					fmt.Println(msgStr)
+
+					// Print debug information if debug mode is enabled
+					if IsDebugMode() {
+						n := atomic.AddInt32(&messageCount, 1)
+						printDebugReceiveInfo(msg.Message, receiverAddr, subTopic, n, "gRPC")
+					} else {
+						fmt.Println(msgStr)
+					}
+
 					// persist
 					if persistFile != nil {
 						timestamp := time.Now().Format(time.RFC3339)
@@ -239,6 +274,12 @@ var subscribeCmd = &cobra.Command{
 		wsURL := strings.Replace(srcUrl, "http://", "ws://", 1)
 		wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
 		wsURL = fmt.Sprintf("%s/api/v1/ws?client_id=%s", wsURL, claims.ClientID)
+
+		// Extract receiver IP for debug mode
+		receiverAddr := extractIPFromURL(srcUrl)
+		if receiverAddr == "" {
+			receiverAddr = srcUrl // fallback to full URL if no IP found
+		}
 
 		// setup ws headers for authentication
 		header := http.Header{}
@@ -287,6 +328,7 @@ var subscribeCmd = &cobra.Command{
 
 		// receiver
 		doneChan := make(chan struct{})
+		var messageCount int32
 		go func() {
 			defer close(doneChan)
 			for {
@@ -298,7 +340,14 @@ var subscribeCmd = &cobra.Command{
 					return
 				}
 				msgStr := string(msg)
-				fmt.Println(msgStr)
+
+				// Print debug information if debug mode is enabled
+				if IsDebugMode() {
+					n := atomic.AddInt32(&messageCount, 1)
+					printDebugReceiveInfo(msg, receiverAddr, subTopic, n, "WebSocket")
+				} else {
+					fmt.Println(msgStr)
+				}
 
 				// persist
 				if persistFile != nil {
