@@ -16,7 +16,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 - [x] Local rate-limiting (publish count, quota, max size)
 - [x] Usage statistics reporting
 - [x] Persist messages to local storage
-- [x] Forward messages to webhook endpoints (POST method)
+- [x] Forward messages to webhook endpoints (POST method) with formatting for Discord, Slack, and generic webhooks
 - [x] Health monitoring and system metrics
 - [x] Debug mode with detailed timing and proxy information
   
@@ -251,7 +251,40 @@ Error: required flag(s) "topic" not set
 - Include all required arguments
 - Check flag spelling and syntax
 
-### **6. Debug Mode & Performance Analysis**
+### **6. Webhook Issues**
+
+#### **Error: Webhook responded with status code: 400**
+```
+Webhook responded with status code: 400
+```
+
+**Causes:**
+- Discord webhooks require specific JSON format: `{"content": "message"}`
+- Slack webhooks require specific JSON format: `{"text": "message"}`
+- Generic webhooks expect raw content
+
+**Solutions:**
+- **Fixed in latest version**: CLI now automatically detects webhook type and formats messages correctly
+- Discord webhooks: Messages are automatically formatted as `{"content": "message"}`
+- Slack webhooks: Messages are automatically formatted as `{"text": "message"}`
+- Generic webhooks: Messages are sent as raw content
+- Check webhook URL validity and permissions
+
+#### **Webhook Not Receiving Messages**
+
+**Causes:**
+- Webhook endpoint not accessible
+- Invalid webhook URL
+- Network connectivity issues
+- Webhook queue full (messages dropped)
+
+**Solutions:**
+- Test webhook URL with [webhook.site](https://webhook.site/)
+- Check webhook endpoint accessibility
+- Increase `--webhook-queue-size` for high-volume topics
+- Verify webhook permissions (Discord/Slack)
+
+### **7. Debug Mode & Performance Analysis**
 
 #### **Using Debug Mode for Troubleshooting**
 
@@ -280,4 +313,5 @@ The `--debug` flag provides detailed timing and proxy information for troublesho
 - Start with simple publish/subscribe before advanced features
 - Keep proxy and CLI logs visible during troubleshooting
 - Use [webhook.site](https://webhook.site/) for easy webhook testing
+- Discord webhook 400 errors are now automatically resolved with proper JSON formatting
 - Check `usage` command regularly to monitor limits

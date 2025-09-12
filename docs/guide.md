@@ -222,6 +222,38 @@ With gRPC:
 
 **Note: The webhook endpoint must be configured to accept POST requests.**
 
+#### Webhook Formatting
+
+The CLI automatically detects webhook types and formats messages appropriately:
+
+**Discord Webhooks:**
+```sh
+./mump2p subscribe --topic=alerts --webhook="https://discord.com/api/webhooks/123456789/abcdef"
+```
+- Messages are formatted as: `{"content": "your message"}`
+- Automatically detected from Discord webhook URLs
+
+**Slack Webhooks:**
+```sh
+./mump2p subscribe --topic=notifications --webhook="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+```
+- Messages are formatted as: `{"text": "your message"}`
+- Automatically detected from Slack webhook URLs
+
+**Generic Webhooks:**
+```sh
+./mump2p subscribe --topic=logs --webhook="https://webhook.site/your-unique-id"
+```
+- Messages are sent as raw content (no JSON formatting)
+- Used for custom endpoints or testing services
+
+**Example Output:**
+```text
+Forwarding messages to Discord webhook: https://discord.com/api/webhooks/123456789/abcdef
+Forwarding messages to Slack webhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+Forwarding messages to Generic webhook: https://webhook.site/your-unique-id
+```
+
 #### Advanced Webhook Options
 
 For more control over webhook behavior:
@@ -516,5 +548,10 @@ For common setup and usage issues, see the [FAQ section in the README](../README
   - Check proxy server health with `./mump2p health`
   - Try a different proxy server with `--service-url` flag
 - **Proxy Health Issues:** Use `./mump2p health` to check system metrics and server status
-- **Webhook Failures:** Check that your webhook endpoint is accessible and properly configured to accept POST requests
+- **Webhook Failures:** 
+  - Check that your webhook endpoint is accessible and properly configured to accept POST requests
+  - For Discord webhooks: Ensure the webhook URL is valid and the bot has permission to send messages
+  - For Slack webhooks: Verify the webhook URL is correct and the app is installed in your workspace
+  - Check webhook response status codes - 400 errors usually indicate formatting issues (now automatically handled)
+  - Use [webhook.site](https://webhook.site/) for testing generic webhook endpoints
   

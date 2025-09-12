@@ -21,6 +21,7 @@ import (
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
 	grpcsub "github.com/getoptimum/mump2p-cli/internal/grpc"
+	"github.com/getoptimum/mump2p-cli/internal/webhook"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
@@ -108,11 +109,13 @@ var subscribeCmd = &cobra.Command{
 		}
 
 		// validate webhook URL if provided
+		var webhookFormatter *webhook.Formatter
 		if webhookURL != "" {
 			if !strings.HasPrefix(webhookURL, "http://") && !strings.HasPrefix(webhookURL, "https://") {
 				return fmt.Errorf("webhook URL must start with http:// or https://")
 			}
-			fmt.Printf("Forwarding messages to webhook: %s\n", webhookURL)
+			webhookFormatter = webhook.NewFormatter(webhookURL)
+			fmt.Printf("Forwarding messages to %s webhook: %s\n", webhookFormatter.GetWebhookTypeName(), webhookURL)
 		}
 
 		//signal handling for graceful shutdown
@@ -204,7 +207,15 @@ var subscribeCmd = &cobra.Command{
 					go func(payload []byte) {
 						ctx, cancel := context.WithTimeout(context.Background(), time.Duration(webhookTimeoutSecs)*time.Second)
 						defer cancel()
-						req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(payload))
+
+						// Format the payload based on webhook type
+						formattedPayload, err := webhookFormatter.FormatMessage(payload)
+						if err != nil {
+							fmt.Printf("Failed to format webhook payload: %v\n", err)
+							return
+						}
+
+						req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(formattedPayload))
 						if err != nil {
 							fmt.Printf("Failed to create webhook request: %v\n", err)
 							return
@@ -305,7 +316,14 @@ var subscribeCmd = &cobra.Command{
 					ctx, cancel := context.WithTimeout(context.Background(), time.Duration(webhookTimeoutSecs)*time.Second)
 					defer cancel()
 
-					req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(payload))
+					// Format the payload based on webhook type
+					formattedPayload, err := webhookFormatter.FormatMessage(payload)
+					if err != nil {
+						fmt.Printf("Failed to format webhook payload: %v\n", err)
+						return
+					}
+
+					req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(formattedPayload))
 					if err != nil {
 						fmt.Printf("Failed to create webhook request: %v\n", err)
 						return
