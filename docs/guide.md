@@ -434,6 +434,58 @@ This is useful for:
 
 ---
 
+## Debug Mode
+
+The `--debug` flag provides detailed timing and proxy information for troubleshooting and performance analysis. When enabled, it shows:
+
+- **Message timestamps**: Send and receive times in nanoseconds
+- **Proxy IP addresses**: Source and destination proxy information
+- **Message metadata**: Size, hash, and protocol information
+- **Message numbering**: Sequential numbering for received messages
+
+### Basic Debug Usage
+
+```sh
+# Debug publish operations
+./mump2p --debug publish --topic=test-topic --message='Hello World'
+
+# Debug subscribe operations
+./mump2p --debug subscribe --topic=test-topic
+
+# Debug with gRPC
+./mump2p --debug publish --topic=test-topic --message='Hello World' --grpc
+./mump2p --debug subscribe --topic=test-topic --grpc
+```
+
+### Debug Output Format
+
+**Publish Debug Output:**
+```text
+Publish: sender_info:34.146.222.111, [send_time, size]:[1757606701424811000, 2010] topic:test-topic msg_hash:4bbac12f protocol:HTTP
+```
+
+**Subscribe Debug Output:**
+```text
+Recv: [1] receiver_addr:34.146.222.111 [recv_time, size]:[1757606701424811000, 2082] sender_addr:34.146.222.111 [send_time, size]:[1757606700160514000, 2009] topic:test-topic hash:8da69366 protocol:WebSocket
+```
+
+### Debug Information Explained
+
+- **sender_info/receiver_addr**: IP address of the proxy handling the message
+- **send_time/recv_time**: Unix timestamp in nanoseconds when message was sent/received
+- **size**: Message size in bytes (includes debug prefix for received messages)
+- **msg_hash/hash**: First 8 characters of SHA256 hash for message identification
+- **protocol**: Communication protocol used (HTTP, gRPC, or WebSocket)
+- **[n]**: Sequential message number for received messages
+
+### Use Cases for Debug Mode
+
+- **Performance Analysis**: Measure message latency and throughput
+- **Troubleshooting**: Identify proxy routing and timing issues
+- **Message Tracking**: Verify message integrity using hashes
+- **Cross-Proxy Testing**: Monitor message flow between different proxy servers
+- **Load Testing**: Analyze performance under high message volumes
+
 ## Tips for Effective Use
 
 1. **Topic Names:** Choose descriptive and unique topic names to avoid message conflicts
@@ -445,6 +497,7 @@ This is useful for:
 7. **gRPC Performance:** Use `--grpc` flag for high-throughput scenarios and better performance
 8. **Health Monitoring:** Check proxy health with `./mump2p health` before long operations
 9. **Multi-Proxy Usage:** Remember that each proxy server maintains separate topic states - use `./mump2p list --service-url=<url>` to check topics on specific proxies
+10. **Debug Analysis:** Use `--debug` flag for performance monitoring and troubleshooting message flow issues
 
 ## Troubleshooting
 
