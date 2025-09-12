@@ -18,6 +18,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 - [x] Persist messages to local storage
 - [x] Forward messages to webhook endpoints (POST method)
 - [x] Health monitoring and system metrics
+- [x] Debug mode with detailed timing and proxy information
   
 ---
 
@@ -62,6 +63,10 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 # List your active topics
 ./mump2p list
+
+# Debug mode - detailed timing and proxy information
+./mump2p --debug publish --topic=test-topic --message='Hello World'
+./mump2p --debug subscribe --topic=test-topic
 ```
 
 ### Transport Protocols
@@ -245,6 +250,26 @@ Error: required flag(s) "topic" not set
 - Use `--help` to see required flags
 - Include all required arguments
 - Check flag spelling and syntax
+
+### **6. Debug Mode & Performance Analysis**
+
+#### **Using Debug Mode for Troubleshooting**
+
+The `--debug` flag provides detailed timing and proxy information for troubleshooting:
+
+```sh
+# Enable debug mode for publish operations
+./mump2p --debug publish --topic=test-topic --message='Hello World'
+
+# Enable debug mode for subscribe operations  
+./mump2p --debug subscribe --topic=test-topic
+```
+
+**Debug Output Interpretation:**
+- **Timestamps**: Compare send_time vs recv_time to measure latency
+- **Proxy IPs**: Verify messages are routing through expected proxies
+- **Message Hashes**: Use to track specific messages across operations
+- **Protocol**: Confirm HTTP/gRPC/WebSocket protocol usage
 
 ---
 
