@@ -271,12 +271,6 @@ The `--debug` flag provides detailed timing and proxy information for troublesho
 - **Message Hashes**: Use to track specific messages across operations
 - **Protocol**: Confirm HTTP/gRPC/WebSocket protocol usage
 
-**Common Debug Scenarios:**
-- **High Latency**: Large time differences between send_time and recv_time
-- **Proxy Routing Issues**: Unexpected proxy IP addresses in debug output
-- **Message Loss**: Missing message numbers in sequential debug output
-- **Protocol Performance**: Compare timing between HTTP and gRPC protocols
-
 ---
 
 **Pro Tips for First-Time Users:**
