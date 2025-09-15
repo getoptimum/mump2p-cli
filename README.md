@@ -85,11 +85,11 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 ## Version Compatibility
 
-**Important:** Always use the latest version binaries (currently **v0.0.1-rc5**) from the releases page. 
+**Important:** Always use the latest version binaries (currently **v0.0.1-rc6**) from the releases page. 
 
 **Current Release:**
-- ✅ **v0.0.1-rc5** is the latest release
-- ⚠️ **v0.0.1-rc4** and earlier versions are deprecated due to authentication issues
+- ✅ **v0.0.1-rc6** is the latest release
+- ⚠️ **v0.0.1-rc5** and earlier versions are deprecated
 
 ---
 
@@ -124,7 +124,7 @@ Error: your account is inactive, please contact support
 - Token issued before account activation
 
 **Solutions:**
-- **Upgrade to RC5**: `curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash`
+- **Upgrade to RC6**: `curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash`
 - Update user's `app_metadata.is_active` to `true` in Auth0
 - Logout and login again to get new token with updated claims
 

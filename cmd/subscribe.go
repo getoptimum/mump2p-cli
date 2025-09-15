@@ -126,46 +126,12 @@ var subscribeCmd = &cobra.Command{
 		// use custom service URL if provided, otherwise use the default
 		if subServiceURL != "" {
 			srcUrl = subServiceURL
-			fmt.Printf("Using custom service URL: %s\n", srcUrl)
 		}
 
-		// send HTTP POST subscription request first
-		fmt.Println("Sending HTTP POST subscription request...")
-		httpEndpoint := fmt.Sprintf("%s/api/v1/subscribe", srcUrl)
-		reqData := SubscribeRequest{
-			ClientID:  claims.ClientID,
-			Topic:     subTopic,
-			Threshold: subThreshold,
-		}
-		reqBytes, err := json.Marshal(reqData)
-		if err != nil {
-			return fmt.Errorf("failed to marshal subscription request: %v", err)
-		}
-
-		req, err := http.NewRequest("POST", httpEndpoint, bytes.NewBuffer(reqBytes))
-		if err != nil {
-			return fmt.Errorf("failed to create HTTP request: %v", err)
-		}
-		req.Header.Set("Authorization", "Bearer "+token.Token)
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("HTTP POST subscribe failed: %v", err)
-		}
-
-		defer resp.Body.Close() //nolint:errcheck
-		body, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("HTTP POST subscribe error: %s", string(body))
-		}
-
-		fmt.Printf("HTTP POST subscription successful: %s\n", string(body))
-
+		// Prepare gRPC address if needed
+		var grpcAddr string
 		if useGRPC {
-			// gRPC subscription logic
-			grpcAddr := strings.Replace(srcUrl, "http://", "", 1)
+			grpcAddr = strings.Replace(srcUrl, "http://", "", 1)
 			grpcAddr = strings.Replace(grpcAddr, "https://", "", 1)
 			// Replace the port with 50051 for gRPC (default gRPC port)
 			if strings.Contains(grpcAddr, ":") {
@@ -175,12 +141,15 @@ var subscribeCmd = &cobra.Command{
 			} else {
 				grpcAddr += ":50051" // default port if not specified
 			}
+			fmt.Printf("Using gRPC service URL: %s\n", grpcAddr)
+		} else {
+			fmt.Printf("Using HTTP service URL: %s\n", srcUrl)
+		}
 
-			// Extract receiver IP for debug mode
-			receiverAddr := extractIPFromURL(grpcAddr)
-			if receiverAddr == "" {
-				receiverAddr = grpcAddr // fallback to full address if no IP found
-			}
+		// send subscription request (HTTP or gRPC based on useGRPC flag)
+		if useGRPC {
+			// Use gRPC for subscription request
+			fmt.Println("Sending gRPC subscription request...")
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -190,9 +159,70 @@ var subscribeCmd = &cobra.Command{
 			}
 			defer client.Close()
 
-			msgChan, err := client.Subscribe(ctx, claims.ClientID, grpcBufferSize)
+			err = client.SubscribeTopic(ctx, claims.ClientID, subTopic, subThreshold)
 			if err != nil {
 				return fmt.Errorf("gRPC subscribe failed: %v", err)
+			}
+
+			fmt.Printf("gRPC subscription successful: subscribed to topic '%s'\n", subTopic)
+		} else {
+			// Use HTTP for subscription request
+			fmt.Println("Sending HTTP POST subscription request...")
+			httpEndpoint := fmt.Sprintf("%s/api/v1/subscribe", srcUrl)
+			reqData := SubscribeRequest{
+				ClientID:  claims.ClientID,
+				Topic:     subTopic,
+				Threshold: subThreshold,
+			}
+			reqBytes, err := json.Marshal(reqData)
+			if err != nil {
+				return fmt.Errorf("failed to marshal subscription request: %v", err)
+			}
+
+			req, err := http.NewRequest("POST", httpEndpoint, bytes.NewBuffer(reqBytes))
+			if err != nil {
+				return fmt.Errorf("failed to create HTTP request: %v", err)
+			}
+			req.Header.Set("Authorization", "Bearer "+token.Token)
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("HTTP POST subscribe failed: %v", err)
+			}
+
+			defer resp.Body.Close() //nolint:errcheck
+			body, _ := io.ReadAll(resp.Body)
+
+			if resp.StatusCode != 200 {
+				return fmt.Errorf("HTTP POST subscribe error: %s", string(body))
+			}
+
+			fmt.Printf("HTTP POST subscription successful: %s\n", string(body))
+		}
+
+		if useGRPC {
+			// gRPC streaming logic (reuse the connection from subscription)
+			// Extract receiver IP for debug mode
+			receiverAddr := extractIPFromURL(grpcAddr)
+			if receiverAddr == "" {
+				receiverAddr = grpcAddr // fallback to full address if no IP found
+			}
+
+			// Create a new context for streaming (separate from subscription context)
+			streamCtx, streamCancel := context.WithCancel(context.Background())
+			defer streamCancel()
+
+			// Create a new client connection for streaming
+			streamClient, err := grpcsub.NewProxyClient(grpcAddr)
+			if err != nil {
+				return fmt.Errorf("failed to connect to gRPC proxy for streaming: %v", err)
+			}
+			defer streamClient.Close()
+
+			msgChan, err := streamClient.Subscribe(streamCtx, claims.ClientID, grpcBufferSize)
+			if err != nil {
+				return fmt.Errorf("gRPC stream subscribe failed: %v", err)
 			}
 
 			fmt.Printf("Listening for messages on topic '%s' via gRPC... Press Ctrl+C to exit\n", subTopic)
@@ -271,7 +301,7 @@ var subscribeCmd = &cobra.Command{
 			select {
 			case <-sigChan:
 				fmt.Println("\nClosing connection...")
-				cancel()
+				streamCancel()
 			case <-doneChan:
 				fmt.Println("\nConnection closed by server")
 			}
