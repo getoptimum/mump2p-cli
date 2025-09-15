@@ -30,6 +30,7 @@ var (
 	subTopic           string
 	persistPath        string
 	webhookURL         string
+	webhookSchema      string
 	webhookQueueSize   int
 	webhookTimeoutSecs int
 	subThreshold       float32
@@ -108,14 +109,25 @@ var subscribeCmd = &cobra.Command{
 			fmt.Printf("Persisting data to: %s\n", persistPath)
 		}
 
-		// validate webhook URL if provided
-		var webhookFormatter *webhook.Formatter
+		// validate webhook URL and schema if provided
+		var webhookFormatter *webhook.TemplateFormatter
 		if webhookURL != "" {
 			if !strings.HasPrefix(webhookURL, "http://") && !strings.HasPrefix(webhookURL, "https://") {
 				return fmt.Errorf("webhook URL must start with http:// or https://")
 			}
-			webhookFormatter = webhook.NewFormatter(webhookURL)
-			fmt.Printf("Forwarding messages to %s webhook: %s\n", webhookFormatter.GetWebhookTypeName(), webhookURL)
+
+			// Create template formatter
+			formatter, err := webhook.NewTemplateFormatter(webhookSchema)
+			if err != nil {
+				return fmt.Errorf("invalid webhook schema: %v", err)
+			}
+			webhookFormatter = formatter
+
+			if webhookSchema == "" {
+				fmt.Printf("Forwarding messages to webhook (raw format): %s\n", webhookURL)
+			} else {
+				fmt.Printf("Forwarding messages to webhook (custom schema): %s\n", webhookURL)
+			}
 		}
 
 		//signal handling for graceful shutdown
@@ -238,8 +250,8 @@ var subscribeCmd = &cobra.Command{
 						ctx, cancel := context.WithTimeout(context.Background(), time.Duration(webhookTimeoutSecs)*time.Second)
 						defer cancel()
 
-						// Format the payload based on webhook type
-						formattedPayload, err := webhookFormatter.FormatMessage(payload)
+						// Format the payload using template
+						formattedPayload, err := webhookFormatter.FormatMessage(payload, subTopic, claims.ClientID, "grpc-msg")
 						if err != nil {
 							fmt.Printf("Failed to format webhook payload: %v\n", err)
 							return
@@ -346,8 +358,8 @@ var subscribeCmd = &cobra.Command{
 					ctx, cancel := context.WithTimeout(context.Background(), time.Duration(webhookTimeoutSecs)*time.Second)
 					defer cancel()
 
-					// Format the payload based on webhook type
-					formattedPayload, err := webhookFormatter.FormatMessage(payload)
+					// Format the payload using template
+					formattedPayload, err := webhookFormatter.FormatMessage(payload, subTopic, claims.ClientID, "ws-msg")
 					if err != nil {
 						fmt.Printf("Failed to format webhook payload: %v\n", err)
 						return
@@ -436,6 +448,7 @@ func init() {
 	subscribeCmd.MarkFlagRequired("topic") //nolint:errcheck
 	subscribeCmd.Flags().StringVar(&persistPath, "persist", "", "Path to file where messages will be stored")
 	subscribeCmd.Flags().StringVar(&webhookURL, "webhook", "", "URL to forward messages to")
+	subscribeCmd.Flags().StringVar(&webhookSchema, "webhook-schema", "", "JSON template for webhook payload (e.g., '{\"content\":\"{{.Message}}\"}')")
 	subscribeCmd.Flags().IntVar(&webhookQueueSize, "webhook-queue-size", 100, "Max number of webhook messages to queue before dropping")
 	subscribeCmd.Flags().IntVar(&webhookTimeoutSecs, "webhook-timeout", 3, "Timeout in seconds for each webhook POST request")
 	subscribeCmd.Flags().Float32Var(&subThreshold, "threshold", 0.1, "Delivery threshold (0.1 to 1.0)")

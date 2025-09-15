@@ -224,23 +224,34 @@ With gRPC:
 
 #### Webhook Formatting
 
-The CLI automatically detects webhook types and formats messages appropriately:
+The CLI supports flexible JSON template formatting for webhooks. You can define custom schemas using Go template syntax with available variables.
+
+**Available Template Variables:**
+- `{{.Message}}` - The message content
+- `{{.Timestamp}}` - Message timestamp (RFC3339 format)
+- `{{.Topic}}` - The topic name
+- `{{.ClientID}}` - Sender's client ID
+- `{{.MessageID}}` - Unique message identifier
 
 **Discord Webhooks:**
 ```sh
-./mump2p subscribe --topic=alerts --webhook="https://discord.com/api/webhooks/123456789/abcdef"
+./mump2p subscribe --topic=alerts --webhook="https://discord.com/api/webhooks/123456789/abcdef" --webhook-schema='{"content":"{{.Message}}"}'
 ```
 - Messages are formatted as: `{"content": "your message"}`
-- Automatically detected from Discord webhook URLs
 
 **Slack Webhooks:**
 ```sh
-./mump2p subscribe --topic=notifications --webhook="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+./mump2p subscribe --topic=notifications --webhook="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX" --webhook-schema='{"text":"{{.Message}}"}'
 ```
 - Messages are formatted as: `{"text": "your message"}`
-- Automatically detected from Slack webhook URLs
 
-**Generic Webhooks:**
+**Complex JSON Templates:**
+```sh
+./mump2p subscribe --topic=logs --webhook="https://your-server.com/webhook" --webhook-schema='{"message":"{{.Message}}","timestamp":"{{.Timestamp}}","topic":"{{.Topic}}","client":"{{.ClientID}}"}'
+```
+- Messages are formatted with multiple fields and metadata
+
+**Raw Messages (No Schema):**
 ```sh
 ./mump2p subscribe --topic=logs --webhook="https://webhook.site/your-unique-id"
 ```
@@ -249,9 +260,8 @@ The CLI automatically detects webhook types and formats messages appropriately:
 
 **Example Output:**
 ```text
-Forwarding messages to Discord webhook: https://discord.com/api/webhooks/123456789/abcdef
-Forwarding messages to Slack webhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
-Forwarding messages to Generic webhook: https://webhook.site/your-unique-id
+Forwarding messages to webhook (custom schema): https://discord.com/api/webhooks/123456789/abcdef
+Forwarding messages to webhook (raw format): https://webhook.site/your-unique-id
 ```
 
 #### Advanced Webhook Options
@@ -608,8 +618,9 @@ For common setup and usage issues, see the [FAQ section in the README](../README
 - **Proxy Health Issues:** Use `./mump2p health` to check system metrics and server status
 - **Webhook Failures:** 
   - Check that your webhook endpoint is accessible and properly configured to accept POST requests
-  - For Discord webhooks: Ensure the webhook URL is valid and the bot has permission to send messages
-  - For Slack webhooks: Verify the webhook URL is correct and the app is installed in your workspace
-  - Check webhook response status codes - 400 errors usually indicate formatting issues (now automatically handled)
+  - For Discord webhooks: Use `--webhook-schema='{"content":"{{.Message}}"}'` and ensure the webhook URL is valid
+  - For Slack webhooks: Use `--webhook-schema='{"text":"{{.Message}}"}'` and verify the webhook URL is correct
+  - Check webhook response status codes - 400 errors usually indicate formatting issues (use appropriate schema)
   - Use [webhook.site](https://webhook.site/) for testing generic webhook endpoints
+  - Define custom JSON templates with `--webhook-schema` for any webhook service
   

@@ -16,7 +16,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 - [x] Local rate-limiting (publish count, quota, max size)
 - [x] Usage statistics reporting
 - [x] Persist messages to local storage
-- [x] Forward messages to webhook endpoints (POST method) with formatting for Discord, Slack, and generic webhooks
+- [x] Forward messages to webhook endpoints (POST method) with flexible JSON template formatting
 - [x] Health monitoring and system metrics
 - [x] Debug mode with detailed timing and proxy information
   
@@ -259,15 +259,16 @@ Webhook responded with status code: 400
 ```
 
 **Causes:**
-- Discord webhooks require specific JSON format: `{"content": "message"}`
-- Slack webhooks require specific JSON format: `{"text": "message"}`
-- Generic webhooks expect raw content
+- Webhook expects specific JSON format but receives raw content
+- Invalid webhook URL or permissions
+- Webhook endpoint not configured to accept POST requests
 
 **Solutions:**
-- **Fixed in latest version**: CLI now automatically detects webhook type and formats messages correctly
-- Discord webhooks: Messages are automatically formatted as `{"content": "message"}`
-- Slack webhooks: Messages are automatically formatted as `{"text": "message"}`
-- Generic webhooks: Messages are sent as raw content
+- **Use flexible webhook templates**: Define custom JSON schemas with `--webhook-schema` flag
+- **Discord webhooks**: Use `--webhook-schema='{"content":"{{.Message}}"}'`
+- **Slack webhooks**: Use `--webhook-schema='{"text":"{{.Message}}"}'`
+- **Custom webhooks**: Define your own JSON template with available variables
+- **Raw messages**: Omit `--webhook-schema` for raw content forwarding
 - Check webhook URL validity and permissions
 
 #### **Webhook Not Receiving Messages**
@@ -313,5 +314,5 @@ The `--debug` flag provides detailed timing and proxy information for troublesho
 - Start with simple publish/subscribe before advanced features
 - Keep proxy and CLI logs visible during troubleshooting
 - Use [webhook.site](https://webhook.site/) for easy webhook testing
-- Discord webhook 400 errors are now automatically resolved with proper JSON formatting
+- Use flexible webhook templates to format messages for any service (Discord, Slack, etc.)
 - Check `usage` command regularly to monitor limits
