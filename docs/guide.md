@@ -1,4 +1,4 @@
-# OptimumP2P CLI - Complete User Guide
+# mump2p CLI - Complete User Guide
 
 *This guide assumes you've completed the [Quick Start](../README.md#quick-start) from the README and are ready to explore advanced features, detailed configuration, and best practices.*
 
@@ -478,6 +478,63 @@ Recv: [1] receiver_addr:34.146.222.111 [recv_time, size]:[1757606701424811000, 2
 - **protocol**: Communication protocol used (HTTP, gRPC, or WebSocket)
 - **[n]**: Sequential message number for received messages
 
+### Load Testing with Debug Mode (Blast Testing)
+
+Debug mode is particularly useful for load testing and performance analysis. You can send multiple messages rapidly to measure throughput and latency:
+
+**Basic Blast Testing:**
+```sh
+# Terminal 1: Subscribe with debug mode
+./mump2p --debug subscribe --topic=load-test --service-url="http://34.146.222.111:8080"
+
+# Terminal 2: Send multiple messages rapidly
+for i in {1..50}; do
+  ./mump2p --debug publish --topic=load-test --message="Test message $i" --service-url="http://34.146.222.111:8080"
+done
+```
+
+**Advanced Blast Testing with gRPC:**
+```sh
+# Terminal 1: Subscribe via gRPC with debug mode
+./mump2p --debug subscribe --topic=grpc-load-test --grpc --service-url="http://34.146.222.111:8080"
+
+# Terminal 2: Send 500 messages via gRPC
+for i in {1..500}; do
+  ./mump2p --debug publish --topic=grpc-load-test --message="GRPC test message $i" --grpc --service-url="http://34.146.222.111:8080"
+done
+```
+
+**Cross-Proxy Blast Testing:**
+```sh
+# Terminal 1: Subscribe on one proxy
+./mump2p --debug subscribe --topic=cross-proxy-test --service-url="http://34.146.222.111:8080"
+
+# Terminal 2: Publish from different proxy (use a working proxy URL)
+for i in {1..100}; do
+  ./mump2p --debug publish --topic=cross-proxy-test --message="Cross-proxy message $i" --service-url="http://34.146.222.111:8080"
+done
+```
+
+**Analyzing Blast Test Results:**
+
+The debug output provides valuable metrics:
+- **Throughput**: Count messages per second by analyzing timestamps
+- **Latency**: Calculate `recv_time - send_time` for each message
+- **Message Integrity**: Verify hashes match between send and receive
+- **Proxy Performance**: Compare different proxy servers under load
+
+**Example Blast Test Output Analysis:**
+```text
+# Sending 10 messages rapidly
+Publish: sender_info:34.146.222.111, [send_time, size]:[1757606701424811000, 2010] topic:load-test msg_hash:4bbac12f protocol:HTTP
+Publish: sender_info:34.146.222.111, [send_time, size]:[1757606701424812000, 2010] topic:load-test msg_hash:5ccbd23g protocol:HTTP
+...
+
+# Receiving messages with timing
+Recv: [1] receiver_addr:34.146.222.111 [recv_time, size]:[1757606701424811000, 2082] sender_addr:34.146.222.111 [send_time, size]:[1757606701424811000, 2009] topic:load-test hash:4bbac12f protocol:WebSocket
+Recv: [2] receiver_addr:34.146.222.111 [recv_time, size]:[1757606701424812000, 2082] sender_addr:34.146.222.111 [send_time, size]:[1757606701424812000, 2009] topic:load-test hash:5ccbd23g protocol:WebSocket
+```
+
 ### Use Cases for Debug Mode
 
 - **Performance Analysis**: Measure message latency and throughput
@@ -485,6 +542,7 @@ Recv: [1] receiver_addr:34.146.222.111 [recv_time, size]:[1757606701424811000, 2
 - **Message Tracking**: Verify message integrity using hashes
 - **Cross-Proxy Testing**: Monitor message flow between different proxy servers
 - **Load Testing**: Analyze performance under high message volumes
+- **Blast Testing**: Rapid message sending for stress testing and performance benchmarking
 
 ## Tips for Effective Use
 
