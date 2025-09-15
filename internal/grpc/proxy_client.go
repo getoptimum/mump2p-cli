@@ -87,6 +87,26 @@ func (pc *ProxyClient) Close() error {
 	return pc.conn.Close()
 }
 
+// SubscribeTopic sends a gRPC subscription request to register for a topic
+func (pc *ProxyClient) SubscribeTopic(ctx context.Context, clientID, topic string, threshold float32) error {
+	req := &proto.SubscribeRequest{
+		ClientId:  clientID,
+		Topic:     topic,
+		Threshold: threshold,
+	}
+
+	resp, err := pc.client.Subscribe(ctx, req)
+	if err != nil {
+		return fmt.Errorf("gRPC subscribe failed: %v", err)
+	}
+
+	if resp.Status != "subscribed" {
+		return fmt.Errorf("subscribe failed with status: %s", resp.Status)
+	}
+
+	return nil
+}
+
 // Publish sends a message to a topic via gRPC
 func (pc *ProxyClient) Publish(ctx context.Context, clientID, topic string, message []byte) error {
 	req := &proto.PublishRequest{
