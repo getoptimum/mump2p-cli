@@ -163,8 +163,8 @@ func TestNewStorageWithPathTildeExpansion(t *testing.T) {
 
 	t.Run("empty path uses default", func(t *testing.T) {
 		storage := NewStorageWithPath("")
-		expectedFile := filepath.Join(homeDir, ".optimum/auth.yml")
-		expectedDir := filepath.Join(homeDir, ".optimum")
+		expectedFile := filepath.Join(homeDir, ".mump2p/auth.yml")
+		expectedDir := filepath.Join(homeDir, ".mump2p")
 
 		require.Equal(t, expectedFile, storage.tokenFile)
 		require.Equal(t, expectedDir, storage.tokenDir)

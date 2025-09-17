@@ -28,7 +28,7 @@ func NewRateLimiter(claims *auth.TokenClaims) (*RateLimiter, error) {
 // NewRateLimiterWithDir creates a new rate limiter with custom directory
 func NewRateLimiterWithDir(claims *auth.TokenClaims, customDir string) (*RateLimiter, error) {
 	var usageDir string
-	
+
 	if customDir != "" {
 		usageDir = customDir
 	} else {
@@ -36,7 +36,7 @@ func NewRateLimiterWithDir(claims *auth.TokenClaims, customDir string) (*RateLim
 		if err != nil {
 			return nil, fmt.Errorf("could not determine home directory: %v", err)
 		}
-		usageDir = filepath.Join(homeDir, ".optimum")
+		usageDir = filepath.Join(homeDir, ".mump2p")
 	}
 
 	identifier := "default"

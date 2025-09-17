@@ -15,8 +15,8 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "mump2p",
-	Short: "CLI to interact with OptimumP2P directly via Go",
-	Long: `mump2p is a developer tool for interacting with OptimumP2P
+	Short: "CLI to interact with mumP2P directly via Go",
+	Long: `mump2p is a developer tool for interacting with mumP2P
 without relying on the HTTP server. It directly invokes Go services.`,
 }
 
@@ -29,7 +29,7 @@ func Execute() {
 
 func init() {
 	// Add global flag for custom authentication path
-	rootCmd.PersistentFlags().StringVar(&authPath, "auth-path", os.Getenv("MUMP2P_AUTH_PATH"), "Custom path for authentication file (default: ~/.optimum/auth.yml, env: MUMP2P_AUTH_PATH)")
+	rootCmd.PersistentFlags().StringVar(&authPath, "auth-path", os.Getenv("MUMP2P_AUTH_PATH"), "Custom path for authentication file (default: ~/.mump2p/auth.yml, env: MUMP2P_AUTH_PATH)")
 
 	// Add global debug flag
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode with detailed timing and proxy information")
@@ -43,13 +43,13 @@ func GetAuthPath() string {
 	return authPath
 }
 
-// GetAuthDir returns the directory for auth files (either custom or default ~/.optimum)
+// GetAuthDir returns the directory for auth files (either custom or default ~/.mump2p)
 func GetAuthDir() string {
 	if authPath != "" {
 		return filepath.Dir(authPath)
 	}
 	homeDir, _ := os.UserHomeDir()
-	return filepath.Join(homeDir, ".optimum")
+	return filepath.Join(homeDir, ".mump2p")
 }
 
 // IsDebugMode returns true if debug mode is enabled
