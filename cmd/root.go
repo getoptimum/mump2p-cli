@@ -15,8 +15,8 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "mump2p",
-	Short: "CLI to interact with mumP2P directly via Go",
-	Long: `mump2p is a developer tool for interacting with mumP2P
+	Short: "CLI to interact with Optimum directly via Go",
+	Long: `mump2p is a developer tool for interacting with Optimum
 without relying on the HTTP server. It directly invokes Go services.`,
 }
 

@@ -60,7 +60,7 @@ func printDebugInfo(data []byte, proxyAddr string, topic string, isGRPC bool) {
 
 var publishCmd = &cobra.Command{
 	Use:   "publish",
-	Short: "Publish a message to the mumP2P via HTTP or gRPC",
+	Short: "Publish a message to the Optimum Network via HTTP or gRPC",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if pubMessage == "" && file == "" {
 			return errors.New("either --message or --file must be provided")

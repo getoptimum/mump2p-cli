@@ -89,7 +89,7 @@ autolabeler:
 template: |
   # mumP2P CLI v[UPDATE-VERSION] Release
   
-  We're excited to announce the release of mumP2P CLI v[UPDATE-VERSION] - command-line interface for our high-performance RLNC-enhanced pubsub protocol.
+  We're excited to announce the release of mumP2P CLI v[UPDATE-VERSION] - command-line interface for our high-performance RLNC-enhanced pubsub network.
   
   ## 📦 Download & Install
   
