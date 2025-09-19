@@ -267,6 +267,7 @@ Webhook responded with status code: 400
 - **Use flexible webhook templates**: Define custom JSON schemas with `--webhook-schema` flag
 - **Discord webhooks**: Use `--webhook-schema='{"content":"{{.Message}}"}'`
 - **Slack webhooks**: Use `--webhook-schema='{"text":"{{.Message}}"}'`
+- **Telegram webhooks**: Use `--webhook-schema='{"chat_id":"YOUR_CHAT_ID","text":"{{.Message}}"}'`
 - **Custom webhooks**: Define your own JSON template with available variables
 - **Raw messages**: Omit `--webhook-schema` for raw content forwarding
 - Check webhook URL validity and permissions
@@ -314,5 +315,5 @@ The `--debug` flag provides detailed timing and proxy information for troublesho
 - Start with simple publish/subscribe before advanced features
 - Keep proxy and CLI logs visible during troubleshooting
 - Use [webhook.site](https://webhook.site/) for easy webhook testing
-- Use flexible webhook templates to format messages for any service (Discord, Slack, etc.)
+- Use flexible webhook templates to format messages for any service (Discord, Slack, Telegram, etc.)
 - Check `usage` command regularly to monitor limits

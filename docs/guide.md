@@ -245,6 +245,13 @@ The CLI supports flexible JSON template formatting for webhooks. You can define 
 ```
 - Messages are formatted as: `{"text": "your message"}`
 
+**Telegram Webhooks:**
+```sh
+./mump2p subscribe --topic=alerts --webhook="https://api.telegram.org/bot<BOT_TOKEN>/sendMessage" --webhook-schema='{"chat_id":"<CHAT_ID>","text":"{{.Message}}"}'
+```
+- Messages are formatted as: `{"chat_id": "123456789", "text": "your message"}`
+- Requires bot token from @BotFather and chat ID from getUpdates API
+
 **Complex JSON Templates:**
 ```sh
 ./mump2p subscribe --topic=logs --webhook="https://your-server.com/webhook" --webhook-schema='{"message":"{{.Message}}","timestamp":"{{.Timestamp}}","topic":"{{.Topic}}","client":"{{.ClientID}}"}'
@@ -620,6 +627,7 @@ For common setup and usage issues, see the [FAQ section in the README](../README
   - Check that your webhook endpoint is accessible and properly configured to accept POST requests
   - For Discord webhooks: Use `--webhook-schema='{"content":"{{.Message}}"}'` and ensure the webhook URL is valid
   - For Slack webhooks: Use `--webhook-schema='{"text":"{{.Message}}"}'` and verify the webhook URL is correct
+  - For Telegram webhooks: Use `--webhook-schema='{"chat_id":"YOUR_CHAT_ID","text":"{{.Message}}"}'` with bot token and chat ID
   - Check webhook response status codes - 400 errors usually indicate formatting issues (use appropriate schema)
   - Use [webhook.site](https://webhook.site/) for testing generic webhook endpoints
   - Define custom JSON templates with `--webhook-schema` for any webhook service
