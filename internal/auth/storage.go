@@ -30,9 +30,9 @@ func NewStorageWithPath(customPath string) *Storage {
 		tokenFile = expandHomePath(customPath)
 		tokenDir = filepath.Dir(tokenFile)
 	} else {
-		// Default behavior: use ~/.optimum/auth.yml
+		// Default behavior: use ~/.mump2p/auth.yml
 		homeDir, _ := os.UserHomeDir()
-		tokenDir = filepath.Join(homeDir, ".optimum")
+		tokenDir = filepath.Join(homeDir, ".mump2p")
 		tokenFile = filepath.Join(tokenDir, "auth.yml")
 	}
 

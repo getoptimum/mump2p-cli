@@ -1,5 +1,5 @@
 # Release Drafter should only create drafts - we manage actual releases via Makefile
-name-template: 'OptimumP2P CLI [DRAFT - Update Version Before Publishing]'
+name-template: 'mumP2P CLI [DRAFT - Update Version Before Publishing]'
 tag-template: '[UPDATE-TAG-BEFORE-PUBLISHING]'
 
 # Include pre-releases to track all our RC versions
@@ -87,9 +87,9 @@ autolabeler:
       - 'package-lock.json'
 
 template: |
-  # OptimumP2P CLI v[UPDATE-VERSION] Release
+  # mumP2P CLI v[UPDATE-VERSION] Release
   
-  We're excited to announce the release of OptimumP2P CLI v[UPDATE-VERSION] - command-line interface for our high-performance RLNC-enhanced pubsub protocol.
+  We're excited to announce the release of mumP2P CLI v[UPDATE-VERSION] - command-line interface for our high-performance RLNC-enhanced pubsub network.
   
   ## 📦 Download & Install
   
