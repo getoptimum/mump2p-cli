@@ -222,6 +222,55 @@ With gRPC:
 
 **Note: The webhook endpoint must be configured to accept POST requests.**
 
+#### Webhook Formatting
+
+The CLI supports flexible JSON template formatting for webhooks. You can define custom schemas using Go template syntax with available variables.
+
+**Available Template Variables:**
+- `{{.Message}}` - The message content
+- `{{.Timestamp}}` - Message timestamp (RFC3339 format)
+- `{{.Topic}}` - The topic name
+- `{{.ClientID}}` - Sender's client ID
+- `{{.MessageID}}` - Unique message identifier
+
+**Discord Webhooks:**
+```sh
+./mump2p subscribe --topic=alerts --webhook="https://discord.com/api/webhooks/123456789/abcdef" --webhook-schema='{"content":"{{.Message}}"}'
+```
+- Messages are formatted as: `{"content": "your message"}`
+
+**Slack Webhooks:**
+```sh
+./mump2p subscribe --topic=notifications --webhook="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX" --webhook-schema='{"text":"{{.Message}}"}'
+```
+- Messages are formatted as: `{"text": "your message"}`
+
+**Telegram Webhooks:**
+```sh
+./mump2p subscribe --topic=alerts --webhook="https://api.telegram.org/bot<BOT_TOKEN>/sendMessage" --webhook-schema='{"chat_id":"<CHAT_ID>","text":"{{.Message}}"}'
+```
+- Messages are formatted as: `{"chat_id": "123456789", "text": "your message"}`
+- Requires bot token from @BotFather and chat ID from getUpdates API
+
+**Complex JSON Templates:**
+```sh
+./mump2p subscribe --topic=logs --webhook="https://your-server.com/webhook" --webhook-schema='{"message":"{{.Message}}","timestamp":"{{.Timestamp}}","topic":"{{.Topic}}","client":"{{.ClientID}}"}'
+```
+- Messages are formatted with multiple fields and metadata
+
+**Raw Messages (No Schema):**
+```sh
+./mump2p subscribe --topic=logs --webhook="https://webhook.site/your-unique-id"
+```
+- Messages are sent as raw content (no JSON formatting)
+- Used for custom endpoints or testing services
+
+**Example Output:**
+```text
+Forwarding messages to webhook (custom schema): https://discord.com/api/webhooks/123456789/abcdef
+Forwarding messages to webhook (raw format): https://webhook.site/your-unique-id
+```
+
 #### Advanced Webhook Options
 
 For more control over webhook behavior:
@@ -574,5 +623,12 @@ For common setup and usage issues, see the [FAQ section in the README](../README
   - Check proxy server health with `./mump2p health`
   - Try a different proxy server with `--service-url` flag
 - **Proxy Health Issues:** Use `./mump2p health` to check system metrics and server status
-- **Webhook Failures:** Check that your webhook endpoint is accessible and properly configured to accept POST requests
+- **Webhook Failures:** 
+  - Check that your webhook endpoint is accessible and properly configured to accept POST requests
+  - For Discord webhooks: Use `--webhook-schema='{"content":"{{.Message}}"}'` and ensure the webhook URL is valid
+  - For Slack webhooks: Use `--webhook-schema='{"text":"{{.Message}}"}'` and verify the webhook URL is correct
+  - For Telegram webhooks: Use `--webhook-schema='{"chat_id":"YOUR_CHAT_ID","text":"{{.Message}}"}'` with bot token and chat ID
+  - Check webhook response status codes - 400 errors usually indicate formatting issues (use appropriate schema)
+  - Use [webhook.site](https://webhook.site/) for testing generic webhook endpoints
+  - Define custom JSON templates with `--webhook-schema` for any webhook service
   
