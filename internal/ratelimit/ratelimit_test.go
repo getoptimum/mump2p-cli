@@ -23,7 +23,7 @@ func createTestClaims() *auth.TokenClaims {
 
 func cleanupUsageFile(claims *auth.TokenClaims) {
 	homeDir, _ := os.UserHomeDir()
-	path := filepath.Join(homeDir, ".optimum", claims.Subject+"_usage.json")
+	path := filepath.Join(homeDir, ".mump2p", claims.Subject+"_usage.json")
 	_ = os.Remove(path)
 }
 

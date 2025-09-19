@@ -70,7 +70,7 @@ If your token is about to expire, you can refresh it:
 
 ### Custom Authentication File Location
 
-By default, authentication tokens are stored in `~/.optimum/auth.yml`. For production deployments, security requirements, or non-root users, you can customize this location:
+By default, authentication tokens are stored in `~/.mump2p/auth.yml`. For production deployments, security requirements, or non-root users, you can customize this location:
 
 ```sh
 # Use custom authentication file path

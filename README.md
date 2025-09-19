@@ -1,6 +1,6 @@
-# mump2p — OptimumP2P CLI
+# mump2p CLI
 
-`mump2p` is the command-line interface for interacting with [OptimumP2P](https://github.com/getoptimum/optimum-p2p) — a high-performance RLNC-enhanced pubsub protocol.
+`mump2p-cli` is the command-line interface for interacting with [Optimum network](https://github.com/getoptimum/optimum-p2p) — a high-performance RLNC-enhanced pubsub network.
 
 It supports authenticated publishing, subscribing, rate-limited usage tracking, and JWT session management.
 
