@@ -118,15 +118,8 @@ Error: device code request failed: {"error":"unauthorized_client","error_descrip
 Error: your account is inactive, please contact support
 ```
 
-**Causes:**
-- Using deprecated RC4 or earlier versions (most common)
-- User's `is_active` flag set to `false` in Auth0
-- Token issued before account activation
-
 **Solutions:**
 - **Upgrade to RC7**: `curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash`
-- Update user's `app_metadata.is_active` to `true` in Auth0
-- Logout and login again to get new token with updated claims
 
 ### **2. Build & Configuration Issues**
 
@@ -141,9 +134,8 @@ zsh: no such file or directory: ./mump2p
 - Binary not executable
 
 **Solutions:**
-- Run `make build` with correct environment variables
-- Use correct path: `./dist/mump2p-mac`
-- Make binary executable: `chmod +x dist/mump2p-mac`
+- Download the latest binary from [releases](https://github.com/getoptimum/mump2p-cli/releases/latest)
+- Make binary executable: `chmod +x mump2p`
 
 #### **Error: Wrong Service URL in build**
 
