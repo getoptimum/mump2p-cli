@@ -85,11 +85,11 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 ## Version Compatibility
 
-**Important:** Always use the latest version binaries (currently **v0.0.1-rc6**) from the releases page. 
+**Important:** Always use the latest version binaries (currently **v0.0.1-rc7**) from the releases page. 
 
 **Current Release:**
-- ✅ **v0.0.1-rc6** is the latest release
-- ⚠️ **v0.0.1-rc5** and earlier versions are deprecated
+- **v0.0.1-rc7** is the latest release
+- **v0.0.1-rc6** and earlier versions are deprecated
 
 ---
 
@@ -124,7 +124,7 @@ Error: your account is inactive, please contact support
 - Token issued before account activation
 
 **Solutions:**
-- **Upgrade to RC6**: `curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash`
+- **Upgrade to RC7**: `curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash`
 - Update user's `app_metadata.is_active` to `true` in Auth0
 - Logout and login again to get new token with updated claims
 
@@ -251,60 +251,17 @@ Error: required flag(s) "topic" not set
 - Include all required arguments
 - Check flag spelling and syntax
 
-### **6. Webhook Issues**
-
-#### **Error: Webhook responded with status code: 400**
-```
-Webhook responded with status code: 400
-```
-
-**Causes:**
-- Webhook expects specific JSON format but receives raw content
-- Invalid webhook URL or permissions
-- Webhook endpoint not configured to accept POST requests
-
-**Solutions:**
-- **Use flexible webhook templates**: Define custom JSON schemas with `--webhook-schema` flag
-- **Discord webhooks**: Use `--webhook-schema='{"content":"{{.Message}}"}'`
-- **Slack webhooks**: Use `--webhook-schema='{"text":"{{.Message}}"}'`
-- **Telegram webhooks**: Use `--webhook-schema='{"chat_id":"YOUR_CHAT_ID","text":"{{.Message}}"}'`
-- **Custom webhooks**: Define your own JSON template with available variables
-- **Raw messages**: Omit `--webhook-schema` for raw content forwarding
-- Check webhook URL validity and permissions
-
-#### **Webhook Not Receiving Messages**
-
-**Causes:**
-- Webhook endpoint not accessible
-- Invalid webhook URL
-- Network connectivity issues
-- Webhook queue full (messages dropped)
-
-**Solutions:**
-- Test webhook URL with [webhook.site](https://webhook.site/)
-- Check webhook endpoint accessibility
-- Increase `--webhook-queue-size` for high-volume topics
-- Verify webhook permissions (Discord/Slack)
-
-### **7. Debug Mode & Performance Analysis**
-
-#### **Using Debug Mode for Troubleshooting**
+### **6. Debug Mode & Performance Analysis**
 
 The `--debug` flag provides detailed timing and proxy information for troubleshooting:
 
 ```sh
-# Enable debug mode for publish operations
+# Enable debug mode for operations
 ./mump2p --debug publish --topic=test-topic --message='Hello World'
-
-# Enable debug mode for subscribe operations  
 ./mump2p --debug subscribe --topic=test-topic
 ```
 
-**Debug Output Interpretation:**
-- **Timestamps**: Compare send_time vs recv_time to measure latency
-- **Proxy IPs**: Verify messages are routing through expected proxies
-- **Message Hashes**: Use to track specific messages across operations
-- **Protocol**: Confirm HTTP/gRPC/WebSocket protocol usage
+For comprehensive debug mode usage, performance analysis, and blast testing examples, see the [Complete User Guide](./docs/guide.md#debug-mode).
 
 ---
 
@@ -314,6 +271,5 @@ The `--debug` flag provides detailed timing and proxy information for troublesho
 - Test authentication first with `whoami` before trying other operations
 - Start with simple publish/subscribe before advanced features
 - Keep proxy and CLI logs visible during troubleshooting
-- Use [webhook.site](https://webhook.site/) for easy webhook testing
-- Use flexible webhook templates to format messages for any service (Discord, Slack, Telegram, etc.)
 - Check `usage` command regularly to monitor limits
+- For webhook integration and advanced features, see the [Complete User Guide](./docs/guide.md)
