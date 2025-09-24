@@ -7,6 +7,7 @@
 After completing the README's quick start, this guide will teach you:
 
 - **Authentication Management**: Token management, refresh, and troubleshooting
+- **Development Mode**: Testing without authentication using `--disable-auth` flag
 - **Service Configuration**: Using different proxy servers and custom URLs  
 - **Protocol Deep Dive**: When to use HTTP/WebSocket vs gRPC
 - **Advanced Features**: Message persistence, webhooks, and monitoring
@@ -99,6 +100,25 @@ export MUMP2P_AUTH_PATH="/opt/mump2p/auth/token.yml"
 - The directory will be created automatically if it doesn't exist
 - Rate limiting usage files will be stored in the same directory
 - Ensure the user has write permissions to the specified directory
+
+### Development/Testing Mode
+
+For development and testing scenarios, you can bypass authentication entirely using the `--disable-auth` flag:
+
+```sh
+# All commands work without login
+./mump2p --disable-auth whoami
+./mump2p --disable-auth publish --topic=test --message="Hello"
+./mump2p --disable-auth subscribe --topic=test
+./mump2p --disable-auth list
+./mump2p --disable-auth usage
+```
+
+**When using `--disable-auth`:**
+- Uses mock client ID (`mock-client-id`)
+- Unlimited rate limits for testing
+- All functionality works without authentication
+- Perfect for development,and testing
 
 ### Logout
 

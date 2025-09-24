@@ -19,6 +19,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 - [x] Forward messages to webhook endpoints (POST method) with flexible JSON template formatting
 - [x] Health monitoring and system metrics
 - [x] Debug mode with detailed timing and proxy information
+- [x] Development mode with `--disable-auth` flag for testing
   
 ---
 
@@ -44,6 +45,13 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 ```sh
 ./mump2p login
 ./mump2p whoami  # Check your session
+```
+
+**Development/Testing Mode:**
+```sh
+# Skip authentication for testing (all commands work without login)
+./mump2p --disable-auth publish --topic=test --message="Hello"
+./mump2p --disable-auth subscribe --topic=test
 ```
 
 ### 3. Basic Usage
