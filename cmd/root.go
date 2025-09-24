@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	authPath string // Global flag for custom authentication file path
-	debug    bool   // Global flag for debug mode
+	authPath    string // Global flag for custom authentication file path
+	debug       bool   // Global flag for debug mode
+	disableAuth bool   // Global flag to disable authentication checks
 )
 
 var rootCmd = &cobra.Command{
@@ -34,6 +35,9 @@ func init() {
 	// Add global debug flag
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode with detailed timing and proxy information")
 
+	// Add global disable auth flag
+	rootCmd.PersistentFlags().BoolVar(&disableAuth, "disable-auth", false, "Disable authentication checks (for testing/development)")
+
 	// disable completion option
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
@@ -55,4 +59,9 @@ func GetAuthDir() string {
 // IsDebugMode returns true if debug mode is enabled
 func IsDebugMode() bool {
 	return debug
+}
+
+// IsAuthDisabled returns true if authentication is disabled
+func IsAuthDisabled() bool {
+	return disableAuth
 }

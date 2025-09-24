@@ -57,6 +57,21 @@ var whoamiCmd = &cobra.Command{
 	Short: "Show current authentication status",
 	Long:  `Display information about the current authentication token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			// Display mock authentication status when auth is disabled
+			fmt.Println("Authentication Status:")
+			fmt.Println("----------------------")
+			fmt.Println("Client ID: N/A (auth disabled)")
+			fmt.Println("Is Active: true (auth disabled)")
+			fmt.Println("Rate Limits:")
+			fmt.Println("  Max Publish Per Hour: unlimited")
+			fmt.Println("  Max Publish Per Sec:  unlimited")
+			fmt.Println("  Max Message Size:     unlimited")
+			fmt.Println("  Daily Quota:          unlimited")
+			fmt.Println("Token Expires: N/A (auth disabled)")
+			return nil
+		}
+
 		// load token
 		storage := auth.NewStorageWithPath(GetAuthPath())
 		token, err := storage.LoadToken()
@@ -105,6 +120,11 @@ var refreshCmd = &cobra.Command{
 	Short: "Refresh the authentication token",
 	Long:  `Manually refresh the authentication token before it expires.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			fmt.Println("Token refresh skipped (auth disabled)")
+			return nil
+		}
+
 		// create auth client and storage
 		authClient := auth.NewClient()
 		storage := auth.NewStorageWithPath(GetAuthPath())

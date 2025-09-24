@@ -69,21 +69,39 @@ var publishCmd = &cobra.Command{
 			return errors.New("only one of --message or --file should be used at a time")
 		}
 
-		authClient := auth.NewClient()
-		storage := auth.NewStorageWithPath(GetAuthPath())
-		token, err := authClient.GetValidToken(storage)
-		if err != nil {
-			return fmt.Errorf("authentication required: %v", err)
-		}
-		// parse token to check if the account is active
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
-		if err != nil {
-			return fmt.Errorf("error parsing token: %v", err)
-		}
-		// check if the account is active
-		if !claims.IsActive {
-			return fmt.Errorf("your account is inactive, please contact support")
+		var claims *auth.TokenClaims
+		var token *auth.StoredToken
+		if !IsAuthDisabled() {
+			authClient := auth.NewClient()
+			storage := auth.NewStorageWithPath(GetAuthPath())
+			var err error
+			token, err = authClient.GetValidToken(storage)
+			if err != nil {
+				return fmt.Errorf("authentication required: %v", err)
+			}
+			// parse token to check if the account is active
+			parser := auth.NewTokenParser()
+			claims, err = parser.ParseToken(token.Token)
+			if err != nil {
+				return fmt.Errorf("error parsing token: %v", err)
+			}
+			// check if the account is active
+			if !claims.IsActive {
+				return fmt.Errorf("your account is inactive, please contact support")
+			}
+		} else {
+			// Create mock claims and token for disabled auth
+			claims = &auth.TokenClaims{
+				IsActive:          true,
+				MaxPublishPerHour: 1000,
+				MaxPublishPerSec:  100,
+				MaxMessageSize:    1024 * 1024,       // 1MB
+				DailyQuota:        100 * 1024 * 1024, // 100MB
+				ClientID:          "mock-client-id",
+			}
+			token = &auth.StoredToken{
+				Token: "mock-token-for-disabled-auth",
+			}
 		}
 		var (
 			data   []byte
@@ -104,14 +122,17 @@ var publishCmd = &cobra.Command{
 		// message size
 		messageSize := int64(len(data))
 
-		limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir())
-		if err != nil {
-			return fmt.Errorf("rate limiter setup failed: %v", err)
-		}
+		// Skip rate limiting if auth is disabled
+		if !IsAuthDisabled() {
+			limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir())
+			if err != nil {
+				return fmt.Errorf("rate limiter setup failed: %v", err)
+			}
 
-		// check all rate limits: size, quota, per-hr, per-sec
-		if err := limiter.CheckPublishAllowed(messageSize); err != nil {
-			return err
+			// check all rate limits: size, quota, per-hr, per-sec
+			if err := limiter.CheckPublishAllowed(messageSize); err != nil {
+				return err
+			}
 		}
 
 		// use custom service URL if provided, otherwise use the default

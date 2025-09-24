@@ -66,22 +66,36 @@ var subscribeCmd = &cobra.Command{
 	Use:   "subscribe",
 	Short: "Subscribe to a topic via WebSocket or gRPC stream",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// auth
-		authClient := auth.NewClient()
-		storage := auth.NewStorageWithPath(GetAuthPath())
-		token, err := authClient.GetValidToken(storage)
-		if err != nil {
-			return fmt.Errorf("authentication required: %v", err)
-		}
-		// parse token to check if the account is active
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
-		if err != nil {
-			return fmt.Errorf("error parsing token: %v", err)
-		}
-		// check if the account is active
-		if !claims.IsActive {
-			return fmt.Errorf("your account is inactive, please contact support")
+		var claims *auth.TokenClaims
+		var token *auth.StoredToken
+		if !IsAuthDisabled() {
+			// auth
+			authClient := auth.NewClient()
+			storage := auth.NewStorageWithPath(GetAuthPath())
+			var err error
+			token, err = authClient.GetValidToken(storage)
+			if err != nil {
+				return fmt.Errorf("authentication required: %v", err)
+			}
+			// parse token to check if the account is active
+			parser := auth.NewTokenParser()
+			claims, err = parser.ParseToken(token.Token)
+			if err != nil {
+				return fmt.Errorf("error parsing token: %v", err)
+			}
+			// check if the account is active
+			if !claims.IsActive {
+				return fmt.Errorf("your account is inactive, please contact support")
+			}
+		} else {
+			// Create mock claims and token for disabled auth
+			claims = &auth.TokenClaims{
+				IsActive: true,
+				ClientID: "mock-client-id",
+			}
+			token = &auth.StoredToken{
+				Token: "mock-token-for-disabled-auth",
+			}
 		}
 
 		// setup persistence if path is provided

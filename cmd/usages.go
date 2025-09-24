@@ -14,6 +14,18 @@ var usageCmd = &cobra.Command{
 	Use:   "usage",
 	Short: "Display usage statistics and rate limits",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			// Display mock usage statistics when auth is disabled
+			fmt.Println("Usage Statistics (Auth Disabled):")
+			fmt.Println("  Publish (hour):     0 / unlimited")
+			fmt.Println("  Publish (second):   0 / unlimited")
+			fmt.Println("  Data Used:          0.0000 MB / unlimited MB")
+			fmt.Println("  Next Reset:         N/A (auth disabled)")
+			fmt.Println("  Last Publish:       N/A")
+			fmt.Println("  Last Subscribe:     N/A")
+			return nil
+		}
+
 		// get valid token (refreshes if needed)
 		authClient := auth.NewClient()
 		storage := auth.NewStorageWithPath(GetAuthPath())

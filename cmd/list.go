@@ -28,6 +28,15 @@ var listCmd = &cobra.Command{
 	Long: `List all topics that the authenticated client is currently subscribed to.
 This command shows your active topics and their count.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			// Display empty list when auth is disabled
+			fmt.Println("Topics (Auth Disabled):")
+			fmt.Println("  Client ID: N/A")
+			fmt.Println("  Topics:    []")
+			fmt.Println("  Count:     0")
+			return nil
+		}
+
 		// Authenticate
 		authClient := auth.NewClient()
 		storage := auth.NewStorageWithPath(GetAuthPath())
