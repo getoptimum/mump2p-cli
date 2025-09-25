@@ -22,8 +22,8 @@ type ListResponse struct {
 	Count    int      `json:"count"`
 }
 
-var listCmd = &cobra.Command{
-	Use:   "list",
+var listTopicsCmd = &cobra.Command{
+	Use:   "list-topics",
 	Short: "List subscribed topics for the authenticated client",
 	Long: `List all topics that the authenticated client is currently subscribed to.
 This command shows your active topics and their count.`,
@@ -120,6 +120,6 @@ This command shows your active topics and their count.`,
 }
 
 func init() {
-	listCmd.Flags().StringVar(&listServiceURL, "service-url", "", "Override the default service URL")
-	rootCmd.AddCommand(listCmd)
+	listTopicsCmd.Flags().StringVar(&listServiceURL, "service-url", "", "Override the default service URL")
+	rootCmd.AddCommand(listTopicsCmd)
 }
