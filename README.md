@@ -49,9 +49,9 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 **Development/Testing Mode:**
 ```sh
-# Skip authentication for testing (all commands work without login)
-./mump2p --disable-auth publish --topic=test --message="Hello"
-./mump2p --disable-auth subscribe --topic=test
+# Skip authentication for testing (requires --service-url for network operations)
+./mump2p --disable-auth publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth subscribe --topic=test --service-url="http://34.146.222.111:8080"
 ```
 
 ### 3. Basic Usage

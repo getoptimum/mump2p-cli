@@ -106,11 +106,11 @@ export MUMP2P_AUTH_PATH="/opt/mump2p/auth/token.yml"
 For development and testing scenarios, you can bypass authentication entirely using the `--disable-auth` flag:
 
 ```sh
-# All commands work without login
+# All commands work without login (requires --service-url for network operations)
 ./mump2p --disable-auth whoami
-./mump2p --disable-auth publish --topic=test --message="Hello"
-./mump2p --disable-auth subscribe --topic=test
-./mump2p --disable-auth list
+./mump2p --disable-auth publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth subscribe --topic=test --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth list --service-url="http://34.146.222.111:8080"
 ./mump2p --disable-auth usage
 ```
 
@@ -118,7 +118,8 @@ For development and testing scenarios, you can bypass authentication entirely us
 - Uses mock client ID (`mock-client-id`)
 - Unlimited rate limits for testing
 - All functionality works without authentication
-- Perfect for development,and testing
+- **Requires `--service-url` for network operations** (publish, subscribe, list)
+- Perfect for development and testing
 
 ### Logout
 
