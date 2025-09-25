@@ -135,7 +135,7 @@ Using custom service URL: http://34.142.205.26:8080
 
 ## Subscribing to Messages - Deep Dive
 
-*You've already tried basic subscription from the README. This section covers advanced options, protocols, and configuration.*
+*You've already tried basic topic subscription from the README. This section covers advanced options, protocols, and configuration.*
 
 ### Understanding WebSocket vs gRPC
 
@@ -598,7 +598,7 @@ Recv: [2] receiver_addr:34.146.222.111 [recv_time, size]:[1757606701424812000, 2
 1. **Topic Names:** Choose descriptive and unique topic names to avoid message conflicts
 2. **Message Size:** Be aware of your maximum message size limit when publishing files
 3. **Token Refresh:** For long-running operations, refresh your token before it expires
-4. **Topic Management:** Use `./mump2p list-topics` to check your active topics and avoid duplicate subscriptions
+4. **Topic Management:** Use `./mump2p list-topics` to check your active topics and avoid duplicate topic subscriptions
 5. **Persistent Subscriptions:** Use the --persist option when you need a record of messages
 6. **Webhook Reliability:** Increase the queue size for high-volume topics to prevent message drops
 7. **gRPC Performance:** Use `--grpc` flag for high-throughput scenarios and better performance
