@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -23,7 +22,6 @@ without relying on the HTTP server. It directly invokes Go services.`,
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
 }
