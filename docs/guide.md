@@ -369,7 +369,7 @@ Rate limits will be automatically applied based on your authentication token.
 To see all topics you're currently subscribed to:
 
 ```sh
-./mump2p list
+./mump2p list-topics
 ```
 
 This will display:
@@ -405,7 +405,7 @@ This will display:
 You can check your topics on a specific proxy server:
 
 ```sh
-./mump2p list --service-url="http://35.221.118.95:8080"
+./mump2p list-topics --service-url="http://35.221.118.95:8080"
 ```
 
 **Example output:**
@@ -598,12 +598,12 @@ Recv: [2] receiver_addr:34.146.222.111 [recv_time, size]:[1757606701424812000, 2
 1. **Topic Names:** Choose descriptive and unique topic names to avoid message conflicts
 2. **Message Size:** Be aware of your maximum message size limit when publishing files
 3. **Token Refresh:** For long-running operations, refresh your token before it expires
-4. **Topic Management:** Use `./mump2p list` to check your active topics and avoid duplicate subscriptions
+4. **Topic Management:** Use `./mump2p list-topics` to check your active topics and avoid duplicate subscriptions
 5. **Persistent Subscriptions:** Use the --persist option when you need a record of messages
 6. **Webhook Reliability:** Increase the queue size for high-volume topics to prevent message drops
 7. **gRPC Performance:** Use `--grpc` flag for high-throughput scenarios and better performance
 8. **Health Monitoring:** Check proxy health with `./mump2p health` before long operations
-9. **Multi-Proxy Usage:** Remember that each proxy server maintains separate topic states - use `./mump2p list --service-url=<url>` to check topics on specific proxies
+9. **Multi-Proxy Usage:** Remember that each proxy server maintains separate topic states - use `./mump2p list-topics --service-url=<url>` to check topics on specific proxies
 10. **Debug Analysis:** Use `--debug` flag for performance monitoring and troubleshooting message flow issues
 
 ## Troubleshooting
@@ -615,8 +615,8 @@ For common setup and usage issues, see the [FAQ section in the README](../README
 - **Authentication Errors:** Run `./mump2p whoami` to check token status, and `./mump2p login` to re-authenticate
 - **Rate Limit Errors:** Use `./mump2p usage` to check your current usage against limits
 - **Topic Issues:** 
-  - Use `./mump2p list` to verify your active topics
-  - Check topics on different proxies with `./mump2p list --service-url=<url>`
+  - Use `./mump2p list-topics` to verify your active topics
+  - Check topics on different proxies with `./mump2p list-topics --service-url=<url>`
   - Remember that topics persist across logout/login sessions
 - **Connection Issues:** 
   - Verify your internet connection and firewall settings

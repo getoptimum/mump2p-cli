@@ -224,8 +224,8 @@ var publishCmd = &cobra.Command{
 
 func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
-	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string (should be more than allowed size)")
-	publishCmd.Flags().StringVar(&file, "file", "", "File (should be more than allowed size)")
+	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string to publish")
+	publishCmd.Flags().StringVar(&file, "file", "", "File to publish")
 	publishCmd.Flags().StringVar(&serviceURL, "service-url", "", "Override the default service URL")
 	publishCmd.Flags().BoolVar(&useGRPCPub, "grpc", false, "Use gRPC for publishing instead of HTTP")
 	publishCmd.MarkFlagRequired("topic") //nolint:errcheck

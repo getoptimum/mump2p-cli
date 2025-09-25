@@ -62,7 +62,7 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 ./mump2p publish --topic=test-topic --message='Hello World' --grpc
 
 # List your active topics
-./mump2p list
+./mump2p list-topics
 
 # Debug mode - detailed timing and proxy information
 ./mump2p --debug publish --topic=test-topic --message='Hello World'
