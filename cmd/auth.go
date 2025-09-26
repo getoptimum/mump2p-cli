@@ -61,7 +61,7 @@ var whoamiCmd = &cobra.Command{
 			// Display mock authentication status when auth is disabled
 			fmt.Println("Authentication Status:")
 			fmt.Println("----------------------")
-			fmt.Println("Client ID: N/A (auth disabled)")
+			fmt.Println("Client ID: mock-client-id (auth disabled)")
 			fmt.Println("Is Active: true (auth disabled)")
 			fmt.Println("Rate Limits:")
 			fmt.Println("  Max Publish Per Hour: unlimited")
