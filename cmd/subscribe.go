@@ -169,7 +169,7 @@ var subscribeCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to connect to gRPC proxy: %v", err)
 			}
-			defer client.Close()
+			defer client.Close() //nolint:errcheck
 
 			err = client.SubscribeTopic(ctx, claims.ClientID, subTopic, subThreshold)
 			if err != nil {
@@ -230,7 +230,7 @@ var subscribeCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to connect to gRPC proxy for streaming: %v", err)
 			}
-			defer streamClient.Close()
+			defer streamClient.Close() //nolint:errcheck
 
 			msgChan, err := streamClient.Subscribe(streamCtx, claims.ClientID, grpcBufferSize)
 			if err != nil {
@@ -295,7 +295,7 @@ var subscribeCmd = &cobra.Command{
 					// persist
 					if persistFile != nil {
 						timestamp := time.Now().Format(time.RFC3339)
-						if _, err := persistFile.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, msgStr)); err != nil {
+						if _, err := fmt.Fprintf(persistFile, "[%s] %s\n", timestamp, msgStr); err != nil {
 							fmt.Printf("Error writing to persistence file: %v\n", err)
 						}
 					}
