@@ -40,7 +40,7 @@ func RunE2ETests() error {
 	}
 	cli = abs
 
-	// If binary missing, try to build it
+	// If binary missing try to build it
 	if _, err := os.Stat(cli); err != nil {
 		fmt.Println("[e2e] CLI binary not found, attempting to build")
 		cmd := exec.Command("make", "build-local")
