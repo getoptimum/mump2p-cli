@@ -144,3 +144,6 @@ $(COVERPROFILE):
 	@echo "No $(COVERPROFILE) found; run 'make test' first." >&2; exit 1
 
 .DEFAULT_GOAL := help
+
+e2e-test:
+	go run ./e2e
