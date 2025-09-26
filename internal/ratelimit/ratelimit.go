@@ -96,6 +96,13 @@ func (r *RateLimiter) CheckPublishAllowed(messageSize int64) error {
 	if r.usage.SecondPublishCount >= r.tokenClaims.MaxPublishPerSec {
 		return fmt.Errorf("per-second limit reached (%d/sec)", r.tokenClaims.MaxPublishPerSec)
 	}
+	r.usage.SecondPublishCount++
+
+	// Save the updated per-second counter
+	if err := r.saveUsage(); err != nil {
+		// Log error but don't fail the publish
+		fmt.Printf("Warning: failed to save usage data: %v\n", err)
+	}
 
 	// Per-hour check
 	if r.usage.PublishCount >= r.tokenClaims.MaxPublishPerHour {
@@ -141,7 +148,7 @@ func (r *RateLimiter) GetUsageStats() UsageStats {
 		BytesPublished:      r.usage.BytesPublished,
 		DailyQuota:          r.tokenClaims.DailyQuota,
 		NextReset:           next,
-		TimeUntilReset:      time.Until(next).Round(time.Minute),
+		TimeUntilReset:      time.Until(next).Truncate(time.Second),
 		LastPublishTime:     r.usage.LastPublishTime,
 		LastSubscribeTime:   r.usage.LastSubTime,
 	}
