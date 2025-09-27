@@ -6,8 +6,8 @@ GO_BIN             := go
 CLI_NAME           := mump2p
 BUILD_DIR          := dist
 
-VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-COMMIT_HASH  ?= $(shell git rev-parse --short HEAD)
+VERSION      := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+COMMIT_HASH  := $(shell git rev-parse --short HEAD)
 DOMAIN       ?= "localhost"
 CLIENT_ID    ?= "default-client"
 AUDIENCE     ?= optimum-login
@@ -103,8 +103,9 @@ subscribe_against_remote_proxy: ## loads REMOTE_PROXY IP from .env for SERVICE_U
 publish_against_remote_proxy: ## loads REMOTE_PROXY IP from .env for SERVICE_URL
 	./$(CLI_BINARY) publish --topic=walentyn --message="cool to be here" --service-url=$(REMOTE_PROXY_URL_2)
 
-clean: ## Clean up build artifacts
-	rm -f $(BUILD_DIR)/*
+clean:
+	@echo "Cleaning build artifacts in $(BUILD_DIR)..."
+	rm -rf "$(BUILD_DIR)"/*
 
 test: ## Run unit tests
 	$(GO_BIN) test ./... -v -count=1 -covermode=atomic -coverprofile=coverage.out
