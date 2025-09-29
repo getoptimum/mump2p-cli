@@ -14,6 +14,13 @@ func RunE2ETests() error {
 	if err := LoadEnv(); err != nil {
 		return err
 	}
+
+	tokenPath, err := SetupTokenFile()
+	if err != nil {
+		return err
+	}
+	os.Setenv("MUMP2P_AUTH_PATH", tokenPath)
+
 	// load name of binary from environment
 	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
 	// if name is missing -> construct accordingly to os
