@@ -92,7 +92,8 @@ func RunE2ETests() error {
 		name string
 		args []string
 	}{
-		{"health", []string{"health", "--service-url=" + os.Getenv("SERVICE_URL")}},
+		//{"health", []string{"health", "--service-url=" + os.Getenv("SERVICE_URL")}},
+		{"health", []string{"health"}},
 		{"whoami", []string{"whoami"}},
 		//{"subscribe", []string{
 		//	"subscribe",
