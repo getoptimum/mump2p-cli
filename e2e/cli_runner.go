@@ -19,7 +19,7 @@ func RunE2ETests() error {
 	if err != nil {
 		return err
 	}
-	os.Setenv("MUMP2P_AUTH_PATH", tokenPath)
+	os.Setenv("MUMP2P_AUTH_PATH", tokenPath) //nolint:errcheck
 
 	// load name of binary from environment
 	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
@@ -87,7 +87,7 @@ func RunE2ETests() error {
 		return fmt.Errorf("binary %s is not executable", cli)
 	}
 
-	defer os.RemoveAll(filepath.Dir(tokenPath))
+	defer os.RemoveAll(filepath.Dir(tokenPath)) //nolint:errcheck
 
 	tests := []struct {
 		name string
