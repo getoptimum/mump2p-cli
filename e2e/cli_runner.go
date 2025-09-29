@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"time"
 )
 
 func RunE2ETests() error {
@@ -137,18 +136,18 @@ func RunCommand(bin string, args ...string) (string, error) {
 	return out.String(), nil
 }
 
-func getTopic() string {
-	topic := os.Getenv("MUMP2P_E2E_TOPIC")
-	if topic == "" {
-		topic = fmt.Sprintf("optimum-e2e-%d", time.Now().Unix())
-	}
-	return topic
-}
-
-func getMessage() string {
-	msg := os.Getenv("MUMP2P_E2E_MESSAGE")
-	if msg == "" {
-		msg = fmt.Sprintf("hello from go e2e at %s", time.Now().UTC().Format(time.RFC3339))
-	}
-	return msg
-}
+//func getTopic() string {
+//	topic := os.Getenv("MUMP2P_E2E_TOPIC")
+//	if topic == "" {
+//		topic = fmt.Sprintf("optimum-e2e-%d", time.Now().Unix())
+//	}
+//	return topic
+//}
+//
+//func getMessage() string {
+//	msg := os.Getenv("MUMP2P_E2E_MESSAGE")
+//	if msg == "" {
+//		msg = fmt.Sprintf("hello from go e2e at %s", time.Now().UTC().Format(time.RFC3339))
+//	}
+//	return msg
+//}
