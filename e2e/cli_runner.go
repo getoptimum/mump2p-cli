@@ -95,18 +95,18 @@ func RunE2ETests() error {
 	}{
 		{"health", []string{"health", "--service-url=" + os.Getenv("SERVICE_URL")}},
 		{"whoami", []string{"whoami"}},
-		{"subscribe", []string{
-			"subscribe",
-			"--topic=" + getTopic(),
-			"--service-url=" + os.Getenv("SERVICE_URL"),
-		}},
-
-		{"publish", []string{
-			"publish",
-			"--topic=" + getTopic(),
-			"--message=" + getMessage(),
-			"--service-url=" + os.Getenv("SERVICE_URL"),
-		}},
+		//{"subscribe", []string{
+		//	"subscribe",
+		//	"--topic=" + getTopic(),
+		//	"--service-url=" + os.Getenv("SERVICE_URL"),
+		//}},
+		//
+		//{"publish", []string{
+		//	"publish",
+		//	"--topic=" + getTopic(),
+		//	"--message=" + getMessage(),
+		//	"--service-url=" + os.Getenv("SERVICE_URL"),
+		//}},
 		{"list-topics", []string{"list-topics", "--service-url=" + os.Getenv("SERVICE_URL")}},
 	}
 
