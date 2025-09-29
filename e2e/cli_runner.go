@@ -14,14 +14,9 @@ func RunE2ETests() error {
 	if err := LoadEnv(); err != nil {
 		return err
 	}
-
-	tokenPath, err := SetupTokenFile()
-	if err != nil {
-		return err
-	}
-	os.Setenv("MUMP2P_AUTH_PATH", tokenPath)
-
+	// load name of binary from environment
 	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
+	// if name is missing -> construct accordingly to os
 	if cli == "" {
 		switch runtime.GOOS {
 		case "linux":
@@ -38,6 +33,7 @@ func RunE2ETests() error {
 	if err != nil {
 		return fmt.Errorf("failed to resolve CLI path %q: %w", cli, err)
 	}
+	// from now cli -> absolute path to binary
 	cli = abs
 
 	// If binary missing try to build it
@@ -92,18 +88,18 @@ func RunE2ETests() error {
 	}{
 		{"health", []string{"health", "--service-url=" + os.Getenv("SERVICE_URL")}},
 		{"whoami", []string{"whoami"}},
-		//{"subscribe", []string{
-		//	"subscribe",
-		//	"--topic=" + getTopic(),
-		//	"--service-url=" + os.Getenv("SERVICE_URL"),
-		//}},
-		//
-		//{"publish", []string{
-		//	"publish",
-		//	"--topic=" + getTopic(),
-		//	"--message=" + getMessage(),
-		//	"--service-url=" + os.Getenv("SERVICE_URL"),
-		//}},
+		{"subscribe", []string{
+			"subscribe",
+			"--topic=" + getTopic(),
+			"--service-url=" + os.Getenv("SERVICE_URL"),
+		}},
+
+		{"publish", []string{
+			"publish",
+			"--topic=" + getTopic(),
+			"--message=" + getMessage(),
+			"--service-url=" + os.Getenv("SERVICE_URL"),
+		}},
 		{"list-topics", []string{"list-topics", "--service-url=" + os.Getenv("SERVICE_URL")}},
 	}
 
