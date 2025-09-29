@@ -17,15 +17,15 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	if err != nil {
 		return "", nil, err
 	}
-	os.Setenv("MUMP2P_AUTH_PATH", tokenPath)
+	os.Setenv("MUMP2P_AUTH_PATH", tokenPath) //nolint:errcheck
 
 	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
 	if cli == "" {
 		switch runtime.GOOS {
 		case "linux":
-			cli = "dist/mump2p-linux"
+			cli = "dist/mump2p-linux" //nolint:ineffassign
 		case "darwin":
-			cli = "dist/mump2p-mac"
+			cli = "dist/mump2p-mac" //nolint:ineffassign
 		default:
 			return "", nil, fmt.Errorf("unsupported OS: %s", runtime.GOOS)
 		}
