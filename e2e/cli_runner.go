@@ -44,12 +44,30 @@ func RunE2ETests() error {
 	if _, err := os.Stat(cli); err != nil {
 		fmt.Println("[e2e] CLI binary not found, attempting to build")
 		cmd := exec.Command("make", "build-local")
-		cmd.Env = append(os.Environ(),
-			"DOMAIN="+os.Getenv("AUTH_DOMAIN"),
-			"CLIENT_ID="+os.Getenv("AUTH_CLIENT_ID"),
-			"AUDIENCE="+os.Getenv("AUTH_AUDIENCE"),
-			"SERVICE_URL="+os.Getenv("SERVICE_URL"),
-		)
+		//cmd.Env = append(os.Environ(),
+		//	"DOMAIN="+os.Getenv("AUTH_DOMAIN"),
+		//	"CLIENT_ID="+os.Getenv("AUTH_CLIENT_ID"),
+		//	"AUDIENCE="+os.Getenv("AUTH_AUDIENCE"),
+		//	"SERVICE_URL="+os.Getenv("SERVICE_URL"),
+		//)
+
+		// Preserve existing environment and only override build-time
+		// variables when explicit values are provided. Passing empty
+		// overrides (e.g., DOMAIN=) would erase the Makefile defaults
+		// and result in binaries compiled without authentication
+		// settings, causing e2e auth to fail.
+		env := append([]string{}, os.Environ()...)
+		for key, value := range map[string]string{
+			"DOMAIN":      os.Getenv("AUTH_DOMAIN"),
+			"CLIENT_ID":   os.Getenv("AUTH_CLIENT_ID"),
+			"AUDIENCE":    os.Getenv("AUTH_AUDIENCE"),
+			"SERVICE_URL": os.Getenv("SERVICE_URL"),
+		} {
+			if value != "" {
+				env = append(env, fmt.Sprintf("%s=%s", key, value))
+			}
+		}
+		cmd.Env = env
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
@@ -65,6 +83,8 @@ func RunE2ETests() error {
 	if stat.Mode()&0111 == 0 {
 		return fmt.Errorf("binary %s is not executable", cli)
 	}
+
+	defer os.RemoveAll(filepath.Dir(tokenPath))
 
 	tests := []struct {
 		name string

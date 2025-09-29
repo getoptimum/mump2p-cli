@@ -147,3 +147,6 @@ $(COVERPROFILE):
 
 e2e-test:
 	go run ./e2e
+
+set-auth0-token-ci:
+	gh secret set AUTH0_TOKEN < ~/.mump2p/auth.yml
