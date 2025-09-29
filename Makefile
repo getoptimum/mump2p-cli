@@ -148,6 +148,10 @@ $(COVERPROFILE):
 
 e2e-test:
 	go run ./e2e
-
+	go test ./e2e -v
+# done once, repear after secret expires
 set-auth0-token-ci:
 	gh secret set AUTH0_TOKEN < ~/.mump2p/auth.yml
+
+e2e-test-suite:
+	go test ./e2e -v
