@@ -29,7 +29,7 @@ var listTopicsCmd = &cobra.Command{
 This command shows your active topics and their count.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if IsAuthDisabled() {
-			// When auth is disabled, we still need to make the API call with mock client ID
+			// When auth is disabled, we still need to make the API call
 			// Determine service URL
 			serviceURL := config.LoadConfig().ServiceUrl
 			if listServiceURL != "" {
@@ -37,8 +37,8 @@ This command shows your active topics and their count.`,
 				fmt.Printf("Using custom service URL: %s\n", serviceURL)
 			}
 
-			// Create HTTP GET request to /api/v1/topics with mock client_id
-			endpoint := fmt.Sprintf("%s/api/v1/topics?client_id=mock-client-id", serviceURL)
+			// Create HTTP GET request to /api/v1/topics (no client_id needed when auth is disabled)
+			endpoint := fmt.Sprintf("%s/api/v1/topics", serviceURL)
 			req, err := http.NewRequest("GET", endpoint, nil)
 			if err != nil {
 				return fmt.Errorf("failed to create HTTP request: %v", err)

@@ -64,10 +64,10 @@ var whoamiCmd = &cobra.Command{
 			fmt.Println("Client ID: mock-client-id (auth disabled)")
 			fmt.Println("Is Active: true (auth disabled)")
 			fmt.Println("Rate Limits:")
-			fmt.Println("  Max Publish Per Hour: unlimited")
-			fmt.Println("  Max Publish Per Sec:  unlimited")
-			fmt.Println("  Max Message Size:     unlimited")
-			fmt.Println("  Daily Quota:          unlimited")
+			fmt.Println("  Max Publish Per Hour: 1000")
+			fmt.Println("  Max Publish Per Sec:  100")
+			fmt.Println("  Max Message Size:     1 MB")
+			fmt.Println("  Daily Quota:          100 MB")
 			fmt.Println("Token Expires: N/A (auth disabled)")
 			return nil
 		}

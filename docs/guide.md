@@ -110,7 +110,7 @@ For development and testing scenarios, you can bypass authentication entirely us
 ./mump2p --disable-auth whoami
 ./mump2p --disable-auth publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
 ./mump2p --disable-auth subscribe --topic=test --service-url="http://34.146.222.111:8080"
-./mump2p --disable-auth list --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth list-topics --service-url="http://34.146.222.111:8080"
 ./mump2p --disable-auth usage
 ```
 
