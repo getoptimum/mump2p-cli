@@ -106,20 +106,28 @@ export MUMP2P_AUTH_PATH="/opt/mump2p/auth/token.yml"
 For development and testing scenarios, you can bypass authentication entirely using the `--disable-auth` flag:
 
 ```sh
-# All commands work without login (requires --service-url for network operations)
-./mump2p --disable-auth whoami
-./mump2p --disable-auth publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
-./mump2p --disable-auth subscribe --topic=test --service-url="http://34.146.222.111:8080"
-./mump2p --disable-auth list-topics --service-url="http://34.146.222.111:8080"
+# All commands work without login (requires --client-id and --service-url)
+./mump2p --disable-auth --client-id="my-test-client" whoami
+./mump2p --disable-auth --client-id="my-test-client" publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" subscribe --topic=test --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" list-topics --service-url="http://34.146.222.111:8080"
 ./mump2p --disable-auth usage
+
+# Works with gRPC too
+./mump2p --disable-auth --client-id="my-test-client" --grpc publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" --grpc subscribe --topic=test --service-url="http://34.146.222.111:8080"
+
+# Combine with debug mode
+./mump2p --disable-auth --client-id="my-test-client" --debug publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
 ```
 
 **When using `--disable-auth`:**
-- Uses mock client ID (`mock-client-id`)
-- Unlimited rate limits for testing
+- **Must provide `--client-id` flag** with your chosen client ID
+- No rate limits enforced (bypasses all quotas)
+- No usage tracking
 - All functionality works without authentication
-- **Requires `--service-url` for network operations** (publish, subscribe, list)
-- Perfect for development and testing
+- **Requires `--service-url` for network operations** (publish, subscribe, list-topics)
+- Works with both HTTP/WebSocket and gRPC protocols
 
 ### Logout
 

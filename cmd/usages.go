@@ -15,38 +15,10 @@ var usageCmd = &cobra.Command{
 	Short: "Display usage statistics and rate limits",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if IsAuthDisabled() {
-			// Create mock claims for disabled auth and initialize rate limiter
-			mockClaims := &auth.TokenClaims{
-				IsActive:          true,
-				ClientID:          "mock-client-id",
-				MaxPublishPerHour: 1000, // Set reasonable limits for testing
-				MaxPublishPerSec:  10,
-				MaxMessageSize:    10 * 1024 * 1024,  // 10MB
-				DailyQuota:        100 * 1024 * 1024, // 100MB
-			}
-
-			// Initialize rate limiter with mock claims
-			limiter, err := ratelimit.NewRateLimiterWithDir(mockClaims, GetAuthDir())
-			if err != nil {
-				return fmt.Errorf("error initializing rate limiter: %v", err)
-			}
-
-			// get usage statistics
-			stats := limiter.GetUsageStats()
-
-			// display usage statistics
-			fmt.Println("Usage Statistics (Auth Disabled):")
-			fmt.Printf("  Publish (hour):     %d / %d\n", stats.PublishCount, stats.PublishLimitPerHour)
-			fmt.Printf("  Publish (second):   %d / %d\n", stats.SecondPublishCount, stats.PublishLimitPerSec)
-			fmt.Printf("  Data Used:          %.4f MB / %.4f MB\n", float64(stats.BytesPublished)/(1<<20), float64(stats.DailyQuota)/(1<<20))
-			fmt.Printf("  Next Reset:         %s (%s from now)\n", stats.NextReset.Format(time.RFC822), stats.TimeUntilReset)
-
-			if !stats.LastPublishTime.IsZero() {
-				fmt.Printf("  Last Publish:       %s\n", stats.LastPublishTime.Format(time.RFC822))
-			}
-			if !stats.LastSubscribeTime.IsZero() {
-				fmt.Printf("  Last Subscribe:     %s\n", stats.LastSubscribeTime.Format(time.RFC822))
-			}
+			// When auth is disabled, usage tracking is not available
+			fmt.Println("Usage Statistics:")
+			fmt.Println("  Status: Usage tracking disabled (using --disable-auth)")
+			fmt.Println("  No rate limits or quotas are enforced in this mode")
 			return nil
 		}
 

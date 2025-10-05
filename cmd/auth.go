@@ -58,17 +58,17 @@ var whoamiCmd = &cobra.Command{
 	Long:  `Display information about the current authentication token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if IsAuthDisabled() {
-			// Display mock authentication status when auth is disabled
+			// Display authentication status when auth is disabled
+			clientIDToUse := GetClientID()
+			if clientIDToUse == "" {
+				clientIDToUse = "(not set - use --client-id flag)"
+			}
 			fmt.Println("Authentication Status:")
 			fmt.Println("----------------------")
-			fmt.Println("Client ID: mock-client-id (auth disabled)")
-			fmt.Println("Is Active: true (auth disabled)")
-			fmt.Println("Rate Limits:")
-			fmt.Println("  Max Publish Per Hour: 1000")
-			fmt.Println("  Max Publish Per Sec:  100")
-			fmt.Println("  Max Message Size:     1 MB")
-			fmt.Println("  Daily Quota:          100 MB")
-			fmt.Println("Token Expires: N/A (auth disabled)")
+			fmt.Printf("Client ID: %s\n", clientIDToUse)
+			fmt.Println("Auth Mode: Disabled (using --disable-auth)")
+			fmt.Println("Rate Limits: N/A (no limits enforced)")
+			fmt.Println("Token: N/A (auth disabled)")
 			return nil
 		}
 

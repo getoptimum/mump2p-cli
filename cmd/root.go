@@ -11,6 +11,7 @@ var (
 	authPath    string // Global flag for custom authentication file path
 	debug       bool   // Global flag for debug mode
 	disableAuth bool   // Global flag to disable authentication checks
+	clientID    string // Global flag for client ID (used when auth is disabled)
 )
 
 var rootCmd = &cobra.Command{
@@ -35,6 +36,9 @@ func init() {
 
 	// Add global disable auth flag
 	rootCmd.PersistentFlags().BoolVar(&disableAuth, "disable-auth", false, "Disable authentication checks (for testing/development)")
+
+	// Add global client ID flag
+	rootCmd.PersistentFlags().StringVar(&clientID, "client-id", "", "Client ID to use (required when --disable-auth is enabled)")
 
 	// disable completion option
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
@@ -62,4 +66,9 @@ func IsDebugMode() bool {
 // IsAuthDisabled returns true if authentication is disabled
 func IsAuthDisabled() bool {
 	return disableAuth
+}
+
+// GetClientID returns the client ID when auth is disabled
+func GetClientID() string {
+	return clientID
 }

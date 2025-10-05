@@ -68,6 +68,8 @@ var subscribeCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var claims *auth.TokenClaims
 		var token *auth.StoredToken
+		var clientIDToUse string
+
 		if !IsAuthDisabled() {
 			// auth
 			authClient := auth.NewClient()
@@ -87,14 +89,12 @@ var subscribeCmd = &cobra.Command{
 			if !claims.IsActive {
 				return fmt.Errorf("your account is inactive, please contact support")
 			}
+			clientIDToUse = claims.ClientID
 		} else {
-			// Create mock claims and token for disabled auth
-			claims = &auth.TokenClaims{
-				IsActive: true,
-				ClientID: "mock-client-id",
-			}
-			token = &auth.StoredToken{
-				Token: "mock-token-for-disabled-auth",
+			// When auth is disabled, require client-id flag
+			clientIDToUse = GetClientID()
+			if clientIDToUse == "" {
+				return fmt.Errorf("--client-id is required when using --disable-auth")
 			}
 		}
 
@@ -185,7 +185,7 @@ var subscribeCmd = &cobra.Command{
 			}
 			defer client.Close()
 
-			err = client.SubscribeTopic(ctx, claims.ClientID, subTopic, subThreshold)
+			err = client.SubscribeTopic(ctx, clientIDToUse, subTopic, subThreshold)
 			if err != nil {
 				return fmt.Errorf("gRPC subscribe failed: %v", err)
 			}
@@ -196,7 +196,7 @@ var subscribeCmd = &cobra.Command{
 			fmt.Println("Sending HTTP POST subscription request...")
 			httpEndpoint := fmt.Sprintf("%s/api/v1/subscribe", srcUrl)
 			reqData := SubscribeRequest{
-				ClientID:  claims.ClientID,
+				ClientID:  clientIDToUse,
 				Topic:     subTopic,
 				Threshold: subThreshold,
 			}
@@ -209,7 +209,10 @@ var subscribeCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to create HTTP request: %v", err)
 			}
-			req.Header.Set("Authorization", "Bearer "+token.Token)
+			// Only set Authorization header if auth is enabled
+			if !IsAuthDisabled() && token != nil {
+				req.Header.Set("Authorization", "Bearer "+token.Token)
+			}
 			req.Header.Set("Content-Type", "application/json")
 
 			resp, err := http.DefaultClient.Do(req)
@@ -246,7 +249,7 @@ var subscribeCmd = &cobra.Command{
 			}
 			defer streamClient.Close()
 
-			msgChan, err := streamClient.Subscribe(streamCtx, claims.ClientID, grpcBufferSize)
+			msgChan, err := streamClient.Subscribe(streamCtx, clientIDToUse, grpcBufferSize)
 			if err != nil {
 				return fmt.Errorf("gRPC stream subscribe failed: %v", err)
 			}
@@ -265,7 +268,7 @@ var subscribeCmd = &cobra.Command{
 						defer cancel()
 
 						// Format the payload using template
-						formattedPayload, err := webhookFormatter.FormatMessage(payload, subTopic, claims.ClientID, "grpc-msg")
+						formattedPayload, err := webhookFormatter.FormatMessage(payload, subTopic, clientIDToUse, "grpc-msg")
 						if err != nil {
 							fmt.Printf("Failed to format webhook payload: %v\n", err)
 							return
@@ -340,7 +343,7 @@ var subscribeCmd = &cobra.Command{
 		// convert HTTP URL to WebSocket URL
 		wsURL := strings.Replace(srcUrl, "http://", "ws://", 1)
 		wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
-		wsURL = fmt.Sprintf("%s/api/v1/ws?client_id=%s", wsURL, claims.ClientID)
+		wsURL = fmt.Sprintf("%s/api/v1/ws?client_id=%s", wsURL, clientIDToUse)
 
 		// Extract receiver IP for debug mode
 		receiverAddr := extractIPFromURL(srcUrl)
@@ -350,7 +353,10 @@ var subscribeCmd = &cobra.Command{
 
 		// setup ws headers for authentication
 		header := http.Header{}
-		header.Set("Authorization", "Bearer "+token.Token)
+		// Only set Authorization header if auth is enabled
+		if !IsAuthDisabled() && token != nil {
+			header.Set("Authorization", "Bearer "+token.Token)
+		}
 
 		// connect
 		conn, _, err := websocket.DefaultDialer.Dial(wsURL, header)
@@ -373,7 +379,7 @@ var subscribeCmd = &cobra.Command{
 					defer cancel()
 
 					// Format the payload using template
-					formattedPayload, err := webhookFormatter.FormatMessage(payload, subTopic, claims.ClientID, "ws-msg")
+					formattedPayload, err := webhookFormatter.FormatMessage(payload, subTopic, clientIDToUse, "ws-msg")
 					if err != nil {
 						fmt.Printf("Failed to format webhook payload: %v\n", err)
 						return

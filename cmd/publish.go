@@ -71,6 +71,8 @@ var publishCmd = &cobra.Command{
 
 		var claims *auth.TokenClaims
 		var token *auth.StoredToken
+		var clientIDToUse string
+
 		if !IsAuthDisabled() {
 			authClient := auth.NewClient()
 			storage := auth.NewStorageWithPath(GetAuthPath())
@@ -89,18 +91,12 @@ var publishCmd = &cobra.Command{
 			if !claims.IsActive {
 				return fmt.Errorf("your account is inactive, please contact support")
 			}
+			clientIDToUse = claims.ClientID
 		} else {
-			// Create mock claims and token for disabled auth
-			claims = &auth.TokenClaims{
-				IsActive:          true,
-				MaxPublishPerHour: 1000,
-				MaxPublishPerSec:  100,
-				MaxMessageSize:    1024 * 1024,       // 1MB
-				DailyQuota:        100 * 1024 * 1024, // 100MB
-				ClientID:          "mock-client-id",
-			}
-			token = &auth.StoredToken{
-				Token: "mock-token-for-disabled-auth",
+			// When auth is disabled, require client-id flag
+			clientIDToUse = GetClientID()
+			if clientIDToUse == "" {
+				return fmt.Errorf("--client-id is required when using --disable-auth")
 			}
 		}
 		var (
@@ -173,7 +169,7 @@ var publishCmd = &cobra.Command{
 			}
 			defer client.Close()
 
-			err = client.Publish(ctx, claims.ClientID, pubTopic, publishData)
+			err = client.Publish(ctx, clientIDToUse, pubTopic, publishData)
 			if err != nil {
 				return fmt.Errorf("gRPC publish failed: %v", err)
 			}
@@ -199,7 +195,7 @@ var publishCmd = &cobra.Command{
 			}
 
 			reqData := PublishRequest{
-				ClientID:  claims.ClientID,
+				ClientID:  clientIDToUse,
 				Topic:     pubTopic,
 				Message:   string(publishData), // use modified data with debug prefix if enabled
 				Timestamp: time.Now().UnixMilli(),
@@ -214,7 +210,10 @@ var publishCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			req.Header.Set("Authorization", "Bearer "+token.Token)
+			// Only set Authorization header if auth is enabled
+			if !IsAuthDisabled() && token != nil {
+				req.Header.Set("Authorization", "Bearer "+token.Token)
+			}
 			req.Header.Set("Content-Type", "application/json")
 
 			resp, err := http.DefaultClient.Do(req)
@@ -236,8 +235,11 @@ var publishCmd = &cobra.Command{
 			fmt.Println(string(body))
 		}
 
-		if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {
-			_ = limiter.RecordPublish(messageSize) // update quota (fail silently)
+		// Only record publish if auth is enabled
+		if !IsAuthDisabled() {
+			if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {
+				_ = limiter.RecordPublish(messageSize) // update quota (fail silently)
+			}
 		}
 		return nil
 	},
