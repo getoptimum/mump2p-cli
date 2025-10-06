@@ -19,6 +19,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 - [x] Forward messages to webhook endpoints (POST method) with flexible JSON template formatting
 - [x] Health monitoring and system metrics
 - [x] Debug mode with detailed timing and proxy information
+- [x] Development mode with `--disable-auth` flag for testing
   
 ---
 
@@ -44,6 +45,14 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 ```sh
 ./mump2p login
 ./mump2p whoami  # Check your session
+```
+
+**Development/Testing Mode:**
+```sh
+# Skip authentication for testing (requires --client-id and --service-url)
+./mump2p --disable-auth --client-id="my-test-client" publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" subscribe --topic=test --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" list-topics --service-url="http://34.146.222.111:8080"
 ```
 
 ### 3. Basic Usage
@@ -243,7 +252,20 @@ Error: required flag(s) "topic" not set
 - Include all required arguments
 - Check flag spelling and syntax
 
-### **6. Debug Mode & Performance Analysis**
+### **6. Development Mode (`--disable-auth`)**
+
+For development and testing, you can bypass authentication:
+
+```sh
+# Requires --client-id and --service-url flags
+./mump2p --disable-auth --client-id="test-client" \
+  publish --topic=test --message="Hello" \
+  --service-url="http://34.146.222.111:8080"
+```
+
+> **Note:** This mode is for testing only. No rate limits enforced. See [guide](./docs/guide.md) for full details.
+
+### **7. Debug Mode & Performance Analysis**
 
 The `--debug` flag provides detailed timing and proxy information for troubleshooting:
 
@@ -251,6 +273,11 @@ The `--debug` flag provides detailed timing and proxy information for troublesho
 # Enable debug mode for operations
 ./mump2p --debug publish --topic=test-topic --message='Hello World'
 ./mump2p --debug subscribe --topic=test-topic
+
+# Combine with --disable-auth for testing
+./mump2p --disable-auth --client-id="test" --debug \
+  publish --topic=test --message="Hello" \
+  --service-url="http://34.146.222.111:8080"
 ```
 
 For comprehensive debug mode usage, performance analysis, and blast testing examples, see the [Complete User Guide](./docs/guide.md#debug-mode).
