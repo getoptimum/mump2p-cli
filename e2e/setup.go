@@ -17,6 +17,8 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	fmt.Println("[e2e] Loading environment completed")
 
 	tokenPath, err := SetupTokenFile()
+	fmt.Println("[e2e] Setting up the token file completed")
+
 	if err != nil {
 		return "", nil, err
 	}
@@ -24,6 +26,7 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 		return "", nil, fmt.Errorf("failed to set MUMP2P_AUTH_PATH: %w", err)
 	}
 
+	fmt.Println("[e2e] Trying to find repo root")
 	repoRoot, err := findRepoRoot()
 	if err != nil {
 		return "", nil, err
