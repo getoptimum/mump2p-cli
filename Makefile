@@ -107,8 +107,10 @@ clean:
 	@echo "Cleaning build artifacts in $(BUILD_DIR)..."
 	rm -rf "$(BUILD_DIR)"/*
 
-test: ## Run unit tests
-	$(GO_BIN) test ./... -v -count=1 -covermode=atomic -coverprofile=coverage.out
+UNIT_TEST_PKGS := $(shell go list ./... | grep -v 'e2e')
+test: ## Run unit tests (excluding e2e)
+	echo "Running unit tests"
+	@$(GO_BIN) test $(UNIT_TEST_PKGS) -v -count=1 -covermode=atomic -coverprofile=coverage.out
 
 coverage: $(COVERPROFILE) ## Enforce threshold
 	@echo "📈 coverage:"
