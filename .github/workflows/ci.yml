@@ -77,5 +77,4 @@ jobs:
           AUTH_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
           AUTH_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
           AUTH0_TOKEN: ${{ secrets.AUTH0_TOKEN }}
-        run: make e2e-test \
-            make
+        run: make e2e-test
