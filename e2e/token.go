@@ -15,16 +15,17 @@ func SetupTokenFile() (string, error) {
 	//if path := os.Getenv("MUMP2P_E2E_TOKEN_PATH"); path != "" {
 	//	return path, nil
 	//}
-
+	fmt.Printf("Trying to set token file MUMP2P_E2E_TOKEN_YAML ")
 	// 2. CI: use raw YAML token provided directly via env
 	if raw := os.Getenv("MUMP2P_E2E_TOKEN_YAML"); strings.TrimSpace(raw) != "" {
 		return writeTokenFile([]byte(raw))
 	}
-
+	fmt.Printf("Trying to set MUMP2P_E2E_TOKEN_YAML ")
 	// 3. CI: support legacy env name used in workflows
-	if raw := os.Getenv("AUTH0_TOKEN"); strings.TrimSpace(raw) != "" {
-		return writeTokenFile([]byte(raw))
-	}
+	//if raw := os.Getenv("AUTH0_TOKEN"); strings.TrimSpace(raw) != "" {
+	//	return writeTokenFile([]byte(raw))
+	//}
+	fmt.Printf("Trying to set toekn file from MUMP2P_E2E_TOKEN_B64 ")
 
 	// 4. CI: use a base64-encoded secret string
 	if b64 := strings.TrimSpace(os.Getenv("MUMP2P_E2E_TOKEN_B64")); b64 != "" {
