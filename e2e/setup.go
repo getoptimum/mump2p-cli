@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,24 +22,24 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 		return "", nil, fmt.Errorf("failed to set MUMP2P_AUTH_PATH: %w", err)
 	}
 
+	repoRoot, err := findRepoRoot()
+	if err != nil {
+		return "", nil, err
+	}
+
 	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
 	if cli == "" {
-		cli = filepath.Join("..", "dist", fmt.Sprintf("mump2p-%s", runtime.GOOS))
+		cli = filepath.Join(repoRoot, "dist", fmt.Sprintf("mump2p-%s", runtime.GOOS))
 	} else if !filepath.IsAbs(cli) {
 		// Treat relative paths as repo-root relative so the command works when
-		// executed from the e2e package directory.
-		cli = filepath.Join("..", cli)
+		// executed from the e2e package directory or the repo root.
+		cli = filepath.Join(repoRoot, cli)
 	}
 
-	abs, err := filepath.Abs(cli)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to resolve CLI path %q: %w", cli, err)
-	}
-	cli = abs
-
-	if _, err := os.Stat(cli); os.IsNotExist(err) {
+	if _, err := os.Stat(cli); errors.Is(err, os.ErrNotExist) {
 		fmt.Println("[e2e] CLI not found, building via make build-local...")
-		cmd := exec.Command("make", "-C", "..", "build-local")
+		cmd := exec.Command("make", "build-local")
+		cmd.Dir = repoRoot
 		cmd.Env = injectBuildEnv()
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -75,4 +76,26 @@ func injectBuildEnv() []string {
 		}
 	}
 	return env
+}
+
+func findRepoRoot() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to determine working directory: %w", err)
+	}
+
+	dir := wd
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return "", fmt.Errorf("could not locate repo root from %s", wd)
 }
