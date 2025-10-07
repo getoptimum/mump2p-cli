@@ -69,21 +69,35 @@ var publishCmd = &cobra.Command{
 			return errors.New("only one of --message or --file should be used at a time")
 		}
 
-		authClient := auth.NewClient()
-		storage := auth.NewStorageWithPath(GetAuthPath())
-		token, err := authClient.GetValidToken(storage)
-		if err != nil {
-			return fmt.Errorf("authentication required: %v", err)
-		}
-		// parse token to check if the account is active
-		parser := auth.NewTokenParser()
-		claims, err := parser.ParseToken(token.Token)
-		if err != nil {
-			return fmt.Errorf("error parsing token: %v", err)
-		}
-		// check if the account is active
-		if !claims.IsActive {
-			return fmt.Errorf("your account is inactive, please contact support")
+		var claims *auth.TokenClaims
+		var token *auth.StoredToken
+		var clientIDToUse string
+
+		if !IsAuthDisabled() {
+			authClient := auth.NewClient()
+			storage := auth.NewStorageWithPath(GetAuthPath())
+			var err error
+			token, err = authClient.GetValidToken(storage)
+			if err != nil {
+				return fmt.Errorf("authentication required: %v", err)
+			}
+			// parse token to check if the account is active
+			parser := auth.NewTokenParser()
+			claims, err = parser.ParseToken(token.Token)
+			if err != nil {
+				return fmt.Errorf("error parsing token: %v", err)
+			}
+			// check if the account is active
+			if !claims.IsActive {
+				return fmt.Errorf("your account is inactive, please contact support")
+			}
+			clientIDToUse = claims.ClientID
+		} else {
+			// When auth is disabled, require client-id flag
+			clientIDToUse = GetClientID()
+			if clientIDToUse == "" {
+				return fmt.Errorf("--client-id is required when using --disable-auth")
+			}
 		}
 		var (
 			data   []byte
@@ -104,14 +118,17 @@ var publishCmd = &cobra.Command{
 		// message size
 		messageSize := int64(len(data))
 
-		limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir())
-		if err != nil {
-			return fmt.Errorf("rate limiter setup failed: %v", err)
-		}
+		// Skip rate limiting if auth is disabled
+		if !IsAuthDisabled() {
+			limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir())
+			if err != nil {
+				return fmt.Errorf("rate limiter setup failed: %v", err)
+			}
 
-		// check all rate limits: size, quota, per-hr, per-sec
-		if err := limiter.CheckPublishAllowed(messageSize); err != nil {
-			return err
+			// check all rate limits: size, quota, per-hr, per-sec
+			if err := limiter.CheckPublishAllowed(messageSize); err != nil {
+				return err
+			}
 		}
 
 		// use custom service URL if provided, otherwise use the default
@@ -152,7 +169,7 @@ var publishCmd = &cobra.Command{
 			}
 			defer client.Close() //nolint:errcheck
 
-			err = client.Publish(ctx, claims.ClientID, pubTopic, publishData)
+			err = client.Publish(ctx, clientIDToUse, pubTopic, publishData)
 			if err != nil {
 				return fmt.Errorf("gRPC publish failed: %v", err)
 			}
@@ -178,7 +195,7 @@ var publishCmd = &cobra.Command{
 			}
 
 			reqData := PublishRequest{
-				ClientID:  claims.ClientID,
+				ClientID:  clientIDToUse,
 				Topic:     pubTopic,
 				Message:   string(publishData), // use modified data with debug prefix if enabled
 				Timestamp: time.Now().UnixMilli(),
@@ -193,7 +210,10 @@ var publishCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			req.Header.Set("Authorization", "Bearer "+token.Token)
+			// Only set Authorization header if auth is enabled
+			if !IsAuthDisabled() && token != nil {
+				req.Header.Set("Authorization", "Bearer "+token.Token)
+			}
 			req.Header.Set("Content-Type", "application/json")
 
 			resp, err := http.DefaultClient.Do(req)
@@ -215,8 +235,11 @@ var publishCmd = &cobra.Command{
 			fmt.Println(string(body))
 		}
 
-		if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {
-			_ = limiter.RecordPublish(messageSize) // update quota (fail silently)
+		// Only record publish if auth is enabled
+		if !IsAuthDisabled() {
+			if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {
+				_ = limiter.RecordPublish(messageSize) // update quota (fail silently)
+			}
 		}
 		return nil
 	},

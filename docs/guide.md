@@ -7,6 +7,7 @@
 After completing the README's quick start, this guide will teach you:
 
 - **Authentication Management**: Token management, refresh, and troubleshooting
+- **Development Mode**: Testing without authentication using `--disable-auth` flag
 - **Service Configuration**: Using different proxy servers and custom URLs  
 - **Protocol Deep Dive**: When to use HTTP/WebSocket vs gRPC
 - **Advanced Features**: Message persistence, webhooks, and monitoring
@@ -99,6 +100,34 @@ export MUMP2P_AUTH_PATH="/opt/mump2p/auth/token.yml"
 - The directory will be created automatically if it doesn't exist
 - Rate limiting usage files will be stored in the same directory
 - Ensure the user has write permissions to the specified directory
+
+### Development/Testing Mode
+
+For development and testing scenarios, you can bypass authentication entirely using the `--disable-auth` flag:
+
+```sh
+# All commands work without login (requires --client-id and --service-url)
+./mump2p --disable-auth --client-id="my-test-client" whoami
+./mump2p --disable-auth --client-id="my-test-client" publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" subscribe --topic=test --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" list-topics --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth usage
+
+# Works with gRPC too
+./mump2p --disable-auth --client-id="my-test-client" --grpc publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" --grpc subscribe --topic=test --service-url="http://34.146.222.111:8080"
+
+# Combine with debug mode
+./mump2p --disable-auth --client-id="my-test-client" --debug publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
+```
+
+**When using `--disable-auth`:**
+- **Must provide `--client-id` flag** with your chosen client ID
+- No rate limits enforced (bypasses all quotas)
+- No usage tracking
+- All functionality works without authentication
+- **Requires `--service-url` for network operations** (publish, subscribe, list-topics)
+- Works with both HTTP/WebSocket and gRPC protocols
 
 ### Logout
 

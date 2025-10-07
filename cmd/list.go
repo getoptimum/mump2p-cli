@@ -28,6 +28,72 @@ var listTopicsCmd = &cobra.Command{
 	Long: `List all topics that the authenticated client is currently subscribed to.
 This command shows your active topics and their count.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			// When auth is disabled, require client-id flag
+			clientIDToUse := GetClientID()
+			if clientIDToUse == "" {
+				return fmt.Errorf("--client-id is required when using --disable-auth")
+			}
+
+			// Determine service URL
+			serviceURL := config.LoadConfig().ServiceUrl
+			if listServiceURL != "" {
+				serviceURL = listServiceURL
+				fmt.Printf("Using custom service URL: %s\n", serviceURL)
+			}
+
+			// Create HTTP GET request to /api/v1/topics with client_id query parameter
+			endpoint := fmt.Sprintf("%s/api/v1/topics?client_id=%s", serviceURL, clientIDToUse)
+			req, err := http.NewRequest("GET", endpoint, nil)
+			if err != nil {
+				return fmt.Errorf("failed to create HTTP request: %v", err)
+			}
+
+			// Set headers (no auth needed for disabled auth)
+			req.Header.Set("Content-Type", "application/json")
+
+			// Execute the request
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("HTTP GET request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			// Read response body
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read response body: %v", err)
+			}
+
+			// Check for HTTP errors
+			if resp.StatusCode != 200 {
+				return fmt.Errorf("HTTP GET request error (status %d): %s", resp.StatusCode, string(body))
+			}
+
+			// Parse the JSON response
+			var listResponse ListResponse
+			if err := json.Unmarshal(body, &listResponse); err != nil {
+				return fmt.Errorf("failed to parse response JSON: %v", err)
+			}
+
+			// Display results in a formatted table
+			fmt.Printf("\n📋 Subscribed Topics for Client: %s (Auth Disabled)\n", listResponse.ClientID)
+			fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+
+			if listResponse.Count == 0 {
+				fmt.Printf("   No active topics found.\n")
+				fmt.Printf("   Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.\n")
+			} else {
+				fmt.Printf("   Total Topics: %d\n\n", listResponse.Count)
+				for i, topic := range listResponse.Topics {
+					fmt.Printf("   %d. %s\n", i+1, topic)
+				}
+			}
+
+			fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+			return nil
+		}
+
 		// Authenticate
 		authClient := auth.NewClient()
 		storage := auth.NewStorageWithPath(GetAuthPath())

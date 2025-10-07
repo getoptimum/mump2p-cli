@@ -14,6 +14,14 @@ var usageCmd = &cobra.Command{
 	Use:   "usage",
 	Short: "Display usage statistics and rate limits",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			// When auth is disabled, usage tracking is not available
+			fmt.Println("Usage Statistics:")
+			fmt.Println("  Status: Usage tracking disabled (using --disable-auth)")
+			fmt.Println("  No rate limits or quotas are enforced in this mode")
+			return nil
+		}
+
 		// get valid token (refreshes if needed)
 		authClient := auth.NewClient()
 		storage := auth.NewStorageWithPath(GetAuthPath())

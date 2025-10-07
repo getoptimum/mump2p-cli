@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -9,8 +8,10 @@ import (
 )
 
 var (
-	authPath string // Global flag for custom authentication file path
-	debug    bool   // Global flag for debug mode
+	authPath    string // Global flag for custom authentication file path
+	debug       bool   // Global flag for debug mode
+	disableAuth bool   // Global flag to disable authentication checks
+	clientID    string // Global flag for client ID (used when auth is disabled)
 )
 
 var rootCmd = &cobra.Command{
@@ -22,7 +23,6 @@ without relying on the HTTP server. It directly invokes Go services.`,
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
 }
@@ -33,6 +33,12 @@ func init() {
 
 	// Add global debug flag
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode with detailed timing and proxy information")
+
+	// Add global disable auth flag
+	rootCmd.PersistentFlags().BoolVar(&disableAuth, "disable-auth", false, "Disable authentication checks (for testing/development)")
+
+	// Add global client ID flag
+	rootCmd.PersistentFlags().StringVar(&clientID, "client-id", "", "Client ID to use (required when --disable-auth is enabled)")
 
 	// disable completion option
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
@@ -55,4 +61,14 @@ func GetAuthDir() string {
 // IsDebugMode returns true if debug mode is enabled
 func IsDebugMode() bool {
 	return debug
+}
+
+// IsAuthDisabled returns true if authentication is disabled
+func IsAuthDisabled() bool {
+	return disableAuth
+}
+
+// GetClientID returns the client ID when auth is disabled
+func GetClientID() string {
+	return clientID
 }

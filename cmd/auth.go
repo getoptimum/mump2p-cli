@@ -57,6 +57,21 @@ var whoamiCmd = &cobra.Command{
 	Short: "Show current authentication status",
 	Long:  `Display information about the current authentication token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			// Display authentication status when auth is disabled
+			clientIDToUse := GetClientID()
+			if clientIDToUse == "" {
+				clientIDToUse = "(not set - use --client-id flag)"
+			}
+			fmt.Println("Authentication Status:")
+			fmt.Println("----------------------")
+			fmt.Printf("Client ID: %s\n", clientIDToUse)
+			fmt.Println("Auth Mode: Disabled (using --disable-auth)")
+			fmt.Println("Rate Limits: N/A (no limits enforced)")
+			fmt.Println("Token: N/A (auth disabled)")
+			return nil
+		}
+
 		// load token
 		storage := auth.NewStorageWithPath(GetAuthPath())
 		token, err := storage.LoadToken()
@@ -105,6 +120,11 @@ var refreshCmd = &cobra.Command{
 	Short: "Refresh the authentication token",
 	Long:  `Manually refresh the authentication token before it expires.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if IsAuthDisabled() {
+			fmt.Println("Token refresh skipped (auth disabled)")
+			return nil
+		}
+
 		// create auth client and storage
 		authClient := auth.NewClient()
 		storage := auth.NewStorageWithPath(GetAuthPath())
