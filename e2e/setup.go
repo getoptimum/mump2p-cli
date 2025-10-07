@@ -17,11 +17,13 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	fmt.Println("[e2e] Loading environment completed")
 
 	tokenPath, err := SetupTokenFile()
-	fmt.Println("[e2e] Setting up the token file completed")
+	fmt.Println("[e2e] Trying to setup token file")
 
 	if err != nil {
 		return "", nil, err
 	}
+	fmt.Println("[e2e] Setting up the token file completed successfully")
+
 	if err := os.Setenv("MUMP2P_AUTH_PATH", tokenPath); err != nil {
 		return "", nil, fmt.Errorf("failed to set MUMP2P_AUTH_PATH: %w", err)
 	}
