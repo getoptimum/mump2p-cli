@@ -5,116 +5,30 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
 )
 
 func RunE2ETests() error {
-	if err := LoadEnv(); err != nil {
-		return err
+	if os.Getenv("MUMP2P_E2E_SKIP") == "1" {
+		fmt.Println("[e2e] skipping CLI smoke tests (MUMP2P_E2E_SKIP=1)")
+		return nil
 	}
 
-	tokenPath, err := SetupTokenFile()
+	cli, cleanup, err := PrepareCLI()
 	if err != nil {
 		return err
 	}
-	os.Setenv("MUMP2P_AUTH_PATH", tokenPath) //nolint:errcheck
-
-	// load name of binary from environment
-	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
-	// if name is missing -> construct accordingly to os
-	if cli == "" {
-		switch runtime.GOOS {
-		case "linux":
-			cli = "dist/mump2p-linux"
-		case "darwin":
-			cli = "dist/mump2p-mac"
-		default:
-			return fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-		}
+	if cleanup != nil {
+		defer cleanup()
 	}
 
-	// Normalize to absolute path
-	abs, err := filepath.Abs(cli)
-	if err != nil {
-		return fmt.Errorf("failed to resolve CLI path %q: %w", cli, err)
-	}
-	// from now cli -> absolute path to binary
-	cli = abs
-
-	// If binary missing try to build it
-	if _, err := os.Stat(cli); err != nil {
-		fmt.Println("[e2e] CLI binary not found, attempting to build")
-		cmd := exec.Command("make", "build-local")
-		//cmd.Env = append(os.Environ(),
-		//	"DOMAIN="+os.Getenv("AUTH_DOMAIN"),
-		//	"CLIENT_ID="+os.Getenv("AUTH_CLIENT_ID"),
-		//	"AUDIENCE="+os.Getenv("AUTH_AUDIENCE"),
-		//	"SERVICE_URL="+os.Getenv("SERVICE_URL"),
-		//)
-
-		// Preserve existing environment and only override build-time
-		// variables when explicit values are provided. Passing empty
-		// overrides (e.g., DOMAIN=) would erase the Makefile defaults
-		// and result in binaries compiled without authentication
-		// settings, causing e2e auth to fail.
-		env := append([]string{}, os.Environ()...)
-		for key, value := range map[string]string{
-			"DOMAIN":      os.Getenv("AUTH_DOMAIN"),
-			"CLIENT_ID":   os.Getenv("AUTH_CLIENT_ID"),
-			"AUDIENCE":    os.Getenv("AUTH_AUDIENCE"),
-			"SERVICE_URL": os.Getenv("SERVICE_URL"),
-		} {
-			if value != "" {
-				env = append(env, fmt.Sprintf("%s=%s", key, value))
-			}
-		}
-		cmd.Env = env
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("make build-local failed: %w", err)
-		}
-	}
-
-	// Final existence + exec check
-	stat, err := os.Stat(cli)
-	if err != nil {
-		return fmt.Errorf("binary %s still missing after build: %w", cli, err)
-	}
-	if stat.Mode()&0111 == 0 {
-		return fmt.Errorf("binary %s is not executable", cli)
-	}
-
-	defer os.RemoveAll(filepath.Dir(tokenPath)) //nolint:errcheck
-
-	tests := []struct {
-		name string
-		args []string
-	}{
-		//{"health", []string{"health", "--service-url=" + os.Getenv("SERVICE_URL")}},
-		{"health", []string{"health"}},
-		{"whoami", []string{"whoami"}},
-		//{"subscribe", []string{
-		//	"subscribe",
-		//	"--topic=" + getTopic(),
-		//	"--service-url=" + os.Getenv("SERVICE_URL"),
-		//}},
-		//
-		//{"publish", []string{
-		//	"publish",
-		//	"--topic=" + getTopic(),
-		//	"--message=" + getMessage(),
-		//	"--service-url=" + os.Getenv("SERVICE_URL"),
-		//}},
-		{"list-topics", []string{"list-topics", "--service-url=" + os.Getenv("SERVICE_URL")}},
-	}
-
-	for _, test := range tests {
-		fmt.Printf("[e2e] running %s\n", test.name)
-		output, err := RunCommand(cli, test.args...)
+	for _, test := range smokeTestCases() {
+		fmt.Printf("[e2e] running %s\n", test.Name)
+		output, err := RunCommand(cli, test.Args...)
 		if err != nil {
-			return fmt.Errorf("test %s failed: %w\nOutput: %s", test.name, err, output)
+			return fmt.Errorf("test %s failed: %w\nOutput: %s", test.Name, err, output)
+		}
+		if err := test.Validate(output); err != nil {
+			return fmt.Errorf("test %s failed: %w", test.Name, err)
 		}
 	}
 
@@ -136,19 +50,3 @@ func RunCommand(bin string, args ...string) (string, error) {
 	}
 	return out.String(), nil
 }
-
-//func getTopic() string {
-//	topic := os.Getenv("MUMP2P_E2E_TOPIC")
-//	if topic == "" {
-//		topic = fmt.Sprintf("optimum-e2e-%d", time.Now().Unix())
-//	}
-//	return topic
-//}
-//
-//func getMessage() string {
-//	msg := os.Getenv("MUMP2P_E2E_MESSAGE")
-//	if msg == "" {
-//		msg = fmt.Sprintf("hello from go e2e at %s", time.Now().UTC().Format(time.RFC3339))
-//	}
-//	return msg
-//}

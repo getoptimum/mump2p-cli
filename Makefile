@@ -32,7 +32,7 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
             -X github.com/getoptimum/mump2p-cli/internal/config.Version=$(VERSION) \
             -X github.com/getoptimum/mump2p-cli/internal/config.CommitHash=$(COMMIT_HASH)
 
-.PHONY: all build run clean test help lint tag release print-cli-name vulcheck tools ci coverage debug-vars
+.PHONY: all build run clean test help lint tag release print-cli-name vulcheck tools ci coverage debug-vars e2e-test e2e-run e2e-test-suite set-auth0-token-ci
 
 all: lint build
 ci: lint test coverage vulcheck
@@ -74,7 +74,7 @@ release: build ## Build and create GitHub release
 		--notes "Release notes for $(VERSION)" \
 		$(BUILD_DIR)/$(CLI_NAME)-mac \
 		$(BUILD_DIR)/$(CLI_NAME)-linux \
-		
+
 tag:
 	@echo "Calculating next RC tag..."
 	@latest_tag=$$(git tag --sort=-creatordate | grep '^v0\.' | grep -E 'rc[0-9]+$$' | head -n1); \
@@ -89,7 +89,7 @@ tag:
 	echo "New tag: $$new_tag"; \
 	git tag -a $$new_tag -m "Release $$new_tag"; \
 	git push origin $$new_tag
-	
+
 subscribe: build ## Run subscribe command against default local  proxy
 	./$(CLI_NAME) subscribe --topic=demo
 
@@ -146,12 +146,14 @@ $(COVERPROFILE):
 
 .DEFAULT_GOAL := help
 
-e2e-test:
-	go run ./e2e
+e2e-test: ## Run CLI smoke tests (requires live backend)
 	go test ./e2e -v
-# done once, repear after secret expires
+
+e2e-test-suite: e2e-test ## Backwards compatible alias
+
+e2e-run: ## Execute the Go harness directly (go run ./e2e)
+	go run ./e2e
+
+# done once, repeat after secret expires
 set-auth0-token-ci:
 	gh secret set AUTH0_TOKEN < ~/.mump2p/auth.yml
-
-e2e-test-suite:
-	go test ./e2e -v

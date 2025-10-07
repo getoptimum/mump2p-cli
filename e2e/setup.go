@@ -17,31 +17,27 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	if err != nil {
 		return "", nil, err
 	}
-	os.Setenv("MUMP2P_AUTH_PATH", tokenPath) //nolint:errcheck
+	if err := os.Setenv("MUMP2P_AUTH_PATH", tokenPath); err != nil {
+		return "", nil, fmt.Errorf("failed to set MUMP2P_AUTH_PATH: %w", err)
+	}
 
 	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
 	if cli == "" {
-		switch runtime.GOOS {
-		case "linux":
-			cli = "dist/mump2p-linux" //nolint:ineffassign
-		case "darwin":
-			cli = "dist/mump2p-mac" //nolint:ineffassign
-		default:
-			return "", nil, fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-		}
+		cli = filepath.Join("..", "dist", fmt.Sprintf("mump2p-%s", runtime.GOOS))
+	} else if !filepath.IsAbs(cli) {
+		// Treat relative paths as repo-root relative so the command works when
+		// executed from the e2e package directory.
+		cli = filepath.Join("..", cli)
 	}
 
-	cli = filepath.Join("..", "dist", fmt.Sprintf("mump2p-%s", runtime.GOOS))
 	abs, err := filepath.Abs(cli)
-
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("failed to resolve CLI path %q: %w", cli, err)
 	}
 	cli = abs
 
 	if _, err := os.Stat(cli); os.IsNotExist(err) {
 		fmt.Println("[e2e] CLI not found, building via make build-local...")
-		//cmd := exec.Command("make", "build-local")
 		cmd := exec.Command("make", "-C", "..", "build-local")
 		cmd.Env = injectBuildEnv()
 		cmd.Stdout = os.Stdout
@@ -52,7 +48,10 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	}
 
 	stat, err := os.Stat(cli)
-	if err != nil || stat.Mode()&0111 == 0 {
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to stat CLI binary: %w", err)
+	}
+	if stat.Mode()&0111 == 0 {
 		return "", nil, fmt.Errorf("binary %s is not executable", cli)
 	}
 
