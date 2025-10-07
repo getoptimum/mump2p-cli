@@ -23,7 +23,7 @@ func TestHealthCommand(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
+		tt := tt // i think this is unnessesary since loop update
 		t.Run(tt.name, func(t *testing.T) {
 			out, err := RunCommand(cliBinaryPath, tt.args...)
 

@@ -10,9 +10,11 @@ import (
 )
 
 func PrepareCLI() (cliPath string, cleanup func(), err error) {
+	fmt.Println("[e2e] Loading the environment")
 	if err := LoadEnv(); err != nil {
 		return "", nil, err
 	}
+	fmt.Println("[e2e] Loading environment completed")
 
 	tokenPath, err := SetupTokenFile()
 	if err != nil {
