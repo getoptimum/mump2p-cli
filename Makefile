@@ -152,6 +152,7 @@ e2e-test: ## Run CLI smoke tests (requires live backend)
 e2e-test-suite: e2e-test ## Backwards compatible alias
 
 e2e-run: ## Execute the Go harness directly (go run ./e2e)
+	ls .
 	go run ./e2e
 
 # done once, repeat after secret expires
