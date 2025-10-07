@@ -12,9 +12,9 @@ import (
 
 func SetupTokenFile() (string, error) {
 	// 1. CI: use a pre-set secret file path
-	if path := os.Getenv("MUMP2P_E2E_TOKEN_PATH"); path != "" {
-		return path, nil
-	}
+	//if path := os.Getenv("MUMP2P_E2E_TOKEN_PATH"); path != "" {
+	//	return path, nil
+	//}
 
 	// 2. CI: use raw YAML token provided directly via env
 	if raw := os.Getenv("MUMP2P_E2E_TOKEN_YAML"); strings.TrimSpace(raw) != "" {
