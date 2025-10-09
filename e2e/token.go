@@ -2,62 +2,35 @@ package main
 
 import (
 	"encoding/base64"
-	_ "errors"
 	"fmt"
 	"os"
-	_ "os/exec"
 	"path/filepath"
 	"strings"
 )
 
+// SetupTokenFile creates a temporary auth file for testing
+// Uses MUMP2P_E2E_TOKEN_B64 env var (CI) or falls back to ~/.mump2p/auth.yml (local)
 func SetupTokenFile() (string, error) {
-	// 1. CI: use a pre-set secret file path
-	//if path := os.Getenv("MUMP2P_E2E_TOKEN_PATH"); path != "" {
-	//	return path, nil
-	//}
-	fmt.Printf("Trying to set token file MUMP2P_E2E_TOKEN_YAML ")
-	// 2. CI: use raw YAML token provided directly via env
-	if raw := os.Getenv("MUMP2P_E2E_TOKEN_YAML"); strings.TrimSpace(raw) != "" {
-		return writeTokenFile([]byte(raw))
-	}
-	fmt.Printf("Trying to set MUMP2P_E2E_TOKEN_YAML ")
-	// 3. CI: support legacy env name used in workflows
-	//if raw := os.Getenv("AUTH0_TOKEN"); strings.TrimSpace(raw) != "" {
-	//	return writeTokenFile([]byte(raw))
-	//}
-	fmt.Printf("Trying to set toekn file from MUMP2P_E2E_TOKEN_B64 ")
-
-	// 4. CI: use a base64-encoded secret string
 	if b64 := strings.TrimSpace(os.Getenv("MUMP2P_E2E_TOKEN_B64")); b64 != "" {
-		fmt.Printf("MUMP2P_E2E_TOKEN_B64 is not empty and is read from env")
 		decoded, err := base64.StdEncoding.DecodeString(b64)
-
 		if err != nil {
 			return "", fmt.Errorf("failed to decode MUMP2P_E2E_TOKEN_B64: %w", err)
 		}
-
 		return writeTokenFile(decoded)
 	}
 
-	// 5. Local fallback: encode from ~/.mump2p/auth.yml
-	//cmd := exec.Command("sh", "-c", "base64 < ~/.mump2p/auth.yml | tr -d '\\n'")
-	//raw, err := cmd.Output()
-	//if err != nil {
-	//	return "", fmt.Errorf("failed to encode token: %w", err)
-	//}
-	//
-	//b64 := strings.TrimSpace(string(raw))
-	//if b64 == "" {
-	//	return "", errors.New("failed to encode token from ~/.mump2p/auth.yml")
-	//}
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
 
-	//decoded, err := base64.StdEncoding.DecodeString(b64)
-	//if err != nil {
-	//	return "", err
-	//}
+	localAuthPath := filepath.Join(homeDir, ".mump2p", "auth.yml")
+	data, err := os.ReadFile(localAuthPath)
+	if err == nil {
+		return writeTokenFile(data)
+	}
 
-	//return writeTokenFile(decoded)
-	return "", fmt.Errorf("MUMP2P_E2E_TOKEN_B64 is not empty")
+	return "", fmt.Errorf("no token available: set MUMP2P_E2E_TOKEN_B64 or login with ./mump2p login")
 }
 
 func writeTokenFile(content []byte) (string, error) {

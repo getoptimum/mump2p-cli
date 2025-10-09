@@ -8,20 +8,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// LoadEnv loads the environment from .env in local runs; fails if required vars are not set
+// LoadEnv loads environment variables and validates required vars are set
 func LoadEnv() error {
-	_ = godotenv.Load() // silently load .env; ignore error bc in CI it's expected to fail and env is from repo secrets
+	_ = godotenv.Load()
 	if os.Getenv("SERVICE_URL") == "" {
 		if root, err := findRepoRoot(); err == nil {
 			_ = godotenv.Load(filepath.Join(root, ".env"))
 		}
 	}
 
-	required := []string{"SERVICE_URL"}
-	for _, key := range required {
-		if os.Getenv(key) == "" {
-			return fmt.Errorf("env var %s must be set", key)
-		}
+	if os.Getenv("SERVICE_URL") == "" {
+		return fmt.Errorf("env var SERVICE_URL must be set")
 	}
 	return nil
 }

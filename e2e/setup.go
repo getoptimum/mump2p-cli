@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 )
 
+// PrepareCLI sets up the test environment and returns the CLI binary path
 func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	fmt.Println("[e2e] Loading the environment")
 	if err := LoadEnv(); err != nil {
@@ -16,9 +16,8 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	}
 	fmt.Println("[e2e] Loading environment completed")
 
-	tokenPath, err := SetupTokenFile()
 	fmt.Println("[e2e] Trying to setup token file")
-
+	tokenPath, err := SetupTokenFile()
 	if err != nil {
 		return "", nil, err
 	}
@@ -36,23 +35,17 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 
 	cli := os.Getenv("MUMP2P_E2E_CLI_BINARY")
 	if cli == "" {
-		cli = filepath.Join(repoRoot, "dist", fmt.Sprintf("mump2p-%s", runtime.GOOS))
+		osName := runtime.GOOS
+		if osName == "darwin" {
+			osName = "mac"
+		}
+		cli = filepath.Join(repoRoot, "dist", fmt.Sprintf("mump2p-%s", osName))
 	} else if !filepath.IsAbs(cli) {
-		// Treat relative paths as repo-root relative so the command works when
-		// executed from the e2e package directory or the repo root.
 		cli = filepath.Join(repoRoot, cli)
 	}
 
 	if _, err := os.Stat(cli); errors.Is(err, os.ErrNotExist) {
-		fmt.Println("[e2e] CLI not found, building via make build-local...")
-		cmd := exec.Command("make", "build-local")
-		cmd.Dir = repoRoot
-		cmd.Env = injectBuildEnv()
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return "", nil, fmt.Errorf("build failed: %w", err)
-		}
+		return "", nil, fmt.Errorf("binary not found at %s\nRun 'make build' first with release credentials", cli)
 	}
 
 	stat, err := os.Stat(cli)
@@ -68,21 +61,6 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	}
 
 	return cli, cleanup, nil
-}
-
-func injectBuildEnv() []string {
-	env := os.Environ()
-	for key, value := range map[string]string{
-		"DOMAIN":      os.Getenv("AUTH_DOMAIN"),
-		"CLIENT_ID":   os.Getenv("AUTH_CLIENT_ID"),
-		"AUDIENCE":    os.Getenv("AUTH_AUDIENCE"),
-		"SERVICE_URL": os.Getenv("SERVICE_URL"),
-	} {
-		if value != "" {
-			env = append(env, fmt.Sprintf("%s=%s", key, value))
-		}
-	}
-	return env
 }
 
 func findRepoRoot() (string, error) {
