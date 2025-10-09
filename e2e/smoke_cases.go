@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 )
 
 type cliCommandCase struct {
@@ -18,6 +19,11 @@ func (c cliCommandCase) Validate(output string) error {
 }
 
 func smokeTestCases() []cliCommandCase {
+	serviceURL := os.Getenv("SERVICE_URL")
+	if serviceURL == "" {
+		serviceURL = GetDefaultProxy()
+	}
+
 	return []cliCommandCase{
 		{
 			Name: "version",
@@ -40,7 +46,7 @@ func smokeTestCases() []cliCommandCase {
 		},
 		{
 			Name: "health",
-			Args: []string{"health"},
+			Args: []string{"health", "--service-url=" + serviceURL},
 			StrictValidate: func(output string) error {
 				validator := NewValidator(output)
 				healthInfo, err := validator.ValidateHealthCheck()
@@ -88,7 +94,7 @@ func smokeTestCases() []cliCommandCase {
 		},
 		{
 			Name: "list-topics",
-			Args: []string{"list-topics"},
+			Args: []string{"list-topics", "--service-url=" + serviceURL},
 			StrictValidate: func(output string) error {
 				validator := NewValidator(output)
 				return validator.ContainsAll("Subscribed Topics", "Client:")

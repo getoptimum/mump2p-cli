@@ -25,7 +25,7 @@ func TestDailyQuotaTracking(t *testing.T) {
 
 	serviceURL := os.Getenv("SERVICE_URL")
 	if serviceURL == "" {
-		serviceURL = "http://34.146.222.111:8080"
+		serviceURL = GetDefaultProxy()
 	}
 
 	testTopic := fmt.Sprintf("quota-%d", time.Now().Unix())

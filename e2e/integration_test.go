@@ -17,7 +17,7 @@ func TestFullWorkflow(t *testing.T) {
 
 	serviceURL := os.Getenv("SERVICE_URL")
 	if serviceURL == "" {
-		serviceURL = "http://34.146.222.111:8080"
+		serviceURL = GetDefaultProxy()
 	}
 
 	testTopic := fmt.Sprintf("workflow-%d", time.Now().Unix())
@@ -109,11 +109,7 @@ func TestCrossProxyWorkflow(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
 	// Test publishing and subscribing across different proxies
-	proxies := []string{
-		"http://34.146.222.111:8080", // Tokyo
-		"http://35.221.118.95:8080",  // Tokyo
-		"http://34.142.205.26:8080",  // Singapore
-	}
+	proxies := TestProxies
 
 	testTopic := fmt.Sprintf("cross-proxy-%d", time.Now().Unix())
 

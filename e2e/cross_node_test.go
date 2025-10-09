@@ -17,11 +17,7 @@ import (
 func TestPublishWithoutSubscriptionOnDifferentNode(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
-	proxies := []string{
-		"http://34.146.222.111:8080", // Tokyo proxy 1
-		"http://35.221.118.95:8080",  // Tokyo proxy 2
-		"http://34.142.205.26:8080",  // Singapore proxy
-	}
+	proxies := TestProxies
 
 	testTopic := fmt.Sprintf("no-sub-cross-%d", time.Now().Unix())
 
@@ -148,7 +144,7 @@ func TestCrossProxyFailover(t *testing.T) {
 	t.Log("Testing publish to unreachable proxy (should fail quickly)")
 
 	// Start subscriber on valid proxy first
-	validProxy := "http://34.146.222.111:8080"
+	validProxy := GetDefaultProxy()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -188,10 +184,7 @@ func TestCrossProxyFailover(t *testing.T) {
 func TestMultipleSubscribersOnDifferentProxies(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
-	proxies := []string{
-		"http://34.146.222.111:8080",
-		"http://35.221.118.95:8080",
-	}
+	proxies := GetProxySubset(2)
 
 	testTopic := fmt.Sprintf("multi-sub-%d", time.Now().Unix())
 	testMessage := fmt.Sprintf("MultiSubTest-%d", time.Now().Unix())
@@ -245,11 +238,7 @@ func TestMultipleSubscribersOnDifferentProxies(t *testing.T) {
 func TestProxyHealthBeforePublish(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
-	proxies := []string{
-		"http://34.146.222.111:8080",
-		"http://35.221.118.95:8080",
-		"http://34.142.205.26:8080",
-	}
+	proxies := TestProxies
 
 	for i, proxy := range proxies {
 		t.Run(fmt.Sprintf("proxy_%d", i+1), func(t *testing.T) {
