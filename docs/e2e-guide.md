@@ -1,1 +1,0 @@
-# E2E cli test guide
