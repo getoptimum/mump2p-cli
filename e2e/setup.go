@@ -10,24 +10,16 @@ import (
 
 // PrepareCLI sets up the test environment and returns the CLI binary path
 func PrepareCLI() (cliPath string, cleanup func(), err error) {
-	fmt.Println("[e2e] Loading the environment")
 	if err := LoadEnv(); err != nil {
 		return "", nil, err
 	}
-	fmt.Println("[e2e] Loading environment completed")
-
-	fmt.Println("[e2e] Trying to setup token file")
 	tokenPath, err := SetupTokenFile()
 	if err != nil {
 		return "", nil, err
 	}
-	fmt.Println("[e2e] Setting up the token file completed successfully")
-
 	if err := os.Setenv("MUMP2P_AUTH_PATH", tokenPath); err != nil {
 		return "", nil, fmt.Errorf("failed to set MUMP2P_AUTH_PATH: %w", err)
 	}
-
-	fmt.Println("[e2e] Trying to find repo root")
 	repoRoot, err := findRepoRoot()
 	if err != nil {
 		return "", nil, err
