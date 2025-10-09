@@ -29,7 +29,7 @@ var (
 	useGRPCPub bool // gRPC flag for publish
 )
 
-// PublishRequest matches the expected JSON body on the server
+// PublishPayload matches the expected JSON body on the server
 type PublishRequest struct {
 	ClientID  string `json:"client_id"`
 	Topic     string `json:"topic"`
@@ -167,7 +167,7 @@ var publishCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to connect to gRPC proxy: %v", err)
 			}
-			defer client.Close() //nolint:errcheck
+			defer client.Close()
 
 			err = client.Publish(ctx, clientIDToUse, pubTopic, publishData)
 			if err != nil {

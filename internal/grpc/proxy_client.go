@@ -6,7 +6,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/getoptimum/mump2p-cli/proto"
+	proto "github.com/getoptimum/mump2p-cli/proto"
 	grpcClient "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -19,7 +19,7 @@ type ProxyClient struct {
 
 // NewProxyClient creates a new gRPC proxy client
 func NewProxyClient(proxyAddr string) (*ProxyClient, error) {
-	conn, err := grpcClient.NewClient(proxyAddr,
+	conn, err := grpcClient.Dial(proxyAddr,
 		grpcClient.WithTransportCredentials(insecure.NewCredentials()),
 		grpcClient.WithDefaultCallOptions(
 			grpcClient.MaxCallRecvMsgSize(math.MaxInt),
@@ -58,7 +58,7 @@ func (pc *ProxyClient) Subscribe(ctx context.Context, clientID string, bufferSiz
 	// Start goroutine to receive messages
 	go func() {
 		defer close(msgChan)
-		defer stream.CloseSend() //nolint:errcheck
+		defer stream.CloseSend()
 
 		for {
 			msg, err := stream.Recv()
