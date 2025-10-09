@@ -67,7 +67,7 @@ clean: ## Clean up build artifacts
 	rm -f $(CLI_NAME)
 
 test: ## Run unit tests
-	$(GO_BIN) test ./... -v -count=1
+	$(GO_BIN) test $(shell $(GO_BIN) list ./... | grep -v /e2e) -v -count=1
 
 e2e-test: ## Run E2E tests against dist/ binary
 	@echo "Running E2E tests..."
