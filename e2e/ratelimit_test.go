@@ -23,10 +23,7 @@ func TestDailyQuotaTracking(t *testing.T) {
 	require.NoError(t, err, "Failed to parse usage stats")
 	t.Logf("Usage before test: %s publishes", usageInfo.PublishCount)
 
-	serviceURL := os.Getenv("SERVICE_URL")
-	if serviceURL == "" {
-		serviceURL = GetDefaultProxy()
-	}
+	serviceURL := GetDefaultProxy()
 
 	testTopic := fmt.Sprintf("quota-%d", time.Now().Unix())
 

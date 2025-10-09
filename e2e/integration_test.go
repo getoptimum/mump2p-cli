@@ -15,10 +15,7 @@ import (
 func TestFullWorkflow(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
-	serviceURL := os.Getenv("SERVICE_URL")
-	if serviceURL == "" {
-		serviceURL = GetDefaultProxy()
-	}
+	serviceURL := GetDefaultProxy()
 
 	testTopic := fmt.Sprintf("workflow-%d", time.Now().Unix())
 

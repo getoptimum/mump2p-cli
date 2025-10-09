@@ -15,10 +15,7 @@ import (
 func TestSubscribeCommand(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
-	serviceURL := os.Getenv("SERVICE_URL")
-	if serviceURL == "" {
-		serviceURL = GetDefaultProxy()
-	}
+	serviceURL := GetDefaultProxy()
 
 	// Add delay to allow P2P nodes to be ready
 	t.Log("Waiting for P2P nodes to be ready...")

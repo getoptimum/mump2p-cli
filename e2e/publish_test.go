@@ -14,10 +14,7 @@ import (
 func TestPublishCommand(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
-	serviceURL := os.Getenv("SERVICE_URL")
-	if serviceURL == "" {
-		serviceURL = GetDefaultProxy()
-	}
+	serviceURL := GetDefaultProxy()
 
 	testTopic := fmt.Sprintf("test-publish-%d", time.Now().Unix())
 

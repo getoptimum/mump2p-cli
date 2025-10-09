@@ -10,7 +10,6 @@ func TestCLISmokeCommands(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
 
 	for _, tc := range smokeTestCases() {
-		tc := tc
 		t.Run(tc.Name, func(t *testing.T) {
 			output := runCLICommand(t, tc.Args...)
 			require.NoError(t, tc.Validate(output))

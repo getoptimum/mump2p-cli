@@ -10,9 +10,6 @@ import (
 
 // PrepareCLI sets up the test environment and returns the CLI binary path
 func PrepareCLI() (cliPath string, cleanup func(), err error) {
-	if err := LoadEnv(); err != nil {
-		return "", nil, err
-	}
 	tokenPath, err := SetupTokenFile()
 	if err != nil {
 		return "", nil, err

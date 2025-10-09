@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 )
 
 type cliCommandCase struct {
@@ -19,10 +18,7 @@ func (c cliCommandCase) Validate(output string) error {
 }
 
 func smokeTestCases() []cliCommandCase {
-	serviceURL := os.Getenv("SERVICE_URL")
-	if serviceURL == "" {
-		serviceURL = GetDefaultProxy()
-	}
+	serviceURL := GetDefaultProxy()
 
 	return []cliCommandCase{
 		{
