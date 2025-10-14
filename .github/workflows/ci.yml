@@ -1,7 +1,7 @@
 name: mump2p-cli CI
 
 env:
-  go-version: "1.24.1"
+  go-version: "1.25.0"
   lint-version: "v2.0.1"
   GOPRIVATE: "github.com/getoptimum"
   GITHUB_TOKEN: ${{ secrets.OPT_ACCESS_TOKEN }}
@@ -33,7 +33,8 @@ jobs:
           cache: true
       - uses: actions/checkout@v4
       - name: Configure git for private modules
-        run: git config --global url."https://${{ secrets.OPT_ACCESS_TOKEN }}:@github.com/".insteadOf "https://github.com/"
+        run: |
+          git config --global url."https://${{ secrets.OPT_ACCESS_TOKEN }}:@github.com/".insteadOf "https://github.com/"
       - name: Run tests
         run: make test
       - name: Test CLI build
@@ -49,7 +50,8 @@ jobs:
           cache: true
       - uses: actions/checkout@v4
       - name: Configure git for private modules
-        run: git config --global url."https://${{ secrets.OPT_ACCESS_TOKEN }}:@github.com/".insteadOf "https://github.com/"
+        run: |
+          git config --global url."https://${{ secrets.OPT_ACCESS_TOKEN }}:@github.com/".insteadOf "https://github.com/"
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
