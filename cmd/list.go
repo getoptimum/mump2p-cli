@@ -8,6 +8,7 @@ import (
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/formatter"
 	"github.com/spf13/cobra"
 )
 
@@ -17,9 +18,9 @@ var (
 
 // ListResponse represents the response from the /api/v1/topics endpoint
 type ListResponse struct {
-	ClientID string   `json:"client_id"`
-	Topics   []string `json:"topics"`
-	Count    int      `json:"count"`
+	ClientID string   `json:"client_id" yaml:"client_id"`
+	Topics   []string `json:"topics" yaml:"topics"`
+	Count    int      `json:"count" yaml:"count"`
 }
 
 var listTopicsCmd = &cobra.Command{
@@ -76,21 +77,32 @@ This command shows your active topics and their count.`,
 				return fmt.Errorf("failed to parse response JSON: %v", err)
 			}
 
-			// Display results in a formatted table
-			fmt.Printf("\n📋 Subscribed Topics for Client: %s (Auth Disabled)\n", listResponse.ClientID)
-			fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+			f := formatter.New(GetOutputFormat())
 
-			if listResponse.Count == 0 {
-				fmt.Printf("   No active topics found.\n")
-				fmt.Printf("   Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.\n")
-			} else {
-				fmt.Printf("   Total Topics: %d\n\n", listResponse.Count)
-				for i, topic := range listResponse.Topics {
-					fmt.Printf("   %d. %s\n", i+1, topic)
+			if f.IsTable() {
+				// Display results in a formatted table
+				fmt.Printf("\n📋 Subscribed Topics for Client: %s (Auth Disabled)\n", listResponse.ClientID)
+				fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+
+				if listResponse.Count == 0 {
+					fmt.Printf("   No active topics found.\n")
+					fmt.Printf("   Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.\n")
+				} else {
+					fmt.Printf("   Total Topics: %d\n\n", listResponse.Count)
+					for i, topic := range listResponse.Topics {
+						fmt.Printf("   %d. %s\n", i+1, topic)
+					}
 				}
-			}
 
-			fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+				fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+			} else {
+				// JSON or YAML format
+				output, err := f.Format(listResponse)
+				if err != nil {
+					return fmt.Errorf("failed to format output: %v", err)
+				}
+				fmt.Println(output)
+			}
 			return nil
 		}
 
@@ -157,21 +169,32 @@ This command shows your active topics and their count.`,
 			return fmt.Errorf("failed to parse response JSON: %v", err)
 		}
 
-		// Display results in a formatted table
-		fmt.Printf("\n📋 Subscribed Topics for Client: %s\n", listResponse.ClientID)
-		fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+		f := formatter.New(GetOutputFormat())
 
-		if listResponse.Count == 0 {
-			fmt.Printf("   No active topics found.\n")
-			fmt.Printf("   Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.\n")
-		} else {
-			fmt.Printf("   Total Topics: %d\n\n", listResponse.Count)
-			for i, topic := range listResponse.Topics {
-				fmt.Printf("   %d. %s\n", i+1, topic)
+		if f.IsTable() {
+			// Display results in a formatted table
+			fmt.Printf("\n📋 Subscribed Topics for Client: %s\n", listResponse.ClientID)
+			fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+
+			if listResponse.Count == 0 {
+				fmt.Printf("   No active topics found.\n")
+				fmt.Printf("   Use './mump2p subscribe --topic=<topic-name>' to subscribe to a topic.\n")
+			} else {
+				fmt.Printf("   Total Topics: %d\n\n", listResponse.Count)
+				for i, topic := range listResponse.Topics {
+					fmt.Printf("   %d. %s\n", i+1, topic)
+				}
 			}
-		}
 
-		fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+			fmt.Printf("═══════════════════════════════════════════════════════════════\n")
+		} else {
+			// JSON or YAML format
+			output, err := f.Format(listResponse)
+			if err != nil {
+				return fmt.Errorf("failed to format output: %v", err)
+			}
+			fmt.Println(output)
+		}
 		return nil
 	},
 }

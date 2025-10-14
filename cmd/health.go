@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/getoptimum/mump2p-cli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/formatter"
 	"github.com/spf13/cobra"
 )
 
@@ -16,10 +17,12 @@ var (
 
 // HealthResponse represents the response from the health endpoint
 type HealthResponse struct {
-	Status     string `json:"status"`
-	MemoryUsed string `json:"memory_used"`
-	CPUUsed    string `json:"cpu_used"`
-	DiskUsed   string `json:"disk_used"`
+	Status     string `json:"status" yaml:"status"`
+	MemoryUsed string `json:"memory_used" yaml:"memory_used"`
+	CPUUsed    string `json:"cpu_used" yaml:"cpu_used"`
+	DiskUsed   string `json:"disk_used" yaml:"disk_used"`
+	Country    string `json:"country,omitempty" yaml:"country,omitempty"`
+	CountryISO string `json:"country_iso,omitempty" yaml:"country_iso,omitempty"`
 }
 
 var healthCmd = &cobra.Command{
@@ -62,13 +65,27 @@ var healthCmd = &cobra.Command{
 			return nil
 		}
 
-		// Display formatted health information
-		fmt.Println("Proxy Health Status:")
-		fmt.Println("-------------------")
-		fmt.Printf("Status:      %s\n", healthResp.Status)
-		fmt.Printf("Memory Used: %s%%\n", healthResp.MemoryUsed)
-		fmt.Printf("CPU Used:    %s%%\n", healthResp.CPUUsed)
-		fmt.Printf("Disk Used:   %s%%\n", healthResp.DiskUsed)
+		f := formatter.New(GetOutputFormat())
+
+		if f.IsTable() {
+			// Display formatted health information (default table format)
+			fmt.Println("Proxy Health Status:")
+			fmt.Println("-------------------")
+			fmt.Printf("Status:      %s\n", healthResp.Status)
+			fmt.Printf("Memory Used: %s%%\n", healthResp.MemoryUsed)
+			fmt.Printf("CPU Used:    %s%%\n", healthResp.CPUUsed)
+			fmt.Printf("Disk Used:   %s%%\n", healthResp.DiskUsed)
+			if healthResp.Country != "" {
+				fmt.Printf("Country:     %s (%s)\n", healthResp.Country, healthResp.CountryISO)
+			}
+		} else {
+			// JSON or YAML format
+			output, err := f.Format(healthResp)
+			if err != nil {
+				return fmt.Errorf("failed to format output: %v", err)
+			}
+			fmt.Println(output)
+		}
 
 		return nil
 	},

@@ -5,8 +5,28 @@ import (
 	"time"
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
+	"github.com/getoptimum/mump2p-cli/internal/formatter"
 	"github.com/spf13/cobra"
 )
+
+// WhoamiResponse represents structured authentication status
+type WhoamiResponse struct {
+	ClientID   string         `json:"client_id" yaml:"client_id"`
+	Expires    string         `json:"expires,omitempty" yaml:"expires,omitempty"`
+	ValidFor   string         `json:"valid_for,omitempty" yaml:"valid_for,omitempty"`
+	IsActive   bool           `json:"is_active" yaml:"is_active"`
+	IsExpired  bool           `json:"is_expired,omitempty" yaml:"is_expired,omitempty"`
+	AuthMode   string         `json:"auth_mode" yaml:"auth_mode"`
+	RateLimits *RateLimitInfo `json:"rate_limits,omitempty" yaml:"rate_limits,omitempty"`
+}
+
+// RateLimitInfo represents rate limit information
+type RateLimitInfo struct {
+	PublishPerHour   int     `json:"publish_per_hour" yaml:"publish_per_hour"`
+	PublishPerSec    int     `json:"publish_per_sec" yaml:"publish_per_sec"`
+	MaxMessageSizeMB float64 `json:"max_message_size_mb" yaml:"max_message_size_mb"`
+	DailyQuotaMB     float64 `json:"daily_quota_mb" yaml:"daily_quota_mb"`
+}
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
@@ -57,18 +77,35 @@ var whoamiCmd = &cobra.Command{
 	Short: "Show current authentication status",
 	Long:  `Display information about the current authentication token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		f := formatter.New(GetOutputFormat())
+
 		if IsAuthDisabled() {
 			// Display authentication status when auth is disabled
 			clientIDToUse := GetClientID()
 			if clientIDToUse == "" {
 				clientIDToUse = "(not set - use --client-id flag)"
 			}
-			fmt.Println("Authentication Status:")
-			fmt.Println("----------------------")
-			fmt.Printf("Client ID: %s\n", clientIDToUse)
-			fmt.Println("Auth Mode: Disabled (using --disable-auth)")
-			fmt.Println("Rate Limits: N/A (no limits enforced)")
-			fmt.Println("Token: N/A (auth disabled)")
+
+			response := WhoamiResponse{
+				ClientID: clientIDToUse,
+				AuthMode: "disabled",
+				IsActive: true,
+			}
+
+			if f.IsTable() {
+				fmt.Println("Authentication Status:")
+				fmt.Println("----------------------")
+				fmt.Printf("Client ID: %s\n", clientIDToUse)
+				fmt.Println("Auth Mode: Disabled (using --disable-auth)")
+				fmt.Println("Rate Limits: N/A (no limits enforced)")
+				fmt.Println("Token: N/A (auth disabled)")
+			} else {
+				output, err := f.Format(response)
+				if err != nil {
+					return fmt.Errorf("failed to format output: %v", err)
+				}
+				fmt.Println(output)
+			}
 			return nil
 		}
 
@@ -86,30 +123,56 @@ var whoamiCmd = &cobra.Command{
 			return fmt.Errorf("error parsing token: %v", err)
 		}
 
-		// display token information
-		fmt.Println("Authentication Status:")
-		fmt.Println("----------------------")
-
-		if claims.Subject != "" {
-			fmt.Printf("Client ID: %s\n", claims.Subject)
+		// Prepare structured response
+		isExpired := time.Now().After(claims.ExpiresAt)
+		response := WhoamiResponse{
+			ClientID:  claims.Subject,
+			Expires:   claims.ExpiresAt.Format(time.RFC822),
+			ValidFor:  time.Until(claims.ExpiresAt).Round(time.Minute).String(),
+			IsActive:  claims.IsActive,
+			IsExpired: isExpired,
+			AuthMode:  "enabled",
+			RateLimits: &RateLimitInfo{
+				PublishPerHour:   claims.MaxPublishPerHour,
+				PublishPerSec:    claims.MaxPublishPerSec,
+				MaxMessageSizeMB: float64(claims.MaxMessageSize) / (1 << 20),
+				DailyQuotaMB:     float64(claims.DailyQuota) / (1 << 20),
+			},
 		}
 
-		fmt.Printf("Expires: %s\n", claims.ExpiresAt.Format(time.RFC822))
+		if f.IsTable() {
+			// display token information (table format)
+			fmt.Println("Authentication Status:")
+			fmt.Println("----------------------")
 
-		if time.Now().After(claims.ExpiresAt) {
-			fmt.Println("Token has expired. Please login again.")
+			if claims.Subject != "" {
+				fmt.Printf("Client ID: %s\n", claims.Subject)
+			}
+
+			fmt.Printf("Expires: %s\n", claims.ExpiresAt.Format(time.RFC822))
+
+			if isExpired {
+				fmt.Println("Token has expired. Please login again.")
+			} else {
+				fmt.Printf("Valid for: %s\n", time.Until(claims.ExpiresAt).Round(time.Minute))
+			}
+
+			fmt.Printf("Is Active:  %t\n", claims.IsActive)
+			// display rate limit information
+			fmt.Println("\nRate Limits:")
+			fmt.Println("------------")
+			fmt.Printf("Publish Rate:  %d per hour\n", claims.MaxPublishPerHour)
+			fmt.Printf("Publish Rate:  %d per second\n", claims.MaxPublishPerSec)
+			fmt.Printf("Max Message Size:  %.2f MB\n", float64(claims.MaxMessageSize)/(1<<20))
+			fmt.Printf("Daily Quota:       %.2f MB\n", float64(claims.DailyQuota)/(1<<20))
 		} else {
-			fmt.Printf("Valid for: %s\n", time.Until(claims.ExpiresAt).Round(time.Minute))
+			// JSON or YAML format
+			output, err := f.Format(response)
+			if err != nil {
+				return fmt.Errorf("failed to format output: %v", err)
+			}
+			fmt.Println(output)
 		}
-
-		fmt.Printf("Is Active:  %t\n", claims.IsActive)
-		// display rate limit information
-		fmt.Println("\nRate Limits:")
-		fmt.Println("------------")
-		fmt.Printf("Publish Rate:  %d per hour\n", claims.MaxPublishPerHour)
-		fmt.Printf("Publish Rate:  %d per second\n", claims.MaxPublishPerSec)
-		fmt.Printf("Max Message Size:  %.2f MB\n", float64(claims.MaxMessageSize)/(1<<20))
-		fmt.Printf("Daily Quota:       %.2f MB\n", float64(claims.DailyQuota)/(1<<20))
 
 		return nil
 	},
