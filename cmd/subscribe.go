@@ -20,9 +20,9 @@ import (
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/entities"
 	grpcsub "github.com/getoptimum/mump2p-cli/internal/grpc"
 	"github.com/getoptimum/mump2p-cli/internal/webhook"
-	"github.com/getoptimum/optimum-common/pkg/entities"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
