@@ -20,6 +20,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 - [x] Health monitoring and system metrics
 - [x] Debug mode with detailed timing and proxy information
 - [x] Development mode with `--disable-auth` flag for testing
+- [x] Multiple output formats (table, JSON, YAML) for automation and scripting
   
 ---
 
@@ -72,6 +73,10 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 # List your active topics
 ./mump2p list-topics
+
+# Output formats - JSON/YAML for automation and scripting
+./mump2p list-topics --output=json
+./mump2p whoami --output=yaml
 
 # Debug mode - detailed timing and proxy information
 ./mump2p --debug publish --topic=test-topic --message='Hello World'

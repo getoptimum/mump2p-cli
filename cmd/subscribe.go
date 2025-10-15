@@ -20,6 +20,7 @@ import (
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
+	"github.com/getoptimum/mump2p-cli/internal/entities"
 	grpcsub "github.com/getoptimum/mump2p-cli/internal/grpc"
 	"github.com/getoptimum/mump2p-cli/internal/webhook"
 	"github.com/gorilla/websocket"
@@ -60,6 +61,16 @@ func printDebugReceiveInfo(message []byte, receiverAddr string, topic string, me
 
 	fmt.Printf("Recv:\t[%d]\treceiver_addr:%s\t[recv_time, size]:[%d, %d]\t%s\ttopic:%s\thash:%s\tprotocol:%s\n",
 		messageNum, receiverAddr, currentTime, messageSize, sendInfo, topic, hash[:8], protocol)
+}
+
+// decodeWebSocketMessage attempts to parse and decode the message.
+// Returns decoded message bytes, or raw message for backward compatibility.
+func decodeWebSocketMessage(rawMsg []byte) []byte {
+	p2pMsg, err := entities.UnmarshalP2PMessage(rawMsg)
+	if err != nil {
+		return rawMsg
+	}
+	return p2pMsg.Message
 }
 
 var subscribeCmd = &cobra.Command{
@@ -299,12 +310,13 @@ var subscribeCmd = &cobra.Command{
 			go func() {
 				defer close(doneChan)
 				for msg := range msgChan {
-					msgStr := string(msg.Message)
+					decodedMsg := decodeWebSocketMessage(msg.Message)
+					msgStr := string(decodedMsg)
 
 					// Print debug information if debug mode is enabled
 					if IsDebugMode() {
 						n := atomic.AddInt32(&messageCount, 1)
-						printDebugReceiveInfo(msg.Message, receiverAddr, subTopic, n, "gRPC")
+						printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "gRPC")
 					} else {
 						fmt.Println(msgStr)
 					}
@@ -319,7 +331,7 @@ var subscribeCmd = &cobra.Command{
 					// forward
 					if webhookURL != "" {
 						select {
-						case webhookQueue <- webhookMsg{data: msg.Message}:
+						case webhookQueue <- webhookMsg{data: decodedMsg}:
 						default:
 							fmt.Println("⚠️ Webhook queue full, message dropped")
 						}
@@ -419,12 +431,14 @@ var subscribeCmd = &cobra.Command{
 					}
 					return
 				}
-				msgStr := string(msg)
+
+				decodedMsg := decodeWebSocketMessage(msg)
+				msgStr := string(decodedMsg)
 
 				// Print debug information if debug mode is enabled
 				if IsDebugMode() {
 					n := atomic.AddInt32(&messageCount, 1)
-					printDebugReceiveInfo(msg, receiverAddr, subTopic, n, "WebSocket")
+					printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "WebSocket")
 				} else {
 					fmt.Println(msgStr)
 				}
@@ -440,7 +454,7 @@ var subscribeCmd = &cobra.Command{
 				// forward
 				if webhookURL != "" {
 					select {
-					case webhookQueue <- webhookMsg{data: msg}:
+					case webhookQueue <- webhookMsg{data: decodedMsg}:
 					default:
 						fmt.Println("⚠️ Webhook queue full, message dropped")
 					}
