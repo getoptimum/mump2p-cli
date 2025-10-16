@@ -28,7 +28,7 @@ build: ## Build the CLI binary
 	GOOS=linux GOARCH=amd64 $(GO_BIN) build -ldflags="$(LD_FLAGS)" -o $(BUILD_DIR)/$(CLI_NAME)-linux .
 
 print-cli-name: ## Print CLI name for CI/CD usage
-	@echo -n "$(CLI_NAME)"
+	@echo "$(CLI_NAME)"
 
 release: build ## Build and create GitHub release
 	@echo "Creating release for $(VERSION)"

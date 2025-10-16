@@ -82,7 +82,7 @@ jobs:
         id: vars
         run: |
           echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "CLI_NAME=mump2p" >> $GITHUB_ENV
+          echo "CLI_NAME=$(make -s print-cli-name)" >> $GITHUB_ENV
       
       - name: Create Release
         run: |
