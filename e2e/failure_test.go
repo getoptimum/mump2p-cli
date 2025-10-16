@@ -37,7 +37,6 @@ func TestFailureScenarios(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			out, err := RunCommand(cliBinaryPath, tt.args...)
 			require.Error(t, err, "Expected command to fail but it succeeded. Output: %s", out)
@@ -61,7 +60,6 @@ func TestInvalidFlagValues(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			out, err := RunCommand(cliBinaryPath, tt.args...)
 			require.Error(t, err, "Expected command to fail but it succeeded. Output: %s", out)
