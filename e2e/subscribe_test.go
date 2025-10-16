@@ -1,0 +1,102 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestSubscribeCommand(t *testing.T) {
+	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
+
+	serviceURL := GetDefaultProxy()
+
+	// Add delay to allow P2P nodes to be ready
+	t.Log("Waiting for P2P nodes to be ready...")
+	time.Sleep(3 * time.Second)
+
+	testTopic := fmt.Sprintf("test-sub-%d", time.Now().Unix())
+
+	tests := []struct {
+		name        string
+		args        []string
+		expectError bool
+		expectOut   []string
+		timeout     time.Duration
+	}{
+		{
+			name:        "subscribe WebSocket",
+			args:        []string{"subscribe", "--topic=" + testTopic, "--service-url=" + serviceURL},
+			expectError: false,
+			expectOut:   []string{"subscription", testTopic},
+			timeout:     5 * time.Second,
+		},
+		{
+			name:        "subscribe gRPC",
+			args:        []string{"subscribe", "--topic=" + testTopic, "--grpc", "--service-url=" + serviceURL},
+			expectError: false,
+			expectOut:   []string{"subscription", testTopic},
+			timeout:     5 * time.Second,
+		},
+		{
+			name:        "subscribe with debug WebSocket",
+			args:        []string{"--debug", "subscribe", "--topic=" + testTopic, "--service-url=" + serviceURL},
+			expectError: false,
+			expectOut:   []string{testTopic},
+			timeout:     5 * time.Second,
+		},
+		{
+			name:        "subscribe with debug gRPC",
+			args:        []string{"--debug", "subscribe", "--topic=" + testTopic, "--grpc", "--service-url=" + serviceURL},
+			expectError: false,
+			expectOut:   []string{testTopic},
+			timeout:     5 * time.Second,
+		},
+		{
+			name:        "subscribe missing topic flag",
+			args:        []string{"subscribe"},
+			expectError: true,
+			expectOut:   []string{},
+			timeout:     1 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+
+			cmd := exec.CommandContext(ctx, cliBinaryPath, tt.args...)
+			cmd.Env = os.Environ()
+
+			output, err := cmd.CombinedOutput()
+			out := string(output)
+
+			if tt.expectError {
+				require.Error(t, err, "Expected command to fail but it succeeded. Output: %s", out)
+			} else {
+				// For subscribe, context deadline exceeded is expected (we kill it after timeout)
+				if ctx.Err() == context.DeadlineExceeded {
+					// This is OK - we just wanted to test connection
+					for _, expected := range tt.expectOut {
+						require.Contains(t, strings.ToLower(out), strings.ToLower(expected),
+							"Expected output to contain %q, got %q", expected, out)
+					}
+				} else if err != nil {
+					t.Logf("Subscribe command ended early: %v\nOutput: %s", err, out)
+					// Still check if we got expected output before exit
+					for _, expected := range tt.expectOut {
+						require.Contains(t, strings.ToLower(out), strings.ToLower(expected),
+							"Expected output to contain %q, got %q", expected, out)
+					}
+				}
+			}
+		})
+	}
+}
