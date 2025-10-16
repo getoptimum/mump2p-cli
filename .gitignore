@@ -21,3 +21,5 @@ dist
 
 # Temporary files and directories
 temp/
+coverage.out
+coverage.html
