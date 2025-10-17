@@ -167,7 +167,7 @@ var publishCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to connect to gRPC proxy: %v", err)
 			}
-			defer client.Close()
+			defer func() { _ = client.Close() }()
 
 			err = client.Publish(ctx, clientIDToUse, pubTopic, publishData)
 			if err != nil {

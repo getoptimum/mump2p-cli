@@ -58,7 +58,7 @@ This command shows your active topics and their count.`,
 			if err != nil {
 				return fmt.Errorf("HTTP GET request failed: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Read response body
 			body, err := io.ReadAll(resp.Body)
@@ -150,7 +150,7 @@ This command shows your active topics and their count.`,
 		if err != nil {
 			return fmt.Errorf("HTTP GET request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Read response body
 		body, err := io.ReadAll(resp.Body)
