@@ -99,73 +99,17 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 
 ## Version Compatibility
 
-**Important:** Always use the latest version binaries (currently **v0.0.1-rc7**) from the releases page. 
+**Important:** Always use the latest version binaries (currently **v0.0.1-rc8**) from the releases page. 
 
 **Current Release:**
-- **v0.0.1-rc7** is the latest release
-- **v0.0.1-rc6** and earlier versions are deprecated
+- **v0.0.1-rc8** is the latest release
+- **v0.0.1-rc5** and earlier versions are deprecated
 
 ---
 
 ## FAQ - Common Issues & Troubleshooting
 
-### **1. Authentication & Account Issues**
-
-#### **Error: `unauthorized_client` during login**
-```
-Error: device code request failed: {"error":"unauthorized_client","error_description":"Unauthorized or unknown client"}
-```
-
-**Causes:**
-- Incorrect Client ID in build configuration
-- Auth0 application not enabled for Device Code flow
-- Wrong Domain or Audience values
-- Auth0 application type incorrectly configured
-
-**Solutions:**
-- Verify Auth0 application settings
-- Enable Device Code grant type in Auth0
-- Use correct Domain, Client ID, and Audience values
-
-#### **Error: `your account is inactive`**
-```
-Error: your account is inactive, please contact support
-```
-
-**Solutions:**
-- **Upgrade to RC7**: `curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash`
-
-### **2. Build & Configuration Issues**
-
-#### **Error: Binary not found**
-```
-zsh: no such file or directory: ./mump2p
-```
-
-**Causes:**
-- CLI not built yet
-- Wrong binary name or path
-- Binary not executable
-
-**Solutions:**
-- Download the latest binary from [releases](https://github.com/getoptimum/mump2p-cli/releases/latest)
-- Make binary executable: `chmod +x mump2p`
-
-#### **Error: Wrong Service URL in build**
-
-**Causes:**
-- Using localhost when should use remote URL
-- Using remote URL when should use localhost
-- Service URL not matching actual proxy
-
-**Solutions:**
-- Rebuild with correct SERVICE_URL
-- Use `--service-url` flag to override
-- Match SERVICE_URL to your actual proxy endpoint
-
-### **3. Service URL & Connectivity Issues**
-
-#### **Available Service URLs**
+### **1. Available Service URLs**
 
 By default, the CLI uses the first proxy in the list below. You can override this using the `--service-url` flag or by rebuilding with a different `SERVICE_URL`.
 
@@ -183,6 +127,8 @@ By default, the CLI uses the first proxy in the list below. You can override thi
 ./mump2p-mac publish --topic=example-topic --message='Hello' --service-url="http://35.221.118.95:8080"
 ./mump2p-mac subscribe --topic=example-topic --service-url="http://34.142.205.26:8080"
 ```
+
+### **2. Authentication & Account Issues**
 
 #### **Error: Connection refused**
 ```
@@ -202,7 +148,7 @@ Error: HTTP publish failed: dial tcp [::1]:8080: connect: connection refused
 - Use correct service URL
 - Try a different proxy from the table above
 
-### **4. Rate Limiting & Usage Issues**
+### **3. Rate Limiting & Usage Issues**
 
 #### **Error: Rate limit exceeded**
 ```
@@ -241,7 +187,7 @@ Error: token has expired, please login again
 
 
 
-### **5. CLI Usage & Syntax Issues**
+### **4. CLI Usage & Syntax Issues**
 
 #### **Error: Missing required flags**
 ```
@@ -257,7 +203,7 @@ Error: required flag(s) "topic" not set
 - Include all required arguments
 - Check flag spelling and syntax
 
-### **6. Development Mode (`--disable-auth`)**
+### **5. Development Mode (`--disable-auth`)**
 
 For development and testing, you can bypass authentication:
 
@@ -270,7 +216,7 @@ For development and testing, you can bypass authentication:
 
 > **Note:** This mode is for testing only. No rate limits enforced. See [guide](./docs/guide.md) for full details.
 
-### **7. Debug Mode & Performance Analysis**
+### **6. Debug Mode & Performance Analysis**
 
 The `--debug` flag provides detailed timing and proxy information for troubleshooting:
 
