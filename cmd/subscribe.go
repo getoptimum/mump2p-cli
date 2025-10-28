@@ -194,7 +194,7 @@ var subscribeCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to connect to gRPC proxy: %v", err)
 			}
-			defer func() { _ = client.Close() }()
+			defer client.Close() //nolint:errcheck
 
 			err = client.SubscribeTopic(ctx, clientIDToUse, subTopic, subThreshold)
 			if err != nil {
@@ -258,7 +258,7 @@ var subscribeCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to connect to gRPC proxy for streaming: %v", err)
 			}
-			defer func() { _ = streamClient.Close() }()
+			defer streamClient.Close() //nolint:errcheck
 
 			msgChan, err := streamClient.Subscribe(streamCtx, clientIDToUse, grpcBufferSize)
 			if err != nil {
