@@ -19,7 +19,7 @@ type ProxyClient struct {
 
 // NewProxyClient creates a new gRPC proxy client
 func NewProxyClient(proxyAddr string) (*ProxyClient, error) {
-	conn, err := grpcClient.Dial(proxyAddr,
+	conn, err := grpcClient.NewClient(proxyAddr,
 		grpcClient.WithTransportCredentials(insecure.NewCredentials()),
 		grpcClient.WithDefaultCallOptions(
 			grpcClient.MaxCallRecvMsgSize(math.MaxInt),
@@ -58,7 +58,7 @@ func (pc *ProxyClient) Subscribe(ctx context.Context, clientID string, bufferSiz
 	// Start goroutine to receive messages
 	go func() {
 		defer close(msgChan)
-		defer stream.CloseSend()
+		defer func() { _ = stream.CloseSend() }()
 
 		for {
 			msg, err := stream.Recv()
