@@ -16,7 +16,7 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
             -X github.com/getoptimum/mump2p-cli/internal/config.Version=$(VERSION) \
             -X github.com/getoptimum/mump2p-cli/internal/config.CommitHash=$(COMMIT_HASH)
 
-.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test e2e-quick
+.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test e2e-quick e2e-fuzz e2e-fuzz-quick
 
 all: lint build
 
@@ -81,6 +81,44 @@ e2e-test: ## Run E2E tests against dist/ binary
 e2e-quick: ## Run quick smoke tests only
 	@echo "Running quick smoke tests..."
 	go test ./e2e -v -run TestCLISmokeCommands -timeout 2m
+
+e2e-fuzz: ## Run fuzz tests against dist/ binary
+	@echo "Running fuzz tests..."
+	@if [ ! -f "$(BUILD_DIR)/$(CLI_NAME)-linux" ] && [ ! -f "$(BUILD_DIR)/$(CLI_NAME)-mac" ]; then \
+		echo "Error: No binary found in $(BUILD_DIR)/"; \
+		echo "Run 'make build' first with release credentials"; \
+		exit 1; \
+	fi
+	@echo "Fuzzing publish topic names..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzPublishTopicName -fuzztime=1m -timeout=3m
+	@echo "Fuzzing publish messages..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzPublishMessage -fuzztime=1m -timeout=3m
+	@echo "Fuzzing service URLs..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzServiceURL -fuzztime=1m -timeout=3m
+	@echo "Fuzzing subscribe topic names..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzSubscribeTopicName -fuzztime=1m -timeout=3m
+	@echo "Fuzzing file paths..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzFilePath -fuzztime=1m -timeout=3m
+	@echo "✅ All fuzz tests passed!"
+
+e2e-fuzz-quick: ## Run quick fuzz tests
+	@echo "Running quick fuzz tests..."
+	@if [ ! -f "$(BUILD_DIR)/$(CLI_NAME)-linux" ] && [ ! -f "$(BUILD_DIR)/$(CLI_NAME)-mac" ]; then \
+		echo "Error: No binary found in $(BUILD_DIR)/"; \
+		echo "Run 'make build' first with release credentials"; \
+		exit 1; \
+	fi
+	@echo "Fuzzing publish topic names..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzPublishTopicName -fuzztime=20s -timeout=1m
+	@echo "Fuzzing publish messages..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzPublishMessage -fuzztime=20s -timeout=1m
+	@echo "Fuzzing service URLs..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzServiceURL -fuzztime=20s -timeout=1m
+	@echo "Fuzzing subscribe topic names..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzSubscribeTopicName -fuzztime=20s -timeout=1m
+	@echo "Fuzzing file paths..."
+	@go test ./e2e -run='^$$' -fuzz=FuzzFilePath -fuzztime=20s -timeout=1m
+	@echo "✅ All fuzz tests passed!"
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
