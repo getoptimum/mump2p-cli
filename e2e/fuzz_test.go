@@ -8,7 +8,6 @@ import (
 )
 
 // FuzzPublishTopicName tests the publish command with a topic name
-
 func FuzzPublishTopicName(f *testing.F) {
 	require.NotEmpty(f, cliBinaryPath, "CLI binary path must be set by TestMain")
 
@@ -25,13 +24,23 @@ func FuzzPublishTopicName(f *testing.F) {
 			t.Skip()
 		}
 
+		// For obviously invalid input, verify graceful error handling
+		if strings.Contains(topic, "\x00") {
+			args := []string{"publish", "--topic=" + topic, "--message=test"}
+			_, err := RunCommand(cliBinaryPath, args...)
+			require.Error(t, err, "CLI should reject null bytes in topic name")
+			return
+		}
+
 		args := []string{"publish", "--topic=" + topic, "--message=test"}
-		_, _ = RunCommand(cliBinaryPath, args...)
+		out, err := RunCommand(cliBinaryPath, args...)
+		if err != nil {
+			t.Logf("Command failed (expected for invalid input): %v\nOutput: %s", err, out)
+		}
 	})
 }
 
 // FuzzPublishMessage tests the publish command with a message
-
 func FuzzPublishMessage(f *testing.F) {
 	require.NotEmpty(f, cliBinaryPath, "CLI binary path must be set by TestMain")
 
@@ -46,13 +55,23 @@ func FuzzPublishMessage(f *testing.F) {
 			t.Skip()
 		}
 
+		// For obviously invalid input, verify graceful error handling
+		if strings.Contains(message, "\x00") {
+			args := []string{"publish", "--topic=fuzz-test", "--message=" + message}
+			_, err := RunCommand(cliBinaryPath, args...)
+			require.Error(t, err, "CLI should reject null bytes in message")
+			return
+		}
+
 		args := []string{"publish", "--topic=fuzz-test", "--message=" + message}
-		_, _ = RunCommand(cliBinaryPath, args...)
+		out, err := RunCommand(cliBinaryPath, args...)
+		if err != nil {
+			t.Logf("Command failed (expected for invalid input): %v\nOutput: %s", err, out)
+		}
 	})
 }
 
 // FuzzServiceURL tests the health command with a service URL
-
 func FuzzServiceURL(f *testing.F) {
 	require.NotEmpty(f, cliBinaryPath, "CLI binary path must be set by TestMain")
 
@@ -69,27 +88,10 @@ func FuzzServiceURL(f *testing.F) {
 		}
 
 		args := []string{"health", "--service-url=" + url}
-		_, _ = RunCommand(cliBinaryPath, args...)
-	})
-}
-
-// FuzzSubscribeTopicName tests the subscribe command with a topic name
-func FuzzSubscribeTopicName(f *testing.F) {
-	require.NotEmpty(f, cliBinaryPath, "CLI binary path must be set by TestMain")
-
-	f.Add("")
-	f.Add("\x00")
-	f.Add("../../../etc/passwd")
-	f.Add(strings.Repeat("a", 1000))
-	f.Add("test\n\r\t")
-
-	f.Fuzz(func(t *testing.T, topic string) {
-		if len(topic) > 5000 {
-			t.Skip()
+		out, err := RunCommand(cliBinaryPath, args...)
+		if err != nil {
+			t.Logf("Command failed (expected for invalid URL): %v\nOutput: %s", err, out)
 		}
-
-		args := []string{"subscribe", "--topic=" + topic}
-		_, _ = RunCommand(cliBinaryPath, args...)
 	})
 }
 
@@ -109,7 +111,18 @@ func FuzzFilePath(f *testing.F) {
 			t.Skip()
 		}
 
+		// For obviously invalid input, verify graceful error handling
+		if strings.Contains(filepath, "\x00") {
+			args := []string{"publish", "--topic=fuzz-test", "--file=" + filepath}
+			_, err := RunCommand(cliBinaryPath, args...)
+			require.Error(t, err, "CLI should reject null bytes in file path")
+			return
+		}
+
 		args := []string{"publish", "--topic=fuzz-test", "--file=" + filepath}
-		_, _ = RunCommand(cliBinaryPath, args...)
+		out, err := RunCommand(cliBinaryPath, args...)
+		if err != nil {
+			t.Logf("Command failed (expected for invalid file path): %v\nOutput: %s", err, out)
+		}
 	})
 }

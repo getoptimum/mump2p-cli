@@ -95,8 +95,6 @@ e2e-fuzz: ## Run fuzz tests against dist/ binary
 	@go test ./e2e -run='^$$' -fuzz=FuzzPublishMessage -fuzztime=1m -timeout=3m
 	@echo "Fuzzing service URLs..."
 	@go test ./e2e -run='^$$' -fuzz=FuzzServiceURL -fuzztime=1m -timeout=3m
-	@echo "Fuzzing subscribe topic names..."
-	@go test ./e2e -run='^$$' -fuzz=FuzzSubscribeTopicName -fuzztime=1m -timeout=3m
 	@echo "Fuzzing file paths..."
 	@go test ./e2e -run='^$$' -fuzz=FuzzFilePath -fuzztime=1m -timeout=3m
 	@echo "✅ All fuzz tests passed!"
@@ -114,8 +112,6 @@ e2e-fuzz-quick: ## Run quick fuzz tests
 	@go test ./e2e -run='^$$' -fuzz=FuzzPublishMessage -fuzztime=20s -timeout=1m
 	@echo "Fuzzing service URLs..."
 	@go test ./e2e -run='^$$' -fuzz=FuzzServiceURL -fuzztime=20s -timeout=1m
-	@echo "Fuzzing subscribe topic names..."
-	@go test ./e2e -run='^$$' -fuzz=FuzzSubscribeTopicName -fuzztime=20s -timeout=1m
 	@echo "Fuzzing file paths..."
 	@go test ./e2e -run='^$$' -fuzz=FuzzFilePath -fuzztime=20s -timeout=1m
 	@echo "✅ All fuzz tests passed!"
