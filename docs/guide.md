@@ -114,8 +114,8 @@ For development and testing scenarios, you can bypass authentication entirely us
 ./mump2p --disable-auth usage
 
 # Works with gRPC too
-./mump2p --disable-auth --client-id="my-test-client" --grpc publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
-./mump2p --disable-auth --client-id="my-test-client" --grpc subscribe --topic=test --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080" --grpc
+./mump2p --disable-auth --client-id="my-test-client" subscribe --topic=test --service-url="http://34.146.222.111:8080" --grpc
 
 # Combine with debug mode
 ./mump2p --disable-auth --client-id="my-test-client" --debug publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
