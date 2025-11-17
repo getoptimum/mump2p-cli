@@ -134,8 +134,7 @@ var tracerLoadCmd = &cobra.Command{
 		if loadInterval < 0 {
 			loadInterval = 500
 		}
-		if err := proxySubscribe(baseURL, jwtToken, loadTopic, clientID, 1); err != nil {
-		}
+		_ = proxySubscribe(baseURL, jwtToken, loadTopic, clientID, 1)
 		if loadEndpoint2 != "" && loadEndpoint2 != baseURL {
 			_ = proxySubscribe(loadEndpoint2, jwtToken, loadTopic, clientID, 1)
 		}
@@ -198,6 +197,11 @@ func (h *history) snapshot() []float64 {
 	copy(out, h.values)
 	return out
 }
+func (h *history) reset() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.values = nil
+}
 
 func humanBytes(b uint64) string {
 	const unit = 1024
@@ -236,7 +240,11 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 		}
 		statusCh <- fmt.Sprintf("[Connecting] %s", url)
 
-		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			statusCh <- fmt.Sprintf("[Config error] %v", err)
+			return
+		}
 		req.Header.Set("Accept", "text/event-stream")
 		if !IsAuthDisabled() && jwt != "" {
 			req.Header.Set("Authorization", "Bearer "+jwt)
@@ -333,8 +341,7 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 	defer cancel()
 
 	if err := ui.Init(); err != nil {
-		fmt.Println("UI init error:", err)
-		return nil
+		return fmt.Errorf("failed to init tracer UI: %w", err)
 	}
 	defer ui.Close()
 
@@ -580,9 +587,9 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 					mu.Lock()
 					lastDelivered = 0
 					lastTickTime = time.Now()
-					throughputHist.values = nil
+					throughputHist.reset()
 					thSpark.Data = throughputHist.snapshot()
-					latHist.values = nil
+					latHist.reset()
 					latSpark.Data = latHist.snapshot()
 					mu.Unlock()
 					statusCh <- "[Reset] Done."
@@ -617,7 +624,10 @@ func ellipsize(s string, max int) string {
 
 func resetStats(ctx context.Context, base, jwt string) error {
 	url := fmt.Sprintf("%s/api/v1/tracer/reset", strings.TrimRight(base, "/"))
-	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
 	if !IsAuthDisabled() && jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
@@ -702,7 +712,10 @@ func proxyPublishRandom(base, jwt, clientID, topic string, length uint64) error 
 		"topic":          topic,
 		"message_length": length,
 	}
-	reqBytes, _ := json.Marshal(body)
+	reqBytes, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("encoding request body: %w", err)
+	}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(reqBytes))
 	if err != nil {
 		return err
@@ -730,7 +743,10 @@ func proxySubscribe(base, jwt, topic, clientID string, threshold int) error {
 		"topic":     topic,
 		"threshold": threshold,
 	}
-	reqBytes, _ := json.Marshal(body)
+	reqBytes, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("encoding request body: %w", err)
+	}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(reqBytes))
 	if err != nil {
 		return err
