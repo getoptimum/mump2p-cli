@@ -50,10 +50,14 @@ type MsgInfo struct {
 }
 
 var (
-	tracerServiceURL string
-	tracerWindow     string
-	tracerTickMs     int
-	tracerRows       int
+	tracerServiceURL  string
+	tracerWindow      string
+	tracerTickMs      int
+	tracerRows        int
+	dashboardTopic    string
+	dashboardSize     int
+	dashboardCount    int
+	dashboardInterval int
 )
 
 var tracerCmd = &cobra.Command{
@@ -91,7 +95,12 @@ var tracerDashboardCmd = &cobra.Command{
 			tracerRows = 12
 		}
 
-		return runTracerDashboard(baseURL, jwtToken, tracerWindow, tick, tracerRows)
+		jwtToken, clientID, err := resolveJWTAndClientID()
+		if err != nil {
+			return err
+		}
+
+		return runTracerDashboard(baseURL, jwtToken, clientID, tracerWindow, tick, tracerRows, dashboardTopic, dashboardSize, dashboardCount, dashboardInterval)
 	},
 }
 
@@ -153,21 +162,21 @@ var tracerLoadCmd = &cobra.Command{
 }
 
 func init() {
-	// Attach commands
 	rootCmd.AddCommand(tracerCmd)
 	tracerCmd.AddCommand(tracerDashboardCmd)
 	tracerCmd.AddCommand(tracerResetCmd)
 	tracerCmd.AddCommand(tracerLoadCmd)
 
-	// Flags shared by tracer subcommands
 	tracerCmd.PersistentFlags().StringVar(&tracerServiceURL, "service-url", "", "Override the default service URL")
 
-	// Dashboard-only flags
 	tracerDashboardCmd.Flags().StringVar(&tracerWindow, "window", "10s", "Sliding window size (e.g. 10s, 1m)")
 	tracerDashboardCmd.Flags().IntVar(&tracerTickMs, "tick-ms", 500, "UI refresh tick in milliseconds")
 	tracerDashboardCmd.Flags().IntVar(&tracerRows, "rows", 12, "Max recent message rows to show")
+	tracerDashboardCmd.Flags().StringVar(&dashboardTopic, "topic", "demo", "Topic to publish messages to (auto-publish enabled)")
+	tracerDashboardCmd.Flags().IntVar(&dashboardSize, "size", 102400, "Random message size in bytes for auto-publish")
+	tracerDashboardCmd.Flags().IntVar(&dashboardCount, "count", 60, "Number of messages to auto-publish")
+	tracerDashboardCmd.Flags().IntVar(&dashboardInterval, "interval-ms", 500, "Interval between auto-published messages in milliseconds")
 
-	// Load flags
 	tracerLoadCmd.Flags().StringVar(&loadEndpoint2, "endpoint2", "", "Optional second proxy endpoint for comparison")
 	tracerLoadCmd.Flags().StringVar(&loadTopic, "topic", "demo", "Topic to publish to")
 	tracerLoadCmd.Flags().IntVar(&loadSize, "size", 850000, "Random message size in bytes")
@@ -240,11 +249,7 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 		}
 		statusCh <- fmt.Sprintf("[Connecting] %s", url)
 
-		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-		if err != nil {
-			statusCh <- fmt.Sprintf("[Config error] %v", err)
-			return
-		}
+		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 		req.Header.Set("Accept", "text/event-stream")
 		if !IsAuthDisabled() && jwt != "" {
 			req.Header.Set("Authorization", "Bearer "+jwt)
@@ -288,6 +293,7 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 
 		reader := bufio.NewReader(resp.Body)
 		var dataBuf bytes.Buffer
+		msgCount := 0
 		for {
 			if ctx.Err() != nil {
 				_ = resp.Body.Close()
@@ -297,7 +303,7 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 			if err != nil {
 				_ = resp.Body.Close()
 				if err == io.EOF {
-					statusCh <- "[Disconnected] server closed stream; reconnecting…"
+					statusCh <- fmt.Sprintf("[Disconnected] server closed stream after %d messages; reconnecting…", msgCount)
 				} else {
 					statusCh <- fmt.Sprintf("[Read error] %v; reconnecting…", err)
 				}
@@ -307,7 +313,8 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 			if len(trim) == 0 {
 				if dataBuf.Len() > 0 {
 					var snap Snapshot
-					if json.Unmarshal(dataBuf.Bytes(), &snap) == nil {
+					if err := json.Unmarshal(dataBuf.Bytes(), &snap); err == nil {
+						msgCount++
 						out <- snap
 					}
 					dataBuf.Reset()
@@ -336,7 +343,7 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 	}
 }
 
-func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows int) error {
+func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duration, maxRows int, topic string, size, count, interval int) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -421,36 +428,13 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 	help.Border = false
 	help.TextStyle = ui.NewStyle(ui.ColorCyan)
 
-	grid := ui.NewGrid()
 	resize := func() {
 		w, h := ui.TerminalDimensions()
-		grid.SetRect(0, 0, w, h)
-		grid.Set(
-			ui.NewRow(0.28,
-				ui.NewCol(0.60,
-					ui.NewRow(0.40, header),
-					ui.NewRow(0.60,
-						ui.NewCol(0.50, nodesGauge),
-						ui.NewCol(0.50, msgBars),
-					),
-				),
-				ui.NewCol(0.40,
-					ui.NewRow(0.60, latBars),
-					ui.NewRow(0.40, bytesBox),
-				),
-			),
-			ui.NewRow(0.52,
-				ui.NewCol(0.60, table),
-				ui.NewCol(0.40,
-					ui.NewRow(0.48, throughputSpark),
-					ui.NewRow(0.48, latencySpark),
-				),
-			),
-			ui.NewRow(0.20,
-				ui.NewCol(0.70, status),
-				ui.NewCol(0.30, help),
-			),
-		)
+		header.SetRect(0, 0, w, 3)
+		status.SetRect(0, h-3, w, h)
+		nodesGauge.SetRect(0, 3, w/2, 8)
+		msgBars.SetRect(w/2, 3, w, 8)
+		table.SetRect(0, 8, w, h-3)
 	}
 	resize()
 
@@ -458,6 +442,26 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 	statusCh := make(chan string, 8)
 
 	go streamSnapshots(ctx, strings.TrimRight(baseURL, "/"), jwt, window, snapCh, statusCh, 2*time.Second, 30*time.Second)
+
+	if count > 0 {
+		go func() {
+			statusCh <- fmt.Sprintf("[Auto-publish] Starting: %d messages to topic '%s'", count, topic)
+			for i := 0; i < count; i++ {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					if err := proxyPublishRandom(baseURL, jwt, clientID, topic, uint64(size)); err != nil {
+						statusCh <- fmt.Sprintf("[Auto-publish error] %v", err)
+					}
+					if i < count-1 {
+						time.Sleep(time.Duration(interval) * time.Millisecond)
+					}
+				}
+			}
+			statusCh <- fmt.Sprintf("[Auto-publish] Completed: %d messages sent", count)
+		}()
+	}
 
 	var (
 		lastDelivered int64
@@ -475,7 +479,7 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 			baseURL,
 			window,
 			s.Algorithm,
-			s.LastUpdated.Format("15:04:05"),
+			s.LastUpdated.Format("15:04:05"), // Go time format: HH:MM:SS (24-hour)
 		)
 
 		nodesGauge.Title = fmt.Sprintf(" Active vs Unhealthy  (%d / %d unhealthy) ", s.ActiveNodes, s.UnhealthyNodes)
@@ -568,13 +572,13 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 			case "<Resize>":
 				resize()
 				ui.Clear()
-				ui.Render(grid)
+				ui.Render(header, status, nodesGauge, msgBars, table)
 			case "q", "<C-c>":
 				return nil
 			case "r":
 				if time.Since(lastReset) < 2*time.Second {
 					status.Text = "Reset pressed too quickly; wait a moment…"
-					ui.Render(grid)
+					ui.Render(header, status, nodesGauge, msgBars, table)
 					break
 				}
 				lastReset = time.Now()
@@ -587,9 +591,9 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 					mu.Lock()
 					lastDelivered = 0
 					lastTickTime = time.Now()
-					throughputHist.reset()
+					throughputHist.values = nil
 					thSpark.Data = throughputHist.snapshot()
-					latHist.reset()
+					latHist.values = nil
 					latSpark.Data = latHist.snapshot()
 					mu.Unlock()
 					statusCh <- "[Reset] Done."
@@ -598,16 +602,15 @@ func runTracerDashboard(baseURL, jwt, window string, tick time.Duration, maxRows
 		case s, ok := <-snapCh:
 			if !ok {
 				status.Text = "Stream ended. Waiting for reconnect… (press 'q' to quit)"
-				ui.Render(grid)
+				ui.Render(header, status, nodesGauge, msgBars, table)
 				continue
 			}
 			updateUI(s)
-			ui.Render(grid)
+			ui.Render(header, status, nodesGauge, msgBars, table)
 		case st := <-statusCh:
 			status.Text = st
-			ui.Render(grid)
 		case <-ticker.C:
-			ui.Render(grid)
+			ui.Render(header, status, nodesGauge, msgBars, table)
 		}
 	}
 }
@@ -624,11 +627,8 @@ func ellipsize(s string, max int) string {
 
 func resetStats(ctx context.Context, base, jwt string) error {
 	url := fmt.Sprintf("%s/api/v1/tracer/reset", strings.TrimRight(base, "/"))
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return fmt.Errorf("invalid URL: %w", err)
-	}
-	if !IsAuthDisabled() && jwt != "" {
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
 	resp, err := http.DefaultClient.Do(req)
@@ -643,8 +643,6 @@ func resetStats(ctx context.Context, base, jwt string) error {
 	return nil
 }
 
-// resolveServiceURL matches the pattern used in publish and other commands:
-// it starts from config.ServiceUrl and allows overriding with a flag.
 func resolveServiceURL(override string) string {
 	base := config.LoadConfig().ServiceUrl
 	if override != "" {
@@ -674,9 +672,6 @@ func loadTokenAndClaims(storagePath string) (tokenStr string, claims *auth.Token
 	return token.Token, claims, nil
 }
 
-// resolveJWT returns the bearer token to use for HTTP calls:
-// - when auth is enabled, it loads the stored token and validates it (same flow as publish)
-// - when auth is disabled, it returns an empty string (no Authorization header).
 func resolveJWT() (string, error) {
 	if IsAuthDisabled() {
 		return "", nil
@@ -686,9 +681,6 @@ func resolveJWT() (string, error) {
 	return tokenStr, err
 }
 
-// resolveJWTAndClientID is like resolveJWT but also returns the clientID to use:
-// - when auth is enabled, clientID comes from the token claims
-// - when auth is disabled, clientID must be provided via the global --client-id flag.
 func resolveJWTAndClientID() (string, string, error) {
 	if IsAuthDisabled() {
 		clientID := GetClientID()
@@ -760,6 +752,5 @@ func proxySubscribe(base, jwt, topic, clientID string, threshold int) error {
 		return err
 	}
 	defer resp.Body.Close() //nolint:errcheck
-	// ignore non-2xx errors intentionally; load can still proceed
 	return nil
 }
