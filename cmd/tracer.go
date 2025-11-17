@@ -238,7 +238,7 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 
 		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 		req.Header.Set("Accept", "text/event-stream")
-		if jwt != "" {
+		if !IsAuthDisabled() && jwt != "" {
 			req.Header.Set("Authorization", "Bearer "+jwt)
 		}
 
@@ -618,7 +618,7 @@ func ellipsize(s string, max int) string {
 func resetStats(ctx context.Context, base, jwt string) error {
 	url := fmt.Sprintf("%s/api/v1/tracer/reset", strings.TrimRight(base, "/"))
 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if jwt != "" {
+	if !IsAuthDisabled() && jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
 	resp, err := http.DefaultClient.Do(req)
@@ -643,6 +643,27 @@ func resolveServiceURL(override string) string {
 	return base
 }
 
+func loadTokenAndClaims(storagePath string) (tokenStr string, claims *auth.TokenClaims, err error) {
+	authClient := auth.NewClient()
+	storage := auth.NewStorageWithPath(storagePath)
+
+	token, err := authClient.GetValidToken(storage)
+	if err != nil {
+		return "", nil, fmt.Errorf("authentication required: %v", err)
+	}
+
+	parser := auth.NewTokenParser()
+	claims, err = parser.ParseToken(token.Token)
+	if err != nil {
+		return "", nil, fmt.Errorf("error parsing token: %v", err)
+	}
+	if !claims.IsActive {
+		return "", nil, fmt.Errorf("your account is inactive, please contact support")
+	}
+
+	return token.Token, claims, nil
+}
+
 // resolveJWT returns the bearer token to use for HTTP calls:
 // - when auth is enabled, it loads the stored token and validates it (same flow as publish)
 // - when auth is disabled, it returns an empty string (no Authorization header).
@@ -651,24 +672,8 @@ func resolveJWT() (string, error) {
 		return "", nil
 	}
 
-	authClient := auth.NewClient()
-	storage := auth.NewStorageWithPath(GetAuthPath())
-
-	token, err := authClient.GetValidToken(storage)
-	if err != nil {
-		return "", fmt.Errorf("authentication required: %v", err)
-	}
-
-	parser := auth.NewTokenParser()
-	claims, err := parser.ParseToken(token.Token)
-	if err != nil {
-		return "", fmt.Errorf("error parsing token: %v", err)
-	}
-	if !claims.IsActive {
-		return "", fmt.Errorf("your account is inactive, please contact support")
-	}
-
-	return token.Token, nil
+	tokenStr, _, err := loadTokenAndClaims(GetAuthPath())
+	return tokenStr, err
 }
 
 // resolveJWTAndClientID is like resolveJWT but also returns the clientID to use:
@@ -683,24 +688,11 @@ func resolveJWTAndClientID() (string, string, error) {
 		return "", clientID, nil
 	}
 
-	authClient := auth.NewClient()
-	storage := auth.NewStorageWithPath(GetAuthPath())
-
-	token, err := authClient.GetValidToken(storage)
+	tokenStr, claims, err := loadTokenAndClaims(GetAuthPath())
 	if err != nil {
-		return "", "", fmt.Errorf("authentication required: %v", err)
+		return "", "", err
 	}
-
-	parser := auth.NewTokenParser()
-	claims, err := parser.ParseToken(token.Token)
-	if err != nil {
-		return "", "", fmt.Errorf("error parsing token: %v", err)
-	}
-	if !claims.IsActive {
-		return "", "", fmt.Errorf("your account is inactive, please contact support")
-	}
-
-	return token.Token, claims.ClientID, nil
+	return tokenStr, claims.ClientID, nil
 }
 
 func proxyPublishRandom(base, jwt, clientID, topic string, length uint64) error {
@@ -716,7 +708,7 @@ func proxyPublishRandom(base, jwt, clientID, topic string, length uint64) error 
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if jwt != "" {
+	if !IsAuthDisabled() && jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
 	resp, err := http.DefaultClient.Do(req)
@@ -744,7 +736,7 @@ func proxySubscribe(base, jwt, topic, clientID string, threshold int) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if jwt != "" {
+	if !IsAuthDisabled() && jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
 	resp, err := http.DefaultClient.Do(req)
