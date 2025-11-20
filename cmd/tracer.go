@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -377,46 +376,12 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 		ui.NewStyle(ui.ColorBlack),
 	}
 
-	latBars := widgets.NewBarChart()
-	latBars.Title = " Latency (ms) "
-	latBars.Labels = []string{"avg", "p75", "p95"}
-	latBars.Data = []float64{0, 0, 0}
-	latBars.BarWidth = 7
-	latBars.BarGap = 3
-	latBars.BorderStyle = ui.NewStyle(ui.ColorWhite)
-	latBars.NumStyles = []ui.Style{
-		ui.NewStyle(ui.ColorBlack),
-		ui.NewStyle(ui.ColorBlack),
-		ui.NewStyle(ui.ColorBlack),
-	}
-
-	bytesBox := widgets.NewParagraph()
-	bytesBox.Title = " Bytes, Bloat & Ratios "
-	bytesBox.Text = "Waiting for data…"
-	bytesBox.BorderStyle = ui.NewStyle(ui.ColorWhite)
-
 	table := widgets.NewTable()
 	table.Title = " Recent Messages (slowest first) "
 	table.TextStyle = ui.NewStyle(ui.ColorWhite)
 	table.RowSeparator = false
 	table.Rows = [][]string{{"Topic", "Delay(ms)", "Peers", "Bytes", "Delivered/Published"}}
 	table.BorderStyle = ui.NewStyle(ui.ColorWhite)
-
-	throughputSpark := widgets.NewSparklineGroup()
-	thSpark := widgets.NewSparkline()
-	thSpark.Title = "Throughput: Delivered/s"
-	thSpark.LineColor = ui.ColorYellow
-	throughputSpark.Title = " Activity "
-	throughputSpark.Sparklines = []*widgets.Sparkline{thSpark}
-	throughputHist := newHistory(120)
-
-	latencySpark := widgets.NewSparklineGroup()
-	latSpark := widgets.NewSparkline()
-	latSpark.Title = "Latency avg (ms)"
-	latSpark.LineColor = ui.ColorCyan
-	latencySpark.Title = " Latency Trend "
-	latencySpark.Sparklines = []*widgets.Sparkline{latSpark}
-	latHist := newHistory(120)
 
 	status := widgets.NewParagraph()
 	status.Title = " Status "
@@ -464,10 +429,8 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 	}
 
 	var (
-		lastDelivered int64
-		lastTickTime  = time.Now()
-		lastReset     time.Time
-		mu            sync.Mutex
+		lastReset time.Time
+		mu        sync.Mutex
 	)
 
 	updateUI := func(s Snapshot) {
@@ -479,7 +442,7 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 			baseURL,
 			window,
 			s.Algorithm,
-			s.LastUpdated.Format("15:04:05"), // Go time format: HH:MM:SS (24-hour)
+			s.LastUpdated.Format("15:04:05"), // 24-hour format HH:MM:SS
 		)
 
 		nodesGauge.Title = fmt.Sprintf(" Active vs Unhealthy  (%d / %d unhealthy) ", s.ActiveNodes, s.UnhealthyNodes)
@@ -500,19 +463,17 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 			float64(s.DuplicateMessages),
 		}
 
-		avg := s.AverageDelaySeconds * 1000
-		p75 := s.P75 * 1000
-		p95 := s.P95 * 1000
-		latBars.Data = []float64{avg, p75, p95}
-
 		deliveredPerPeer := safeDiv(float64(s.DeliveredMessages), float64(s.PublishedMessages))
 
-		bytesBox.Text = fmt.Sprintf(
-			"Total Bytes:        %s\nBloat Factor:       %.2f\nIdeal Complexity:   %s\nDelivered/Published %.3f",
-			humanBytes(s.TotalBytesMoved),
-			s.BloatFactor,
-			humanBytes(s.IdealByteComplexity),
-			deliveredPerPeer,
+		// Calculate latency metrics
+		avgMs := s.AverageDelaySeconds * 1000
+		p75Ms := s.P75 * 1000
+		p95Ms := s.P95 * 1000
+
+		// Update table title with latency metrics
+		table.Title = fmt.Sprintf(
+			" Recent Messages • P95: %.2fms • P75: %.2fms • Avg: %.2fms ",
+			p95Ms, p75Ms, avgMs,
 		)
 
 		type pair struct {
@@ -539,24 +500,6 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 			})
 		}
 		table.Rows = tableRows
-
-		now := time.Now()
-		deltaDelivered := s.DeliveredMessages - lastDelivered
-		elapsed := now.Sub(lastTickTime).Seconds()
-		if elapsed > 0 {
-			rate := float64(deltaDelivered) / elapsed
-			if !math.IsNaN(rate) && !math.IsInf(rate, 0) {
-				throughputHist.push(rate)
-				thSpark.Data = throughputHist.snapshot()
-			}
-		}
-		lastDelivered = s.DeliveredMessages
-		lastTickTime = now
-
-		if avg >= 0 {
-			latHist.push(avg)
-			latSpark.Data = latHist.snapshot()
-		}
 	}
 
 	ticker := time.NewTicker(tick)
@@ -588,14 +531,6 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 						statusCh <- fmt.Sprintf("[Reset error] %v", err)
 						return
 					}
-					mu.Lock()
-					lastDelivered = 0
-					lastTickTime = time.Now()
-					throughputHist.values = nil
-					thSpark.Data = throughputHist.snapshot()
-					latHist.values = nil
-					latSpark.Data = latHist.snapshot()
-					mu.Unlock()
 					statusCh <- "[Reset] Done."
 				}()
 			}
