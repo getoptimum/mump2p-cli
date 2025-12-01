@@ -18,7 +18,7 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test coverage
+.PHONY: all build run clean test help lint tag release print-cli-name e2e-test coverage
 
 all: lint build
 
@@ -59,15 +59,10 @@ tag:
 run: build ## Run the CLI with default config
 	./$(CLI_NAME) --config=$(CONFIG_PATH)
 
-run-subscribe: build ## Run subscribe command
-	./$(CLI_NAME) subscribe --topic=demo --protocols=optimump2p --config=$(CONFIG_PATH)
-
-run-publish: build ## Run publish command
-	./$(CLI_NAME) publish --topic=demo --protocols=optimump2p --config=$(CONFIG_PATH)
-
 clean: ## Clean up build artifacts
 	rm -f $(CLI_NAME)
 	rm -rf $(BUILD_DIR)
+	rm -f coverage.out coverage.html
 
 test: ## Run unit tests
 	$(GO_BIN) test $(shell $(GO_BIN) list ./... | grep -v /e2e) -v -count=1
