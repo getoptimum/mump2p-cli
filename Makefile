@@ -16,7 +16,9 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
             -X github.com/getoptimum/mump2p-cli/internal/config.Version=$(VERSION) \
             -X github.com/getoptimum/mump2p-cli/internal/config.CommitHash=$(COMMIT_HASH)
 
-.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test e2e-quick
+.DEFAULT_GOAL := help
+
+.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test coverage
 
 all: lint build
 
@@ -65,9 +67,15 @@ run-publish: build ## Run publish command
 
 clean: ## Clean up build artifacts
 	rm -f $(CLI_NAME)
+	rm -rf $(BUILD_DIR)
 
 test: ## Run unit tests
 	$(GO_BIN) test $(shell $(GO_BIN) list ./... | grep -v /e2e) -v -count=1
+
+coverage: ## Run tests with coverage and generate HTML report
+	$(GO_BIN) test $(shell $(GO_BIN) list ./... | grep -v /e2e) -coverprofile=coverage.out -v -count=1
+	$(GO_BIN) tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
 
 e2e-test: ## Run E2E tests against dist/ binary
 	@echo "Running E2E tests..."
@@ -77,10 +85,6 @@ e2e-test: ## Run E2E tests against dist/ binary
 		exit 1; \
 	fi
 	go test ./e2e -v -timeout 10m
-
-e2e-quick: ## Run quick smoke tests only
-	@echo "Running quick smoke tests..."
-	go test ./e2e -v -run TestCLISmokeCommands -timeout 2m
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
