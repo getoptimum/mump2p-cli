@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -43,8 +42,11 @@ type Snapshot struct {
 
 type MsgInfo struct {
 	Topic      string              `json:"topic"`
+	Published  time.Time           `json:"published"`
+	Delivered  time.Time           `json:"delivered"`
 	DelaySec   float64             `json:"delay_sec"`
 	PeersSeen  map[string]struct{} `json:"peers_seen"`
+	Duplicates int                 `json:"duplicates"`
 	BytesMoved uint64              `json:"bytes_moved"`
 }
 
@@ -236,20 +238,39 @@ func safeDiv(a, b float64) float64 {
 	return a / b
 }
 
-func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- Snapshot, statusCh chan<- string, backoffStart, backoffMax time.Duration) {
+func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- Snapshot, statusCh chan<- string, pollInterval time.Duration) {
 	defer close(out)
 	url := fmt.Sprintf("%s/api/v1/tracer/stream?window=%s", strings.TrimRight(base, "/"), window)
-	client := &http.Client{Timeout: 0}
-	backoff := backoffStart
+	client := &http.Client{Timeout: 10 * time.Second}
+	backoff := 2 * time.Second
+	backoffMax := 30 * time.Second
 
-	for {
+	statusCh <- fmt.Sprintf("[Connecting] %s", url)
+
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	// Make first request immediately, then poll on ticker
+	for first := true; ; first = false {
 		if ctx.Err() != nil {
 			return
 		}
-		statusCh <- fmt.Sprintf("[Connecting] %s", url)
 
-		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
-		req.Header.Set("Accept", "text/event-stream")
+		// Wait for ticker before subsequent requests, but not before the first
+		if !first {
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				return
+			}
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			statusCh <- fmt.Sprintf("[Config error] %v", err)
+			return
+		}
+		req.Header.Set("Accept", "application/json")
 		if !IsAuthDisabled() && jwt != "" {
 			req.Header.Set("Authorization", "Bearer "+jwt)
 		}
@@ -270,6 +291,7 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 			}
 			continue
 		}
+
 		if resp.StatusCode != http.StatusOK {
 			_ = resp.Body.Close()
 			statusCh <- fmt.Sprintf("[HTTP %d] -> retrying in %s", resp.StatusCode, backoff)
@@ -287,57 +309,36 @@ func streamSnapshots(ctx context.Context, base, jwt, window string, out chan<- S
 			continue
 		}
 
-		backoff = backoffStart
-		statusCh <- "[Connected] Streaming… (press 'q' to quit)"
+		backoff = 2 * time.Second
+		statusCh <- "[Connected] Polling… (press 'q' to quit)"
 
-		reader := bufio.NewReader(resp.Body)
-		var dataBuf bytes.Buffer
-		msgCount := 0
-		for {
-			if ctx.Err() != nil {
-				_ = resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			statusCh <- fmt.Sprintf("[Read error] %v; retrying…", err)
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
 				return
 			}
-			line, err := reader.ReadBytes('\n')
-			if err != nil {
-				_ = resp.Body.Close()
-				if err == io.EOF {
-					statusCh <- fmt.Sprintf("[Disconnected] server closed stream after %d messages; reconnecting…", msgCount)
-				} else {
-					statusCh <- fmt.Sprintf("[Read error] %v; reconnecting…", err)
-				}
-				break
-			}
-			trim := bytes.TrimRight(line, "\r\n")
-			if len(trim) == 0 {
-				if dataBuf.Len() > 0 {
-					var snap Snapshot
-					if err := json.Unmarshal(dataBuf.Bytes(), &snap); err == nil {
-						msgCount++
-						out <- snap
-					}
-					dataBuf.Reset()
-				}
-				continue
-			}
-			if bytes.HasPrefix(trim, []byte("data:")) {
-				data := bytes.TrimSpace(trim[len("data:"):])
-				if dataBuf.Len() > 0 {
-					dataBuf.WriteByte('\n')
-				}
-				dataBuf.Write(data)
-			}
+			continue
 		}
+
+		var snap Snapshot
+		if err := json.Unmarshal(body, &snap); err != nil {
+			statusCh <- fmt.Sprintf("[Parse error] %v; retrying…", err)
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				return
+			}
+			continue
+		}
+
 		select {
-		case <-time.After(backoff):
+		case out <- snap:
 		case <-ctx.Done():
 			return
-		}
-		if backoff < backoffMax {
-			backoff *= 2
-			if backoff > backoffMax {
-				backoff = backoffMax
-			}
 		}
 	}
 }
@@ -406,11 +407,12 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 	snapCh := make(chan Snapshot, 4)
 	statusCh := make(chan string, 8)
 
-	go streamSnapshots(ctx, strings.TrimRight(baseURL, "/"), jwt, window, snapCh, statusCh, 2*time.Second, 30*time.Second)
+	go streamSnapshots(ctx, strings.TrimRight(baseURL, "/"), jwt, window, snapCh, statusCh, tick)
 
 	if count > 0 {
 		go func() {
 			statusCh <- fmt.Sprintf("[Auto-publish] Starting: %d messages to topic '%s'", count, topic)
+			_ = proxySubscribe(baseURL, jwt, topic, clientID, 1)
 			for i := 0; i < count; i++ {
 				select {
 				case <-ctx.Done():
@@ -481,23 +483,47 @@ func runTracerDashboard(baseURL, jwt, clientID, window string, tick time.Duratio
 			M     MsgInfo
 		}
 		var msgs []pair
-		for _, m := range s.Messages {
+		for id, m := range s.Messages {
+			// Include all messages, even if DelaySec is 0 (unsettled)
 			msgs = append(msgs, pair{Topic: m.Topic, M: m})
+			_ = id // message ID for debugging if needed
 		}
-		sort.Slice(msgs, func(i, j int) bool { return msgs[i].M.DelaySec > msgs[j].M.DelaySec })
+		// Sort by delay (descending), with 0 delays at the end
+		sort.Slice(msgs, func(i, j int) bool {
+			if msgs[i].M.DelaySec == 0 && msgs[j].M.DelaySec == 0 {
+				return false
+			}
+			if msgs[i].M.DelaySec == 0 {
+				return false
+			}
+			if msgs[j].M.DelaySec == 0 {
+				return true
+			}
+			return msgs[i].M.DelaySec > msgs[j].M.DelaySec
+		})
 
 		tableRows := [][]string{{"Topic", "Delay(ms)", "Peers", "Bytes", "Delivered/Published"}}
-		for i, p := range msgs {
-			if i >= maxRows {
-				break
-			}
+		if len(msgs) == 0 {
 			tableRows = append(tableRows, []string{
-				ellipsize(p.Topic, 40),
-				fmt.Sprintf("%.2f", p.M.DelaySec*1000),
-				fmt.Sprintf("%d", len(p.M.PeersSeen)),
-				humanBytes(p.M.BytesMoved),
-				fmt.Sprintf("%.3f", deliveredPerPeer),
+				"No messages in window",
+				"—",
+				"—",
+				"—",
+				"—",
 			})
+		} else {
+			for i, p := range msgs {
+				if i >= maxRows {
+					break
+				}
+				tableRows = append(tableRows, []string{
+					ellipsize(p.Topic, 40),
+					fmt.Sprintf("%.2f", p.M.DelaySec*1000),
+					fmt.Sprintf("%d", len(p.M.PeersSeen)),
+					humanBytes(p.M.BytesMoved),
+					fmt.Sprintf("%.3f", deliveredPerPeer),
+				})
+			}
 		}
 		table.Rows = tableRows
 	}
