@@ -60,7 +60,6 @@ run: build ## Run the CLI with default config
 	./$(CLI_NAME) --config=$(CONFIG_PATH)
 
 clean: ## Clean up build artifacts
-	rm -f $(CLI_NAME)
 	rm -rf $(BUILD_DIR)
 	rm -f coverage.out coverage.html
 
