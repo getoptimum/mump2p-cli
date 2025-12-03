@@ -27,6 +27,26 @@ func getInitialPublishCount(t *testing.T) int {
 	return parsePublishCount(t, usageInfoBefore.PublishCount)
 }
 
+// getMaxMessageSize gets the MaxMessageSize limit from whoami command output
+func getMaxMessageSize(t *testing.T) int64 {
+	t.Helper()
+	whoamiOut, err := RunCommand(cliBinaryPath, "whoami")
+	require.NoError(t, err, "Failed to get whoami output")
+
+	// Parse "Max Message Size:  X.XX MB" from table format
+	// Format: "Max Message Size:  2.00 MB"
+	pattern := `Max Message Size:\s+([\d.]+)\s+MB`
+	validator := NewValidator(whoamiOut)
+	sizeMBStr, err := validator.ExtractMatch(pattern)
+	require.NoError(t, err, "Failed to extract Max Message Size from whoami output: %s", whoamiOut)
+
+	sizeMB, err := strconv.ParseFloat(sizeMBStr, 64)
+	require.NoError(t, err, "Failed to parse Max Message Size as float: %s", sizeMBStr)
+
+	// Convert MB to bytes
+	return int64(sizeMB * 1024 * 1024)
+}
+
 // TestRateLimiterScenarios validates that usage stats change correctly after publishing messages
 func TestRateLimiterScenarios(t *testing.T) {
 	require.NotEmpty(t, cliBinaryPath, "CLI binary path must be set by TestMain")
@@ -163,12 +183,14 @@ func TestRateLimitExceededMessageSize(t *testing.T) {
 	require.NoError(t, err, "Failed to start subscriber")
 	time.Sleep(2 * time.Second)
 
-	// Create a file with content that exceeds any reasonable limit
-	// Default MaxMessageSize is 2MB, but token might have higher limit
-	// Use 10MB to ensure it exceeds any reasonable limit
+	// Get the actual MaxMessageSize limit from the token
+	maxMessageSize := getMaxMessageSize(t)
+	require.Greater(t, maxMessageSize, int64(0), "MaxMessageSize should be greater than 0")
+
+	// Create a file with content that exceeds the limit by 1 byte
 	dir := t.TempDir()
 	largeFile := filepath.Join(dir, "large-message.txt")
-	largeContent := strings.Repeat("A", 10*1024*1024) // 10MB - should exceed any reasonable limit
+	largeContent := strings.Repeat("A", int(maxMessageSize)+1) // Exceed limit by 1 byte
 	err = os.WriteFile(largeFile, []byte(largeContent), 0644)
 	require.NoError(t, err, "Failed to create large test file")
 
@@ -177,12 +199,7 @@ func TestRateLimitExceededMessageSize(t *testing.T) {
 		"--file="+largeFile,
 		"--service-url="+serviceURL)
 	require.Error(t, err, "Publish should fail when message size exceeds limit. Output: %s", out)
-	// Error could be from CLI rate limiter ("message size exceeds limit") or server ("request entity too large")
-	lowerOut := strings.ToLower(out)
-	hasSizeError := strings.Contains(lowerOut, "message size") ||
-		strings.Contains(lowerOut, "entity too large") ||
-		strings.Contains(lowerOut, "request entity too large")
-	require.True(t, hasSizeError, "Error should mention message size or entity too large. Got: %s", out)
+	require.Contains(t, strings.ToLower(out), "message size", "Error should mention message size. Got: %s", out)
 
 	cancel()
 	subCmd.Wait()
@@ -242,7 +259,6 @@ func TestRateLimiterWithFile(t *testing.T) {
 	serviceURL := GetDefaultProxy()
 	testTopic := fmt.Sprintf("ratelimit-file-%d", time.Now().Unix())
 
-	// Create a temporary test file using t.TempDir() for consistency
 	dir := t.TempDir()
 	testFile := filepath.Join(dir, "test-publish.txt")
 	testContent := "Test file content for rate limit tracking"
