@@ -24,7 +24,7 @@ func getInitialPublishCount(t *testing.T) int {
 	usageInfoBefore, err := validatorBefore.ValidateUsage()
 	require.NoError(t, err, "Failed to parse initial usage stats")
 
-	return parsePublishCount(usageInfoBefore.PublishCount)
+	return parsePublishCount(t, usageInfoBefore.PublishCount)
 }
 
 // TestRateLimiterScenarios validates that usage stats change correctly after publishing messages
@@ -70,7 +70,7 @@ func TestRateLimiterScenarios(t *testing.T) {
 	usageInfoAfter, err := validatorAfter.ValidateUsage()
 	require.NoError(t, err, "Failed to parse usage stats after publishing")
 
-	afterCount := parsePublishCount(usageInfoAfter.PublishCount)
+	afterCount := parsePublishCount(t, usageInfoAfter.PublishCount)
 
 	// Verify publish count increased exactly by numMessages (tests not run in parallel)
 	require.Equal(t, beforeCount+numMessages, afterCount,
@@ -101,7 +101,7 @@ func TestRateLimitExceededPerHour(t *testing.T) {
 	require.Greater(t, limitPerHour, 0, "Per-hour limit should be greater than 0")
 
 	// Get current publish count
-	currentCount := parsePublishCount(usageInfoBefore.PublishCount)
+	currentCount := parsePublishCount(t, usageInfoBefore.PublishCount)
 
 	// Calculate how many more publishes we can do before hitting the limit
 	remaining := limitPerHour - currentCount
@@ -227,7 +227,7 @@ func TestRateLimiterWithGRPC(t *testing.T) {
 	usageInfoAfter, err := validatorAfter.ValidateUsage()
 	require.NoError(t, err, "Failed to parse usage stats after publishing")
 
-	afterCount := parsePublishCount(usageInfoAfter.PublishCount)
+	afterCount := parsePublishCount(t, usageInfoAfter.PublishCount)
 
 	// Verify publish count increased exactly by 1 (tests not run in parallel)
 	require.Equal(t, beforeCount+1, afterCount,
@@ -280,7 +280,7 @@ func TestRateLimiterWithFile(t *testing.T) {
 	usageInfoAfter, err := validatorAfter.ValidateUsage()
 	require.NoError(t, err, "Failed to parse usage stats after publishing")
 
-	afterCount := parsePublishCount(usageInfoAfter.PublishCount)
+	afterCount := parsePublishCount(t, usageInfoAfter.PublishCount)
 
 	// Verify publish count increased exactly by 1 (tests not run in parallel)
 	require.Equal(t, beforeCount+1, afterCount,
