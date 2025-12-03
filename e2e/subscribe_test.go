@@ -18,7 +18,6 @@ func TestSubscribeCommand(t *testing.T) {
 	serviceURL := GetDefaultProxy()
 
 	// Add delay to allow P2P nodes to be ready
-	t.Log("Waiting for P2P nodes to be ready...")
 	time.Sleep(3 * time.Second)
 
 	testTopic := fmt.Sprintf("test-sub-%d", time.Now().Unix())

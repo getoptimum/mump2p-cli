@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,7 +20,6 @@ func TestPublishCommand(t *testing.T) {
 	testTopic := fmt.Sprintf("test-publish-%d", time.Now().Unix())
 
 	// Start a subscriber in the background to enable publishing
-	t.Log("Starting background subscriber to enable publishing...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -29,7 +29,6 @@ func TestPublishCommand(t *testing.T) {
 
 	// Wait for subscription to be active
 	time.Sleep(2 * time.Second)
-	t.Log("Subscriber active, proceeding with publish tests...")
 
 	tests := []struct {
 		name        string
@@ -81,6 +80,7 @@ func TestPublishCommand(t *testing.T) {
 		},
 	}
 
+	// Run the basic tests first
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out, err := RunCommand(cliBinaryPath, tt.args...)
@@ -98,8 +98,70 @@ func TestPublishCommand(t *testing.T) {
 		})
 	}
 
+	// Test --file flag scenarios
+	t.Run("publish from file HTTP", func(t *testing.T) {
+		testFile := fmt.Sprintf("/tmp/test-publish-%d.txt", time.Now().Unix())
+		testContent := "Test file content for HTTP publish"
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err, "Failed to create test file")
+		defer os.Remove(testFile)
+
+		out, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+testTopic,
+			"--file="+testFile,
+			"--service-url="+serviceURL)
+		require.NoError(t, err, "File publish failed: %v\nOutput: %s", err, out)
+
+		validator := NewValidator(out)
+		err = validator.ValidatePublishSuccess()
+		require.NoError(t, err, "File publish validation failed")
+	})
+
+	t.Run("publish from file gRPC", func(t *testing.T) {
+		testFile := fmt.Sprintf("/tmp/test-publish-grpc-%d.txt", time.Now().Unix())
+		testContent := "Test file content for gRPC publish"
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err, "Failed to create test file")
+		defer os.Remove(testFile)
+
+		out, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+testTopic,
+			"--file="+testFile,
+			"--grpc",
+			"--service-url="+serviceURL)
+		require.NoError(t, err, "File gRPC publish failed: %v\nOutput: %s", err, out)
+
+		validator := NewValidator(out)
+		err = validator.ValidatePublishSuccess()
+		require.NoError(t, err, "File gRPC publish validation failed")
+	})
+
+	t.Run("publish file not found", func(t *testing.T) {
+		nonExistentFile := "/tmp/nonexistent-file-12345.txt"
+		out, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+testTopic,
+			"--file="+nonExistentFile,
+			"--service-url="+serviceURL)
+		require.Error(t, err, "Expected file not found error. Output: %s", out)
+		require.Contains(t, strings.ToLower(out), "failed to read file", "Expected file read error")
+	})
+
+	t.Run("publish file and message both (should fail)", func(t *testing.T) {
+		testFile := fmt.Sprintf("/tmp/test-publish-both-%d.txt", time.Now().Unix())
+		err := os.WriteFile(testFile, []byte("test"), 0644)
+		require.NoError(t, err, "Failed to create test file")
+		defer os.Remove(testFile)
+
+		out, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+testTopic,
+			"--file="+testFile,
+			"--message=test",
+			"--service-url="+serviceURL)
+		require.Error(t, err, "Expected error when both --file and --message are provided. Output: %s", out)
+		require.Contains(t, strings.ToLower(out), "only one", "Expected error about using only one option")
+	})
+
 	// Cleanup: stop subscriber
 	cancel()
 	subCmd.Wait()
-	t.Log("Background subscriber stopped")
 }
