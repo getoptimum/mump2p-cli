@@ -53,10 +53,12 @@ func TestDailyQuotaTracking(t *testing.T) {
 	// Verify usage increased
 	require.Contains(t, usageAfter, "Data Used:", "Usage stats should show data usage")
 
-	// Parse publish counts to verify they increased
+	// Parse publish counts to verify they increased exactly by 1 (tests not run in parallel)
 	beforeCount := parsePublishCount(usageInfoBefore.PublishCount)
 	afterCount := parsePublishCount(usageInfoAfter.PublishCount)
-	require.GreaterOrEqual(t, afterCount, beforeCount, "Publish count should increase or stay same after publishing")
+	require.Equal(t, beforeCount+1, afterCount,
+		"Publish count should increase by exactly 1 (before: %d, after: %d)",
+		beforeCount, afterCount)
 }
 
 // parsePublishCount parses the publish count string to an integer

@@ -158,13 +158,30 @@ func (v *OutputValidator) ValidateUsage() (*UsageInfo, error) {
 		return nil, err
 	}
 
-	// Extract publish count (number format)
-	publishPattern := `Publish \(hour\):\s+(\d+)`
-	publishCount, err := v.ExtractMatch(publishPattern)
-	if err != nil {
-		return nil, fmt.Errorf("could not extract publish count: %w", err)
+	// Extract publish count and limit (format: "Publish (hour):     5 / 100")
+	publishPattern := `Publish \(hour\):\s+(\d+)\s+/\s+(\d+)`
+	matches := regexp.MustCompile(publishPattern).FindStringSubmatch(v.output)
+	if len(matches) < 3 {
+		return nil, fmt.Errorf("could not extract publish count and limit")
 	}
-	info.PublishCount = publishCount
+	info.PublishCount = matches[1]
+	info.PublishLimitPerHour = matches[2]
+
+	// Extract per-second count and limit (format: "Publish (second):   1 / 2")
+	secondPattern := `Publish \(second\):\s+(\d+)\s+/\s+(\d+)`
+	secondMatches := regexp.MustCompile(secondPattern).FindStringSubmatch(v.output)
+	if len(secondMatches) >= 3 {
+		info.SecondPublishCount = secondMatches[1]
+		info.PublishLimitPerSec = secondMatches[2]
+	}
+
+	// Extract data used and daily quota (format: "Data Used:          0.0000 MB / 100.0000 MB")
+	dataPattern := `Data Used:\s+([\d.]+)\s+MB\s+/\s+([\d.]+)\s+MB`
+	dataMatches := regexp.MustCompile(dataPattern).FindStringSubmatch(v.output)
+	if len(dataMatches) >= 3 {
+		info.BytesPublishedMB = dataMatches[1]
+		info.DailyQuotaMB = dataMatches[2]
+	}
 
 	return info, nil
 }
@@ -187,5 +204,10 @@ type HealthInfo struct {
 
 // UsageInfo holds parsed usage statistics
 type UsageInfo struct {
-	PublishCount string
+	PublishCount        string
+	PublishLimitPerHour string
+	SecondPublishCount  string
+	PublishLimitPerSec  string
+	BytesPublishedMB    string
+	DailyQuotaMB        string
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -100,11 +101,11 @@ func TestPublishCommand(t *testing.T) {
 
 	// Test --file flag scenarios
 	t.Run("publish from file HTTP", func(t *testing.T) {
-		testFile := fmt.Sprintf("/tmp/test-publish-%d.txt", time.Now().Unix())
+		dir := t.TempDir()
+		testFile := filepath.Join(dir, "test-publish.txt")
 		testContent := "Test file content for HTTP publish"
 		err := os.WriteFile(testFile, []byte(testContent), 0644)
 		require.NoError(t, err, "Failed to create test file")
-		defer os.Remove(testFile)
 
 		out, err := RunCommand(cliBinaryPath, "publish",
 			"--topic="+testTopic,
@@ -118,11 +119,11 @@ func TestPublishCommand(t *testing.T) {
 	})
 
 	t.Run("publish from file gRPC", func(t *testing.T) {
-		testFile := fmt.Sprintf("/tmp/test-publish-grpc-%d.txt", time.Now().Unix())
+		dir := t.TempDir()
+		testFile := filepath.Join(dir, "test-publish-grpc.txt")
 		testContent := "Test file content for gRPC publish"
 		err := os.WriteFile(testFile, []byte(testContent), 0644)
 		require.NoError(t, err, "Failed to create test file")
-		defer os.Remove(testFile)
 
 		out, err := RunCommand(cliBinaryPath, "publish",
 			"--topic="+testTopic,
@@ -137,7 +138,8 @@ func TestPublishCommand(t *testing.T) {
 	})
 
 	t.Run("publish file not found", func(t *testing.T) {
-		nonExistentFile := "/tmp/nonexistent-file-12345.txt"
+		dir := t.TempDir()
+		nonExistentFile := filepath.Join(dir, "nonexistent-file.txt")
 		out, err := RunCommand(cliBinaryPath, "publish",
 			"--topic="+testTopic,
 			"--file="+nonExistentFile,
@@ -147,10 +149,10 @@ func TestPublishCommand(t *testing.T) {
 	})
 
 	t.Run("publish file and message both (should fail)", func(t *testing.T) {
-		testFile := fmt.Sprintf("/tmp/test-publish-both-%d.txt", time.Now().Unix())
+		dir := t.TempDir()
+		testFile := filepath.Join(dir, "test-publish-both.txt")
 		err := os.WriteFile(testFile, []byte("test"), 0644)
 		require.NoError(t, err, "Failed to create test file")
-		defer os.Remove(testFile)
 
 		out, err := RunCommand(cliBinaryPath, "publish",
 			"--topic="+testTopic,
