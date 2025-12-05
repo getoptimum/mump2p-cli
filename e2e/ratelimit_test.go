@@ -65,9 +65,6 @@ func TestDailyQuotaTracking(t *testing.T) {
 func parsePublishCount(t *testing.T, countStr string) int {
 	t.Helper()
 	count, err := strconv.Atoi(countStr)
-	if err != nil {
-		t.Logf("Failed to parse publish count '%s': %v", countStr, err)
-		return 0
-	}
+	require.NoError(t, err, "Failed to parse publish count '%s'", countStr)
 	return count
 }
