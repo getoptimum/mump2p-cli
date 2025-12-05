@@ -53,8 +53,6 @@ func TestPublishWithoutSubscriptionOnDifferentNode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Log(tt.description)
-
 			var cancel context.CancelFunc
 			var subCmd *exec.Cmd
 
@@ -65,8 +63,6 @@ func TestPublishWithoutSubscriptionOnDifferentNode(t *testing.T) {
 				defer cancel()
 
 				subProxy := proxies[tt.subscribeOn]
-				t.Logf("Starting subscriber on proxy %d: %s", tt.subscribeOn, subProxy)
-
 				subCmd = exec.CommandContext(ctx, cliBinaryPath,
 					"subscribe",
 					"--topic="+testTopic,
@@ -77,14 +73,10 @@ func TestPublishWithoutSubscriptionOnDifferentNode(t *testing.T) {
 
 				// Wait for subscriber to be active
 				time.Sleep(3 * time.Second)
-				t.Log("Subscriber active")
-			} else {
-				t.Log("No subscriber started (testing publish without subscription)")
 			}
 
 			// Attempt to publish
 			pubProxy := proxies[tt.publishOn]
-			t.Logf("Publishing on proxy %d: %s", tt.publishOn, pubProxy)
 
 			out, err := RunCommand(cliBinaryPath, "publish",
 				"--topic="+testTopic,
@@ -94,17 +86,12 @@ func TestPublishWithoutSubscriptionOnDifferentNode(t *testing.T) {
 			// Validate expectations
 			if tt.shouldFail {
 				// Should fail with "topic not assigned" or similar
-				if err == nil {
-					t.Errorf("CRITICAL: Publishing without subscriber should have failed but succeeded! Output: %s", out)
-				} else {
-					lowerOut := strings.ToLower(out)
-					if strings.Contains(lowerOut, "topic not assigned") ||
-						strings.Contains(lowerOut, "not found") ||
-						strings.Contains(lowerOut, "failed") {
-						t.Logf("✅ Correctly rejected: %s", out)
-					} else {
-						t.Logf("⚠️ Failed but with unexpected error: %s", out)
-					}
+				require.Error(t, err, "Publishing without subscriber should have failed. Output: %s", out)
+				lowerOut := strings.ToLower(out)
+				if !strings.Contains(lowerOut, "topic not assigned") &&
+					!strings.Contains(lowerOut, "not found") &&
+					!strings.Contains(lowerOut, "failed") {
+					t.Logf("Unexpected error message: %s", out)
 				}
 			} else {
 				// Should succeed
@@ -113,8 +100,6 @@ func TestPublishWithoutSubscriptionOnDifferentNode(t *testing.T) {
 				validator := NewValidator(out)
 				err := validator.ValidatePublishSuccess()
 				require.NoError(t, err, "Publish validation failed")
-
-				t.Logf("✅ Cross-node publish succeeded")
 			}
 
 			// Cleanup
@@ -139,8 +124,6 @@ func TestCrossProxyFailover(t *testing.T) {
 
 	// Test with a definitely invalid proxy
 	invalidProxy := "http://192.0.2.1:8080" // TEST-NET-1 (non-routable)
-
-	t.Log("Testing publish to unreachable proxy (should fail quickly)")
 
 	// Start subscriber on valid proxy first
 	validProxy := GetDefaultProxy()
@@ -173,8 +156,6 @@ func TestCrossProxyFailover(t *testing.T) {
 	require.Less(t, duration.Seconds(), 35.0,
 		"Publish to unreachable proxy should timeout/fail within 35 seconds, took %v", duration)
 
-	t.Logf("✅ Correctly failed to publish to unreachable proxy in %v", duration)
-
 	cancel()
 	subCmd.Wait()
 }
@@ -187,8 +168,6 @@ func TestMultipleSubscribersOnDifferentProxies(t *testing.T) {
 
 	testTopic := fmt.Sprintf("multi-sub-%d", time.Now().Unix())
 	testMessage := fmt.Sprintf("MultiSubTest-%d", time.Now().Unix())
-
-	t.Log("Starting subscribers on multiple proxies...")
 
 	// Start subscribers on both proxies
 	ctx, cancel := context.WithCancel(context.Background())
@@ -204,13 +183,10 @@ func TestMultipleSubscribersOnDifferentProxies(t *testing.T) {
 		err := subCmd.Start()
 		require.NoError(t, err, "Failed to start subscriber %d on %s", i, proxy)
 		subCmds = append(subCmds, subCmd)
-
-		t.Logf("Subscriber %d started on %s", i, proxy)
 	}
 
 	// Wait for all subscribers to be ready
 	time.Sleep(4 * time.Second)
-	t.Log("All subscribers ready")
 
 	// Publish message to first proxy
 	out, err := RunCommand(cliBinaryPath, "publish",
@@ -223,8 +199,6 @@ func TestMultipleSubscribersOnDifferentProxies(t *testing.T) {
 	validator := NewValidator(out)
 	err = validator.ValidatePublishSuccess()
 	require.NoError(t, err)
-
-	t.Log("✅ Successfully published to topic with multiple cross-proxy subscribers")
 
 	// Cleanup
 	cancel()
@@ -252,8 +226,7 @@ func TestProxyHealthBeforePublish(t *testing.T) {
 			validator := NewValidator(healthOut)
 			healthInfo, err := validator.ValidateHealthCheck()
 			require.NoError(t, err, "Health check validation failed")
-
-			t.Logf("Proxy %s health: %s", proxy, healthInfo.Status)
+			require.Equal(t, "ok", healthInfo.Status, "Proxy %s should be healthy", proxy)
 
 			// If healthy, test should be able to publish (with subscriber)
 			testTopic := fmt.Sprintf("health-pub-%d-%d", i, time.Now().Unix())
@@ -280,7 +253,6 @@ func TestProxyHealthBeforePublish(t *testing.T) {
 			subCmd.Wait()
 
 			require.NoError(t, pubErr, "Proxy reported healthy but publish failed: %s", pubOut)
-			t.Logf("✅ Healthy proxy successfully processed publish")
 		})
 	}
 }

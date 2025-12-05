@@ -40,7 +40,6 @@ func TestFullWorkflow(t *testing.T) {
 	})
 
 	// Start subscriber in background before publishing
-	t.Log("Starting background subscriber for workflow tests...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -51,7 +50,6 @@ func TestFullWorkflow(t *testing.T) {
 
 	// Wait for subscription to be active
 	time.Sleep(2 * time.Second)
-	t.Log("Subscriber active, proceeding with publish tests...")
 
 	t.Run("4_publish_http_message", func(t *testing.T) {
 		out, err := RunCommand(cliBinaryPath, "publish",
@@ -99,7 +97,6 @@ func TestFullWorkflow(t *testing.T) {
 	// Cleanup: stop subscriber
 	cancel()
 	subCmd.Wait()
-	t.Log("Background subscriber stopped")
 }
 
 func TestCrossProxyWorkflow(t *testing.T) {
@@ -111,7 +108,6 @@ func TestCrossProxyWorkflow(t *testing.T) {
 	testTopic := fmt.Sprintf("cross-proxy-%d", time.Now().Unix())
 
 	// Start subscriber on first proxy
-	t.Log("Starting background subscriber for cross-proxy tests...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -122,7 +118,6 @@ func TestCrossProxyWorkflow(t *testing.T) {
 
 	// Wait for subscription to be active
 	time.Sleep(2 * time.Second)
-	t.Log("Subscriber active on first proxy...")
 
 	for i, proxy := range proxies {
 		proxyName := fmt.Sprintf("proxy_%d", i+1)
@@ -145,5 +140,4 @@ func TestCrossProxyWorkflow(t *testing.T) {
 	// Cleanup: stop subscriber
 	cancel()
 	subCmd.Wait()
-	t.Log("Background subscriber stopped")
 }

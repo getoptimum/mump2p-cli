@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"testing"
 	"time"
 
@@ -19,9 +20,8 @@ func TestDailyQuotaTracking(t *testing.T) {
 	require.NoError(t, err, "Failed to get usage stats")
 
 	validator := NewValidator(usageBefore)
-	usageInfo, err := validator.ValidateUsage()
+	usageInfoBefore, err := validator.ValidateUsage()
 	require.NoError(t, err, "Failed to parse usage stats")
-	t.Logf("Usage before test: %s publishes", usageInfo.PublishCount)
 
 	serviceURL := GetDefaultProxy()
 
@@ -46,9 +46,25 @@ func TestDailyQuotaTracking(t *testing.T) {
 	usageAfter, err := RunCommand(cliBinaryPath, "usage")
 	require.NoError(t, err, "Failed to get usage stats after publish")
 
-	t.Logf("Usage stats before: %s", usageBefore)
-	t.Logf("Usage stats after: %s", usageAfter)
+	validatorAfter := NewValidator(usageAfter)
+	usageInfoAfter, err := validatorAfter.ValidateUsage()
+	require.NoError(t, err, "Failed to parse usage stats after publish")
 
+	// Verify usage increased
 	require.Contains(t, usageAfter, "Data Used:", "Usage stats should show data usage")
-	t.Log("✅ Daily quota tracking is functional")
+
+	// Parse publish counts to verify they increased exactly by 1 (tests not run in parallel)
+	beforeCount := parsePublishCount(t, usageInfoBefore.PublishCount)
+	afterCount := parsePublishCount(t, usageInfoAfter.PublishCount)
+	require.Equal(t, beforeCount+1, afterCount,
+		"Publish count should increase by exactly 1 (before: %d, after: %d)",
+		beforeCount, afterCount)
+}
+
+// parsePublishCount parses the publish count string to an integer
+func parsePublishCount(t *testing.T, countStr string) int {
+	t.Helper()
+	count, err := strconv.Atoi(countStr)
+	require.NoError(t, err, "Failed to parse publish count '%s'", countStr)
+	return count
 }
