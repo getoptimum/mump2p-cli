@@ -21,6 +21,7 @@ It supports authenticated publishing, subscribing, rate-limited usage tracking, 
 - [x] Debug mode with detailed timing and proxy information
 - [x] Development mode with `--disable-auth` flag for testing
 - [x] Multiple output formats (table, JSON, YAML) for automation and scripting
+- [x] Interactive tracer dashboard for real-time metrics visualization
   
 ---
 
@@ -81,6 +82,9 @@ Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/lates
 # Debug mode - detailed timing and proxy information
 ./mump2p --debug publish --topic=test-topic --message='Hello World'
 ./mump2p --debug subscribe --topic=test-topic
+
+# Tracer dashboard - real-time metrics visualization
+./mump2p tracer dashboard
 ```
 
 ### Transport Protocols
