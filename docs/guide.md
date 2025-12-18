@@ -468,6 +468,29 @@ This will display:
 - Time until usage counters reset
 - Timestamps of your last publish and subscribe operations
 
+## Tracer Dashboard
+
+Interactive real-time dashboard showing network metrics, message statistics, and latency data.
+
+```sh
+./mump2p tracer dashboard
+```
+
+**Options:**
+- `--window`: Time window for metrics (default: `10s`)
+- `--topic`: Topic for auto-publishing demo messages (default: `demo`)
+- `--count`: Number of messages to auto-publish (default: `60`)
+- `--interval-ms`: Interval between published messages in ms (default: `500`)
+
+**Example:**
+```sh
+./mump2p tracer dashboard --topic=metrics --count=100 --interval-ms=200
+```
+
+Press `q` or `Ctrl+C` to exit.
+
+![Tracer Visualization](img/tracer.png)
+
 ## Health Monitoring
 
 ### Check Proxy Server Health
