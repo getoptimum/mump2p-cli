@@ -480,7 +480,7 @@ Interactive real-time dashboard showing network metrics, message statistics, and
 - `--window`: Time window for metrics (default: `10s`)
 - `--topic`: Topic for auto-publishing demo messages (default: `demo`)
 - `--count`: Number of messages to auto-publish (default: `60`)
-- `--interval-ms`: Interval between messages in ms (default: `500`)
+- `--interval-ms`: Interval between published messages in ms (default: `500`)
 
 **Example:**
 ```sh
