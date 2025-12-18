@@ -12,11 +12,6 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	if os.Getenv("MUMP2P_E2E_SKIP") == "1" {
-		fmt.Fprintln(os.Stderr, "[e2e] skipping CLI smoke tests (MUMP2P_E2E_SKIP=1)")
-		os.Exit(0)
-	}
-
 	var err error
 	cliBinaryPath, cliCleanup, err = PrepareCLI()
 	if err != nil {

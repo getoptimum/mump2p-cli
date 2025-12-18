@@ -114,8 +114,8 @@ For development and testing scenarios, you can bypass authentication entirely us
 ./mump2p --disable-auth usage
 
 # Works with gRPC too
-./mump2p --disable-auth --client-id="my-test-client" --grpc publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
-./mump2p --disable-auth --client-id="my-test-client" --grpc subscribe --topic=test --service-url="http://34.146.222.111:8080"
+./mump2p --disable-auth --client-id="my-test-client" publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080" --grpc
+./mump2p --disable-auth --client-id="my-test-client" subscribe --topic=test --service-url="http://34.146.222.111:8080" --grpc
 
 # Combine with debug mode
 ./mump2p --disable-auth --client-id="my-test-client" --debug publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
@@ -467,6 +467,29 @@ This will display:
 - Quota limits
 - Time until usage counters reset
 - Timestamps of your last publish and subscribe operations
+
+## Tracer Dashboard
+
+Interactive real-time dashboard showing network metrics, message statistics, and latency data.
+
+```sh
+./mump2p tracer dashboard
+```
+
+**Options:**
+- `--window`: Time window for metrics (default: `10s`)
+- `--topic`: Topic for auto-publishing demo messages (default: `demo`)
+- `--count`: Number of messages to auto-publish (default: `60`)
+- `--interval-ms`: Interval between published messages in ms (default: `500`)
+
+**Example:**
+```sh
+./mump2p tracer dashboard --topic=metrics --count=100 --interval-ms=200
+```
+
+Press `q` or `Ctrl+C` to exit.
+
+![Tracer Visualization](img/tracer.png)
 
 ## Health Monitoring
 
