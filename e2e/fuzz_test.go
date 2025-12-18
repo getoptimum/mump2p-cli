@@ -27,20 +27,34 @@ func FuzzPublishTopicName(f *testing.F) {
 		// For obviously invalid input, verify graceful error handling
 		if strings.Contains(topic, "\x00") {
 			args := []string{"publish", "--topic=" + topic, "--message=test"}
-			_, err := RunCommand(cliBinaryPath, args...)
+			out, err := RunCommand(cliBinaryPath, args...)
 			require.Error(t, err, "CLI should reject null bytes in topic name")
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on topic with null byte: %v\nOutput: %s", err, out)
+			}
 			return
 		}
 
 		args := []string{"publish", "--topic=" + topic, "--message=test"}
 		out, err := RunCommand(cliBinaryPath, args...)
+		// For fuzzing, we need to detect failures - invalid topics should fail gracefully
+		// Valid topics might succeed (if subscribed) or fail (if not subscribed)
+		// The key is that the CLI should handle the input without panicking
 		if err != nil {
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on topic %q: %v\nOutput: %s", topic, err, out)
+			}
+			// For invalid topics, errors are expected and acceptable
 			t.Logf("Command failed (expected for invalid input): %v\nOutput: %s", err, out)
 		}
 	})
 }
 
-// FuzzPublishMessage tests the publish command with a message
+// FuzzPublishMessage tests the publish command with a message.
+// This is distinct from FuzzPublishTopicName which tests topic name validation;
+// this test focuses on message content validation and handling.
 func FuzzPublishMessage(f *testing.F) {
 	require.NotEmpty(f, cliBinaryPath, "CLI binary path must be set by TestMain")
 
@@ -58,14 +72,26 @@ func FuzzPublishMessage(f *testing.F) {
 		// For obviously invalid input, verify graceful error handling
 		if strings.Contains(message, "\x00") {
 			args := []string{"publish", "--topic=fuzz-test", "--message=" + message}
-			_, err := RunCommand(cliBinaryPath, args...)
+			out, err := RunCommand(cliBinaryPath, args...)
 			require.Error(t, err, "CLI should reject null bytes in message")
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on message with null byte: %v\nOutput: %s", err, out)
+			}
 			return
 		}
 
 		args := []string{"publish", "--topic=fuzz-test", "--message=" + message}
 		out, err := RunCommand(cliBinaryPath, args...)
+		// For fuzzing, we need to detect failures - invalid messages should fail gracefully
+		// Valid messages might succeed (if topic is subscribed) or fail (if not subscribed)
+		// The key is that the CLI should handle the input without panicking
 		if err != nil {
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on message %q: %v\nOutput: %s", message, err, out)
+			}
+			// For invalid messages, errors are expected and acceptable
 			t.Logf("Command failed (expected for invalid input): %v\nOutput: %s", err, out)
 		}
 	})
@@ -81,15 +107,36 @@ func FuzzServiceURL(f *testing.F) {
 	f.Add("http://localhost:-8080")
 	f.Add("http://localhost:99999")
 	f.Add("javascript:alert(1)")
+	f.Add("\x00")
 
 	f.Fuzz(func(t *testing.T, url string) {
 		if len(url) > 1000 {
 			t.Skip()
 		}
 
+		// For obviously invalid input, verify graceful error handling
+		if strings.Contains(url, "\x00") {
+			args := []string{"health", "--service-url=" + url}
+			out, err := RunCommand(cliBinaryPath, args...)
+			require.Error(t, err, "CLI should reject null bytes in service URL")
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on service URL with null byte: %v\nOutput: %s", err, out)
+			}
+			return
+		}
+
 		args := []string{"health", "--service-url=" + url}
 		out, err := RunCommand(cliBinaryPath, args...)
+		// For fuzzing, we need to detect failures - invalid URLs should fail gracefully
+		// Valid URLs might succeed (if proxy is reachable) or fail (if not)
+		// The key is that the CLI should handle the input without panicking
 		if err != nil {
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on URL %q: %v\nOutput: %s", url, err, out)
+			}
+			// For invalid URLs, errors are expected and acceptable
 			t.Logf("Command failed (expected for invalid URL): %v\nOutput: %s", err, out)
 		}
 	})
@@ -114,14 +161,26 @@ func FuzzFilePath(f *testing.F) {
 		// For obviously invalid input, verify graceful error handling
 		if strings.Contains(filepath, "\x00") {
 			args := []string{"publish", "--topic=fuzz-test", "--file=" + filepath}
-			_, err := RunCommand(cliBinaryPath, args...)
+			out, err := RunCommand(cliBinaryPath, args...)
 			require.Error(t, err, "CLI should reject null bytes in file path")
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on file path with null byte: %v\nOutput: %s", err, out)
+			}
 			return
 		}
 
 		args := []string{"publish", "--topic=fuzz-test", "--file=" + filepath}
 		out, err := RunCommand(cliBinaryPath, args...)
+		// For fuzzing, we need to detect failures - invalid file paths should fail gracefully
+		// Valid file paths might succeed (if file exists and topic is subscribed) or fail (if not)
+		// The key is that the CLI should handle the input without panicking
 		if err != nil {
+			// Verify error is handled gracefully (not a panic)
+			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
+				t.Fatalf("CLI panicked or crashed on file path %q: %v\nOutput: %s", filepath, err, out)
+			}
+			// For invalid file paths, errors are expected and acceptable
 			t.Logf("Command failed (expected for invalid file path): %v\nOutput: %s", err, out)
 		}
 	})

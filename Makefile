@@ -18,7 +18,7 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test e2e-quick e2e-fuzz e2e-fuzz-quick coverage
+.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test e2e-quick e2e-fuzz coverage
 
 all: lint build
 
@@ -99,24 +99,7 @@ e2e-fuzz: ## Run fuzz tests against dist/ binary
 	@go test ./e2e -run='^$$' -fuzz=FuzzServiceURL -fuzztime=1m -timeout=3m
 	@echo "Fuzzing file paths..."
 	@go test ./e2e -run='^$$' -fuzz=FuzzFilePath -fuzztime=1m -timeout=3m
-	@echo "✅ All fuzz tests passed!"
-
-e2e-fuzz-quick: ## Run quick fuzz tests
-	@echo "Running quick fuzz tests..."
-	@if [ ! -f "$(BUILD_DIR)/$(CLI_NAME)-linux" ] && [ ! -f "$(BUILD_DIR)/$(CLI_NAME)-mac" ]; then \
-		echo "Error: No binary found in $(BUILD_DIR)/"; \
-		echo "Run 'make build' first with release credentials"; \
-		exit 1; \
-	fi
-	@echo "Fuzzing publish topic names..."
-	@go test ./e2e -run='^$$' -fuzz=FuzzPublishTopicName -fuzztime=20s -timeout=1m
-	@echo "Fuzzing publish messages..."
-	@go test ./e2e -run='^$$' -fuzz=FuzzPublishMessage -fuzztime=20s -timeout=1m
-	@echo "Fuzzing service URLs..."
-	@go test ./e2e -run='^$$' -fuzz=FuzzServiceURL -fuzztime=20s -timeout=1m
-	@echo "Fuzzing file paths..."
-	@go test ./e2e -run='^$$' -fuzz=FuzzFilePath -fuzztime=20s -timeout=1m
-	@echo "✅ All fuzz tests passed!"
+	@echo "All fuzz tests passed!"
 
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
