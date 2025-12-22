@@ -9,14 +9,16 @@ import (
 )
 
 // PrepareCLI sets up the test environment and returns the CLI binary path
+// Token setup is optional - if it fails, we continue without auth (useful for fuzz tests)
 func PrepareCLI() (cliPath string, cleanup func(), err error) {
-	tokenPath, err := SetupTokenFile()
-	if err != nil {
-		return "", nil, err
+	tokenPath, tokenErr := SetupTokenFile()
+	if tokenErr == nil {
+		// Token setup succeeded, set it up
+		if err := os.Setenv("MUMP2P_AUTH_PATH", tokenPath); err != nil {
+			return "", nil, fmt.Errorf("failed to set MUMP2P_AUTH_PATH: %w", err)
+		}
 	}
-	if err := os.Setenv("MUMP2P_AUTH_PATH", tokenPath); err != nil {
-		return "", nil, fmt.Errorf("failed to set MUMP2P_AUTH_PATH: %w", err)
-	}
+	// If token setup failed, we continue without auth (for fuzz tests that don't need it)
 	repoRoot, err := findRepoRoot()
 	if err != nil {
 		return "", nil, err
@@ -46,7 +48,9 @@ func PrepareCLI() (cliPath string, cleanup func(), err error) {
 	}
 
 	cleanup = func() {
-		_ = os.RemoveAll(filepath.Dir(tokenPath))
+		if tokenPath != "" {
+			_ = os.RemoveAll(filepath.Dir(tokenPath))
+		}
 	}
 
 	return cli, cleanup, nil
