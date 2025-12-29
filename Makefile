@@ -18,7 +18,7 @@ LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN)
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test e2e-quick e2e-fuzz coverage
+.PHONY: all build run clean test help lint build tag release print-cli-name e2e-test e2e-fuzz coverage
 
 all: lint build
 
@@ -79,10 +79,6 @@ e2e-test: ## Run E2E tests against dist/ binary
 		exit 1; \
 	fi
 	go test ./e2e -v -timeout 10m
-
-e2e-quick: ## Run quick smoke tests only
-	@echo "Running quick smoke tests..."
-	go test ./e2e -v -run TestCLISmokeCommands -timeout 2m
 
 e2e-fuzz: ## Run fuzz tests against dist/ binary
 	@echo "Running fuzz tests..."
