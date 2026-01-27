@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/getoptimum/mump2p-cli/internal/config"
 	"github.com/getoptimum/mump2p-cli/internal/formatter"
@@ -42,7 +43,9 @@ var healthCmd = &cobra.Command{
 			return fmt.Errorf("failed to create request: %v", err)
 		}
 
-		resp, err := http.DefaultClient.Do(req)
+		// Use HTTP client with timeout to prevent hanging during fuzzing
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
 		if err != nil {
 			return fmt.Errorf("health check failed: %v", err)
 		}

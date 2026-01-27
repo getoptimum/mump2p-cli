@@ -592,7 +592,9 @@ func resetStats(ctx context.Context, base, jwt string) error {
 	if jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	// Use HTTP client with timeout to prevent hanging during fuzzing
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -677,7 +679,9 @@ func proxyPublishRandom(base, jwt, clientID, topic string, length uint64) error 
 	if !IsAuthDisabled() && jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	// Use HTTP client with timeout to prevent hanging during fuzzing
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -708,7 +712,9 @@ func proxySubscribe(base, jwt, topic, clientID string, threshold int) error {
 	if !IsAuthDisabled() && jwt != "" {
 		req.Header.Set("Authorization", "Bearer "+jwt)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	// Use HTTP client with timeout to prevent hanging during fuzzing
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
