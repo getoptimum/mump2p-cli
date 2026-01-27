@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -182,6 +183,13 @@ func TestPublishCommand(t *testing.T) {
 			"--service-url="+serviceURL)
 		require.NoError(t, err, "First publish failed: %v\nOutput: %s", err, out1)
 
+		// Extract JSON response and verify status is "published"
+		var resp1 map[string]interface{}
+		jsonStart := strings.Index(out1, "{")
+		require.Greater(t, jsonStart, -1, "No JSON response found in output")
+		require.NoError(t, json.Unmarshal([]byte(out1[jsonStart:]), &resp1), "Failed to parse JSON response")
+		require.Equal(t, "published", resp1["status"], "First publish should have status 'published'")
+
 		// Small delay to ensure different timestamp
 		time.Sleep(100 * time.Millisecond)
 
@@ -191,9 +199,13 @@ func TestPublishCommand(t *testing.T) {
 			"--service-url="+serviceURL)
 		require.NoError(t, err, "Second publish failed: %v\nOutput: %s", err, out2)
 
-		// Both should succeed (different timestamps = different message IDs)
-		require.Contains(t, out1, "published", "First publish should succeed")
-		require.Contains(t, out2, "published", "Second publish should succeed (different timestamp)")
+		// Extract JSON response and verify status is "published" (different timestamp = different message ID)
+		var resp2 map[string]interface{}
+		jsonStart = strings.Index(out2, "{")
+		require.Greater(t, jsonStart, -1, "No JSON response found in output")
+		require.NoError(t, json.Unmarshal([]byte(out2[jsonStart:]), &resp2), "Failed to parse JSON response")
+		require.Equal(t, "published", resp2["status"], "Second publish should have status 'published' (different timestamp)")
+		require.NotEqual(t, resp1["message_id"], resp2["message_id"], "Message IDs should be different (different timestamps)")
 
 		subCancel()
 		subCmd.Wait()
@@ -217,7 +229,13 @@ func TestPublishCommand(t *testing.T) {
 			"--no-dedup",
 			"--service-url="+serviceURL)
 		require.NoError(t, err, "First publish failed: %v\nOutput: %s", err, out1)
-		require.Contains(t, out1, "published", "First publish should succeed")
+
+		// Extract JSON response and verify status is "published"
+		var resp1 map[string]interface{}
+		jsonStart := strings.Index(out1, "{")
+		require.Greater(t, jsonStart, -1, "No JSON response found in output")
+		require.NoError(t, json.Unmarshal([]byte(out1[jsonStart:]), &resp1), "Failed to parse JSON response")
+		require.Equal(t, "published", resp1["status"], "First publish should have status 'published'")
 
 		// Publish same message again
 		out2, err := RunCommand(cliBinaryPath, "publish",
@@ -227,8 +245,13 @@ func TestPublishCommand(t *testing.T) {
 			"--service-url="+serviceURL)
 		require.NoError(t, err, "Second publish should not error (deduplicated): %v\nOutput: %s", err, out2)
 
-		// Second should be deduplicated (same message hash without timestamp)
-		require.Contains(t, strings.ToLower(out2), "deduplicated", "Second publish should be deduplicated when --no-dedup is used")
+		// Extract JSON response and verify status is "deduplicated" (same message hash without timestamp)
+		var resp2 map[string]interface{}
+		jsonStart = strings.Index(out2, "{")
+		require.Greater(t, jsonStart, -1, "No JSON response found in output")
+		require.NoError(t, json.Unmarshal([]byte(out2[jsonStart:]), &resp2), "Failed to parse JSON response")
+		require.Equal(t, "deduplicated", resp2["status"], "Second publish should have status 'deduplicated' when --no-dedup is used")
+		require.Equal(t, resp1["message_id"], resp2["message_id"], "Message IDs should be the same (no timestamp)")
 
 		subCancel()
 		subCmd.Wait()
