@@ -42,7 +42,7 @@ func FuzzPublishTopicName(f *testing.F) {
 		// Valid topics might succeed (if subscribed) or fail (if not subscribed)
 		// The key is that the CLI should handle the input without panicking
 		if err != nil {
-			// Verify error is handled gracefully (not a panic)
+			// Any error should be handled gracefully (not a panic or crash)
 			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
 				t.Fatalf("CLI panicked or crashed on topic %q: %v\nOutput: %s", topic, err, out)
 			}
@@ -87,7 +87,7 @@ func FuzzPublishMessage(f *testing.F) {
 		// Valid messages might succeed (if topic is subscribed) or fail (if not subscribed)
 		// The key is that the CLI should handle the input without panicking
 		if err != nil {
-			// Verify error is handled gracefully (not a panic)
+			// Any error should be handled gracefully (not a panic or crash)
 			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
 				t.Fatalf("CLI panicked or crashed on message %q: %v\nOutput: %s", message, err, out)
 			}
@@ -132,7 +132,7 @@ func FuzzServiceURL(f *testing.F) {
 		// Valid URLs might succeed (if proxy is reachable) or fail (if not)
 		// The key is that the CLI should handle the input without panicking
 		if err != nil {
-			// Verify error is handled gracefully (not a panic)
+			// Any error should be handled gracefully (not a panic or crash)
 			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
 				t.Fatalf("CLI panicked or crashed on URL %q: %v\nOutput: %s", url, err, out)
 			}
@@ -176,7 +176,7 @@ func FuzzFilePath(f *testing.F) {
 		// Valid file paths might succeed (if file exists and topic is subscribed) or fail (if not)
 		// The key is that the CLI should handle the input without panicking
 		if err != nil {
-			// Verify error is handled gracefully (not a panic)
+			// Any error should be handled gracefully (not a panic or crash)
 			if strings.Contains(out, "panic") || strings.Contains(out, "fatal") {
 				t.Fatalf("CLI panicked or crashed on file path %q: %v\nOutput: %s", filepath, err, out)
 			}
