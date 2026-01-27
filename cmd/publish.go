@@ -196,7 +196,12 @@ var publishCmd = &cobra.Command{
 			}
 
 			var timestamp *int64
-			if !noDedup {
+			if noDedup {
+				// When --no-dedup is set, omit timestamp so proxy uses MsgHash(topic, message)
+				// instead of MsgHashWithTimestamp. This allows same message to be sent once per session
+				timestamp = nil
+			} else {
+				// Default: include timestamp so proxy uses MsgHashWithTimestamp
 				ts := time.Now().UnixMilli()
 				timestamp = &ts
 			}
@@ -258,7 +263,7 @@ func init() {
 	publishCmd.Flags().StringVar(&file, "file", "", "Path of the file to publish (max 10MB)")
 	publishCmd.Flags().StringVar(&serviceURL, "service-url", "", "Override the default service URL")
 	publishCmd.Flags().BoolVar(&useGRPCPub, "grpc", false, "Use gRPC for publishing instead of HTTP")
-	publishCmd.Flags().BoolVar(&noDedup, "no-dedup", false, "Disable deduplication by omitting timestamp (allows sending identical messages)")
+	publishCmd.Flags().BoolVar(&noDedup, "no-dedup", false, "Omit timestamp to use MsgHash(topic, message) instead of MsgHashWithTimestamp. Allows same message to be sent once per session (useful for stress testing/benchmarking)")
 	publishCmd.MarkFlagRequired("topic") //nolint:errcheck
 	rootCmd.AddCommand(publishCmd)
 }
