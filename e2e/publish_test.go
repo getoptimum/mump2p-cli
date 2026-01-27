@@ -163,6 +163,77 @@ func TestPublishCommand(t *testing.T) {
 		require.Contains(t, strings.ToLower(out), "only one", "Expected error about using only one option")
 	})
 
+	// Test --no-dedup flag
+	t.Run("publish with --no-dedup=false (default, timestamp included)", func(t *testing.T) {
+		dedupTopic := fmt.Sprintf("%s-dedup-default", testTopic)
+		subCtx, subCancel := context.WithCancel(context.Background())
+		defer subCancel()
+
+		subCmd := exec.CommandContext(subCtx, cliBinaryPath, "subscribe", "--topic="+dedupTopic, "--service-url="+serviceURL)
+		subCmd.Env = os.Environ()
+		require.NoError(t, subCmd.Start(), "Failed to start subscriber")
+		time.Sleep(2 * time.Second)
+
+		// Publish same message twice - should get different message IDs (timestamp changes)
+		msg := "Test dedup message"
+		out1, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+dedupTopic,
+			"--message="+msg,
+			"--service-url="+serviceURL)
+		require.NoError(t, err, "First publish failed: %v\nOutput: %s", err, out1)
+
+		// Small delay to ensure different timestamp
+		time.Sleep(100 * time.Millisecond)
+
+		out2, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+dedupTopic,
+			"--message="+msg,
+			"--service-url="+serviceURL)
+		require.NoError(t, err, "Second publish failed: %v\nOutput: %s", err, out2)
+
+		// Both should succeed (different timestamps = different message IDs)
+		require.Contains(t, out1, "published", "First publish should succeed")
+		require.Contains(t, out2, "published", "Second publish should succeed (different timestamp)")
+
+		subCancel()
+		subCmd.Wait()
+	})
+
+	t.Run("publish with --no-dedup=true (timestamp omitted)", func(t *testing.T) {
+		dedupTopic := fmt.Sprintf("%s-dedup-no-timestamp", testTopic)
+		subCtx, subCancel := context.WithCancel(context.Background())
+		defer subCancel()
+
+		subCmd := exec.CommandContext(subCtx, cliBinaryPath, "subscribe", "--topic="+dedupTopic, "--service-url="+serviceURL)
+		subCmd.Env = os.Environ()
+		require.NoError(t, subCmd.Start(), "Failed to start subscriber")
+		time.Sleep(2 * time.Second)
+
+		// Publish same message twice with --no-dedup - second should be deduplicated
+		msg := "Test no-dedup message"
+		out1, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+dedupTopic,
+			"--message="+msg,
+			"--no-dedup",
+			"--service-url="+serviceURL)
+		require.NoError(t, err, "First publish failed: %v\nOutput: %s", err, out1)
+		require.Contains(t, out1, "published", "First publish should succeed")
+
+		// Publish same message again
+		out2, err := RunCommand(cliBinaryPath, "publish",
+			"--topic="+dedupTopic,
+			"--message="+msg,
+			"--no-dedup",
+			"--service-url="+serviceURL)
+		require.NoError(t, err, "Second publish should not error (deduplicated): %v\nOutput: %s", err, out2)
+
+		// Second should be deduplicated (same message hash without timestamp)
+		require.Contains(t, strings.ToLower(out2), "deduplicated", "Second publish should be deduplicated when --no-dedup is used")
+
+		subCancel()
+		subCmd.Wait()
+	})
+
 	// Cleanup: stop subscriber
 	cancel()
 	subCmd.Wait()
