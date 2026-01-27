@@ -27,6 +27,7 @@ var (
 	//optional
 	serviceURL string
 	useGRPCPub bool // gRPC flag for publish
+	noDedup    bool // Flag to disable deduplication (no timestamp)
 )
 
 // PublishPayload matches the expected JSON body on the server
@@ -34,7 +35,7 @@ type PublishRequest struct {
 	ClientID  string `json:"client_id"`
 	Topic     string `json:"topic"`
 	Message   string `json:"message"`
-	Timestamp int64  `json:"timestamp"`
+	Timestamp *int64 `json:"timestamp,omitempty"` // Optional timestamp for duplicate detection
 }
 
 // addDebugPrefix adds debug information prefix to message data
@@ -194,11 +195,17 @@ var publishCmd = &cobra.Command{
 				publishData = addDebugPrefix(data, proxyAddr)
 			}
 
+			var timestamp *int64
+			if !noDedup {
+				ts := time.Now().UnixMilli()
+				timestamp = &ts
+			}
+
 			reqData := PublishRequest{
 				ClientID:  clientIDToUse,
 				Topic:     pubTopic,
 				Message:   string(publishData), // use modified data with debug prefix if enabled
-				Timestamp: time.Now().UnixMilli(),
+				Timestamp: timestamp,
 			}
 			reqBytes, err := json.Marshal(reqData)
 			if err != nil {
@@ -251,6 +258,7 @@ func init() {
 	publishCmd.Flags().StringVar(&file, "file", "", "Path of the file to publish (max 10MB)")
 	publishCmd.Flags().StringVar(&serviceURL, "service-url", "", "Override the default service URL")
 	publishCmd.Flags().BoolVar(&useGRPCPub, "grpc", false, "Use gRPC for publishing instead of HTTP")
+	publishCmd.Flags().BoolVar(&noDedup, "no-dedup", false, "Disable deduplication by omitting timestamp (allows sending identical messages)")
 	publishCmd.MarkFlagRequired("topic") //nolint:errcheck
 	rootCmd.AddCommand(publishCmd)
 }
