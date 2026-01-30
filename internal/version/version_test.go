@@ -1,6 +1,10 @@
-package version
+package version_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/getoptimum/mump2p-cli/internal/version"
+)
 
 func TestCompare(t *testing.T) {
 	tests := []struct {
@@ -25,7 +29,7 @@ func TestCompare(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Compare(tt.v1, tt.v2)
+			result := version.Compare(tt.v1, tt.v2)
 			if result != tt.expected {
 				t.Errorf("Compare(%q, %q) = %d, want %d", tt.v1, tt.v2, result, tt.expected)
 			}
@@ -53,7 +57,7 @@ func TestCompareSuffixes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := CompareSuffixes(tt.s1, tt.s2)
+			result := version.CompareSuffixes(tt.s1, tt.s2)
 			if result != tt.expected {
 				t.Errorf("CompareSuffixes(%q, %q) = %d, want %d", tt.s1, tt.s2, result, tt.expected)
 			}

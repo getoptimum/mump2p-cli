@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var suffixRegexp = regexp.MustCompile(`^([a-zA-Z]+)(\d+)$`)
+
 // Compare compares two version strings
 // Returns: -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
 // Handles semantic versions like v0.0.1-rc4
@@ -61,11 +63,8 @@ func Compare(v1, v2 string) int {
 // CompareSuffixes compares version suffixes like "rc10", "rc11", "beta1", etc.
 // It handles numeric suffixes properly so rc10 < rc11 (not rc10 < rc2)
 func CompareSuffixes(s1, s2 string) int {
-	// Extract numeric parts from suffixes (e.g., "rc10" -> "rc" and 10)
-	re := regexp.MustCompile(`^([a-zA-Z]+)(\d+)$`)
-
-	match1 := re.FindStringSubmatch(s1)
-	match2 := re.FindStringSubmatch(s2)
+	match1 := suffixRegexp.FindStringSubmatch(s1)
+	match2 := suffixRegexp.FindStringSubmatch(s2)
 
 	// If both match the pattern (e.g., "rc10"), compare numerically
 	if len(match1) == 3 && len(match2) == 3 {
