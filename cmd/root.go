@@ -12,7 +12,7 @@ var (
 	debug        bool   // Global flag for debug mode
 	disableAuth  bool   // Global flag to disable authentication checks
 	clientID     string // Global flag for client ID (used when auth is disabled)
-	outputFormat string // Global flag for output format (table, json, yaml)
+	outputFormat string // Global flag for output format (table, json, yaml, csv)
 )
 
 var rootCmd = &cobra.Command{
@@ -42,7 +42,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&clientID, "client-id", "", "Client ID to use (required when --disable-auth is enabled)")
 
 	// Add global output format flag
-	rootCmd.PersistentFlags().StringVar(&outputFormat, "output", "table", "Output format (table, json, yaml)")
+	rootCmd.PersistentFlags().StringVar(&outputFormat, "output", "table", "Output format (table, json, yaml, csv)")
 
 	// disable completion option
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
