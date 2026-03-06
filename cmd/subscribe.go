@@ -226,13 +226,16 @@ var subscribeCmd = &cobra.Command{
 			}
 			req.Header.Set("Content-Type", "application/json")
 
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := httpClient.Do(req)
 			if err != nil {
 				return fmt.Errorf("HTTP POST subscribe failed: %v", err)
 			}
 
 			defer resp.Body.Close() //nolint:errcheck
-			body, _ := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read subscribe response: %v", err)
+			}
 
 			if resp.StatusCode != 200 {
 				return fmt.Errorf("HTTP POST subscribe error: %s", string(body))
@@ -291,7 +294,7 @@ var subscribeCmd = &cobra.Command{
 							return
 						}
 						req.Header.Set("Content-Type", "application/json")
-						resp, err := http.DefaultClient.Do(req)
+						resp, err := httpClient.Do(req)
 						if err != nil {
 							fmt.Printf("Webhook request error: %v\n", err)
 							return
@@ -404,7 +407,7 @@ var subscribeCmd = &cobra.Command{
 					}
 					req.Header.Set("Content-Type", "application/json")
 
-					resp, err := http.DefaultClient.Do(req)
+					resp, err := httpClient.Do(req)
 					if err != nil {
 						fmt.Printf("Webhook request error: %v\n", err)
 						return

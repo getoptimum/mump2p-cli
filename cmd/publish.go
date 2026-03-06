@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -206,9 +207,9 @@ var publishCmd = &cobra.Command{
 			}
 
 			url := baseURL + "/api/v1/publish"
-			req, err := http.NewRequest("POST", url, strings.NewReader(string(reqBytes)))
+			req, err := http.NewRequest("POST", url, bytes.NewReader(reqBytes))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to create publish request: %v", err)
 			}
 			// Only set Authorization header if auth is enabled
 			if !IsAuthDisabled() && token != nil {
@@ -216,12 +217,15 @@ var publishCmd = &cobra.Command{
 			}
 			req.Header.Set("Content-Type", "application/json")
 
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := httpClient.Do(req)
 			if err != nil {
 				return fmt.Errorf("HTTP publish failed: %v", err)
 			}
 			defer resp.Body.Close() //nolint:errcheck
-			body, _ := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read publish response: %v", err)
+			}
 			if resp.StatusCode != 200 {
 				return fmt.Errorf("publish error: %s", string(body))
 			}

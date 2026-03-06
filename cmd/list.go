@@ -54,7 +54,7 @@ This command shows your active topics and their count.`,
 			req.Header.Set("Content-Type", "application/json")
 
 			// Execute the request
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := httpClient.Do(req)
 			if err != nil {
 				return fmt.Errorf("HTTP GET request failed: %v", err)
 			}
@@ -146,7 +146,7 @@ This command shows your active topics and their count.`,
 		req.Header.Set("Content-Type", "application/json")
 
 		// Execute the request
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := httpClient.Do(req)
 		if err != nil {
 			return fmt.Errorf("HTTP GET request failed: %v", err)
 		}
