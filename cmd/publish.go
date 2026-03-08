@@ -144,7 +144,7 @@ var publishCmd = &cobra.Command{
 		defer nodeClient.Close()
 
 		ctx := context.Background()
-		resp, err := nodeClient.Publish(ctx, bestNode.Ticket, pubTopic, publishData)
+		_, err = nodeClient.Publish(ctx, bestNode.Ticket, pubTopic, publishData)
 		if err != nil {
 			return fmt.Errorf("publish failed: %v", err)
 		}
@@ -153,11 +153,7 @@ var publishCmd = &cobra.Command{
 			printDebugInfo(publishData, nodeAddr, pubTopic)
 		}
 
-		if resp != nil {
-			fmt.Printf("Published (%s) — trace: %s\n", source, string(resp.Data))
-		} else {
-			fmt.Printf("Published (%s)\n", source)
-		}
+		fmt.Printf("Published (%s)\n", source)
 
 		if !IsAuthDisabled() {
 			if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {

@@ -240,6 +240,10 @@ var subscribeCmd = &cobra.Command{
 			for resp := range msgChan {
 				decodedMsg, msgTopic := decodeMessage(resp.Data)
 
+				if msgTopic != "" && msgTopic != subTopic {
+					continue
+				}
+
 				if IsDebugMode() {
 					n := atomic.AddInt32(&messageCount, 1)
 					printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "gRPC-direct")
