@@ -32,7 +32,7 @@ mump2p whoami
 ```
 Authentication Status:
 ----------------------
-Client ID: google-oauth2|116937893938826513819
+Client ID: auth0|<USER_ID>
 Expires: 07 Apr 26 23:51 IST
 Valid for: 720h0m0s
 Is Active:  true
@@ -143,7 +143,7 @@ mump2p list-topics
 ```
 
 ```
-📋 Subscribed Topics for Client: google-oauth2|116937893938826513819
+📋 Subscribed Topics for Client: auth0|<USER_ID>
 ═══════════════════════════════════════════════════════════════
    Total Topics: 7
 
