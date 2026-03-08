@@ -5,7 +5,6 @@ go 1.24.6
 require (
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
-	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.73.0
