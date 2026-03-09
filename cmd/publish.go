@@ -143,7 +143,8 @@ var publishCmd = &cobra.Command{
 		}
 		defer nodeClient.Close()
 
-		ctx := context.Background()
+		ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer ctxCancel()
 		_, err = nodeClient.Publish(ctx, bestNode.Ticket, pubTopic, publishData)
 		if err != nil {
 			return fmt.Errorf("publish failed: %v", err)

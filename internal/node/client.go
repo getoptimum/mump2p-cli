@@ -105,7 +105,7 @@ func (c *Client) Publish(ctx context.Context, ticket, topic string, data []byte)
 
 	resp, err := stream.Recv()
 	if err == io.EOF {
-		return nil, nil
+		return nil, fmt.Errorf("node closed stream before sending publish response (EOF)")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to receive publish response: %w", err)

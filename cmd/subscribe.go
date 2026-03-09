@@ -154,7 +154,7 @@ var subscribeCmd = &cobra.Command{
 			proxyURL,
 			clientIDToUse,
 			[]string{subTopic},
-			[]string{"publish", "subscribe"},
+			[]string{"subscribe"},
 			subExposeAmount,
 		)
 		if err != nil {
