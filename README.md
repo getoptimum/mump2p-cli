@@ -64,7 +64,7 @@ mump2p subscribe --topic test
 ```
 
 ```
-Requesting session from http://proxy-1.getoptimum.io:8080...
+Requesting session from http://us1-proxy.getoptimum.io:8080...
 Session: a7a09ca6-772a-4c80-ae1f-cb7b2f2e8860 | Node: 136.110.0.19:33211 (Singapore, score: 0.98)
 Subscribed to 'test' — listening for messages. Press Ctrl+C to exit
 [test] Hello from authenticated CLI!
@@ -81,7 +81,7 @@ mump2p subscribe --topic test --expose-amount 3
 ```
 
 ```
-Requesting session from http://proxy-1.getoptimum.io:8080...
+Requesting session from http://us1-proxy.getoptimum.io:8080...
 Session: f3446a52-8315-4ab9-9846-76ecfd8e3935 | Node: 136.110.0.19:33211 (Singapore, score: 0.98)
 Available nodes: 34.126.161.115:33211 (Singapore, score: 0.98), 35.226.240.82:33211 (United States, score: 0.98)
 Subscribed to 'test' — listening for messages. Press Ctrl+C to exit
@@ -109,7 +109,7 @@ mump2p publish --topic test --message "Hello World"
 ```
 
 ```
-Requesting session from http://proxy-1.getoptimum.io:8080...
+Requesting session from http://us1-proxy.getoptimum.io:8080...
 Session: 6028cca3-9ffb-47d5-b402-64d7ba99662b | Node: 136.110.0.19:33211 (score: 0.98)
 Published (inline message)
 ```
@@ -223,12 +223,12 @@ mump2p list-topics --output json
 Any command that talks to the proxy accepts `--service-url`:
 
 ```bash
-mump2p subscribe --topic test --service-url http://proxy-2.getoptimum.io:8080
-mump2p publish --topic test --message "hi" --service-url http://proxy-3.getoptimum.io:8080
-mump2p health --service-url http://proxy-2.getoptimum.io:8080
+mump2p subscribe --topic test --service-url http://us2-proxy.getoptimum.io:8080
+mump2p publish --topic test --message "hi" --service-url http://us3-proxy.getoptimum.io:8080
+mump2p health --service-url http://us2-proxy.getoptimum.io:8080
 ```
 
 Available proxies:
-- `http://proxy-1.getoptimum.io:8080`
-- `http://proxy-2.getoptimum.io:8080`
-- `http://proxy-3.getoptimum.io:8080`
+- `http://us1-proxy.getoptimum.io:8080`
+- `http://us2-proxy.getoptimum.io:8080`
+- `http://us3-proxy.getoptimum.io:8080`

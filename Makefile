@@ -7,7 +7,7 @@ COMMIT_HASH  ?= $(shell git rev-parse --short HEAD)
 DOMAIN       ?= ""
 CLIENT_ID    ?= ""
 AUDIENCE     ?= optimum-login
-SERVICE_URL  ?= http://proxy-1.getoptimum.io:8080
+SERVICE_URL  ?= http://us1-proxy.getoptimum.io:8080
 
 LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN) \
             -X github.com/getoptimum/mump2p-cli/internal/config.ClientID=$(CLIENT_ID) \
