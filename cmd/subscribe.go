@@ -23,6 +23,7 @@ import (
 	"github.com/getoptimum/mump2p-cli/internal/node"
 	"github.com/getoptimum/mump2p-cli/internal/session"
 	"github.com/getoptimum/mump2p-cli/internal/webhook"
+	pb "github.com/getoptimum/mump2p-cli/proto"
 	"github.com/spf13/cobra"
 )
 
@@ -148,9 +149,7 @@ var subscribeCmd = &cobra.Command{
 			proxyURL = subServiceURL
 		}
 
-		fmt.Printf("Requesting session from %s...\n", proxyURL)
-
-		sess, err := session.CreateSession(
+		sess, reused, err := session.GetOrCreateSession(
 			proxyURL,
 			clientIDToUse,
 			[]string{subTopic},
@@ -161,39 +160,54 @@ var subscribeCmd = &cobra.Command{
 			return fmt.Errorf("session creation failed: %v", err)
 		}
 
-		bestNode := sess.Nodes[0]
-		fmt.Printf("Session: %s | Node: %s (%s, score: %.2f)\n",
-			sess.SessionID, bestNode.Address, bestNode.Region, bestNode.Score)
-		if len(sess.Nodes) > 1 {
-			fmt.Printf("Available nodes: ")
-			for i := 1; i < len(sess.Nodes); i++ {
-				if i > 1 {
-					fmt.Printf(", ")
-				}
-				fmt.Printf("%s (%s, score: %.2f)", sess.Nodes[i].Address, sess.Nodes[i].Region, sess.Nodes[i].Score)
-			}
-			fmt.Println()
+		if reused {
+			fmt.Printf("Reusing session %s | %d node(s) available\n", sess.SessionID, len(sess.Nodes))
+		} else {
+			fmt.Printf("New session %s from %s | %d node(s) available\n", sess.SessionID, proxyURL, len(sess.Nodes))
 		}
 
-		nodeClient, err := node.NewClient(bestNode.Address)
-		if err != nil {
-			return fmt.Errorf("failed to connect to node: %v", err)
-		}
-		defer nodeClient.Close()
-
+		var (
+			nodeClient  *node.Client
+			connectedNode session.Node
+			msgChan     <-chan *pb.Response
+		)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		msgChan, err := nodeClient.Subscribe(ctx, bestNode.Ticket, subTopic, 100)
-		if err != nil {
-			return fmt.Errorf("subscribe failed: %v", err)
+		for i, n := range sess.Nodes {
+			fmt.Printf("  Trying node %d/%d: %s (%s, score: %.2f)...\n",
+				i+1, len(sess.Nodes), n.Address, n.Region, n.Score)
+
+			nc, connErr := node.NewClient(n.Address)
+			if connErr != nil {
+				fmt.Printf("  Failed to connect: %v\n", connErr)
+				continue
+			}
+
+			ch, subErr := nc.Subscribe(ctx, n.Ticket, subTopic, 100)
+			if subErr != nil {
+				fmt.Printf("  Failed to subscribe: %v\n", subErr)
+				nc.Close()
+				continue
+			}
+
+			nodeClient = nc
+			connectedNode = n
+			msgChan = ch
+			break
 		}
 
+		if nodeClient == nil {
+			return fmt.Errorf("all %d node(s) failed to connect", len(sess.Nodes))
+		}
+		defer nodeClient.Close()
+
+		fmt.Printf("Connected to %s (%s, score: %.2f)\n", connectedNode.Address, connectedNode.Region, connectedNode.Score)
 		fmt.Printf("Subscribed to '%s' — listening for messages. Press Ctrl+C to exit\n", subTopic)
 
-		receiverAddr := extractIPFromURL(bestNode.Address)
+		receiverAddr := extractIPFromURL(connectedNode.Address)
 		if receiverAddr == "" {
-			receiverAddr = bestNode.Address
+			receiverAddr = connectedNode.Address
 		}
 
 		type webhookMsg struct {
@@ -238,6 +252,13 @@ var subscribeCmd = &cobra.Command{
 		go func() {
 			defer close(doneChan)
 			for resp := range msgChan {
+				if !IsDebugMode() {
+					switch resp.GetCommand() {
+					case pb.ResponseType_MessageTraceMumP2P, pb.ResponseType_MessageTraceGossipSub:
+						continue
+					}
+				}
+
 				decodedMsg, msgTopic := decodeMessage(resp.Data)
 
 				if msgTopic != "" && msgTopic != subTopic {
@@ -248,11 +269,14 @@ var subscribeCmd = &cobra.Command{
 					n := atomic.AddInt32(&messageCount, 1)
 					printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "gRPC-direct")
 				} else {
+					if !isReadable(decodedMsg) {
+						continue
+					}
 					displayTopic := subTopic
 					if msgTopic != "" {
 						displayTopic = msgTopic
 					}
-					fmt.Printf("[%s] %s\n", displayTopic, formatMessage(decodedMsg))
+					fmt.Printf("[%s] %s\n", displayTopic, string(decodedMsg))
 				}
 
 				msgStr := formatMessage(decodedMsg)

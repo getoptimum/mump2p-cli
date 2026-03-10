@@ -65,16 +65,17 @@ mump2p subscribe --topic test
 
 ```
 Requesting session from http://us1-proxy.getoptimum.io:8080...
-Session: a7a09ca6-772a-4c80-ae1f-cb7b2f2e8860 | Node: 136.110.0.19:33211 (Singapore, score: 0.98)
+Session: a7a09ca6-772a-4c80-ae1f-cb7b2f2e8860 | 1 node(s) available
+  Trying node 1/1: 136.110.0.19:33211 (Singapore, score: 0.98)...
+Connected to 136.110.0.19:33211 (Singapore, score: 0.98)
 Subscribed to 'test' — listening for messages. Press Ctrl+C to exit
 [test] Hello from authenticated CLI!
 [test] Second authenticated message
-[/eth2/c6ecb76c/beacon_block/ssz_snappy] [binary 40378 bytes] aca209f46e...
 ```
 
 ### With multiple nodes
 
-Request multiple nodes from the proxy. The CLI connects to the best one and shows the others as available.
+Request multiple nodes from the proxy for automatic failover. The CLI tries nodes in order of score — if the best node is unreachable, it falls back to the next one.
 
 ```bash
 mump2p subscribe --topic test --expose-amount 3
@@ -82,9 +83,19 @@ mump2p subscribe --topic test --expose-amount 3
 
 ```
 Requesting session from http://us1-proxy.getoptimum.io:8080...
-Session: f3446a52-8315-4ab9-9846-76ecfd8e3935 | Node: 136.110.0.19:33211 (Singapore, score: 0.98)
-Available nodes: 34.126.161.115:33211 (Singapore, score: 0.98), 35.226.240.82:33211 (United States, score: 0.98)
+Session: f3446a52-8315-4ab9-9846-76ecfd8e3935 | 3 node(s) available
+  Trying node 1/3: 136.110.0.19:33211 (Singapore, score: 0.98)...
+Connected to 136.110.0.19:33211 (Singapore, score: 0.98)
 Subscribed to 'test' — listening for messages. Press Ctrl+C to exit
+```
+
+If the first node fails, the CLI automatically tries the next:
+
+```
+  Trying node 1/3: 136.110.0.19:33211 (Singapore, score: 0.98)...
+  Failed to connect: ...
+  Trying node 2/3: 34.126.161.115:33211 (Singapore, score: 0.98)...
+Connected to 34.126.161.115:33211 (Singapore, score: 0.98)
 ```
 
 ### Persist messages to file
@@ -110,8 +121,9 @@ mump2p publish --topic test --message "Hello World"
 
 ```
 Requesting session from http://us1-proxy.getoptimum.io:8080...
-Session: 6028cca3-9ffb-47d5-b402-64d7ba99662b | Node: 136.110.0.19:33211 (score: 0.98)
-Published (inline message)
+Session: 6028cca3-9ffb-47d5-b402-64d7ba99662b | 1 node(s) available
+  Trying node 1/1: 136.110.0.19:33211 (score: 0.98)...
+Published to 136.110.0.19:33211 (inline message)
 ```
 
 ### From file
@@ -216,6 +228,7 @@ mump2p list-topics --output json
 | `--client-id` | Client ID (required with `--disable-auth`) |
 | `--debug` | Debug mode with timing and node info |
 | `--disable-auth` | Skip Auth0 for testing |
+| `--expose-amount N` | Number of nodes to request for failover (default: `1`, applies to `subscribe` and `publish`) |
 | `--output` | Output format: `table`, `json`, `yaml` |
 
 ## Override Proxy

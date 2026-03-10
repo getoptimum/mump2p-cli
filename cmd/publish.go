@@ -110,9 +110,7 @@ var publishCmd = &cobra.Command{
 			proxyURL = serviceURL
 		}
 
-		fmt.Printf("Requesting session from %s...\n", proxyURL)
-
-		sess, err := session.CreateSession(
+		sess, reused, err := session.GetOrCreateSession(
 			proxyURL,
 			clientIDToUse,
 			[]string{pubTopic},
@@ -123,38 +121,55 @@ var publishCmd = &cobra.Command{
 			return fmt.Errorf("session creation failed: %v", err)
 		}
 
-		bestNode := sess.Nodes[0]
-		fmt.Printf("Session: %s | Node: %s (score: %.2f)\n",
-			sess.SessionID, bestNode.Address, bestNode.Score)
-
-		nodeAddr := extractIPFromURL(bestNode.Address)
-		if nodeAddr == "" {
-			nodeAddr = bestNode.Address
+		if reused {
+			fmt.Printf("Reusing session %s | %d node(s) available\n", sess.SessionID, len(sess.Nodes))
+		} else {
+			fmt.Printf("New session %s from %s | %d node(s) available\n", sess.SessionID, proxyURL, len(sess.Nodes))
 		}
 
-		publishData := data
-		if IsDebugMode() {
-			publishData = addDebugPrefix(data, nodeAddr)
+		var published bool
+		for i, n := range sess.Nodes {
+			fmt.Printf("  Trying node %d/%d: %s (score: %.2f)...\n",
+				i+1, len(sess.Nodes), n.Address, n.Score)
+
+			nodeAddr := extractIPFromURL(n.Address)
+			if nodeAddr == "" {
+				nodeAddr = n.Address
+			}
+
+			publishData := data
+			if IsDebugMode() {
+				publishData = addDebugPrefix(data, nodeAddr)
+			}
+
+			nc, connErr := node.NewClient(n.Address)
+			if connErr != nil {
+				fmt.Printf("  Failed to connect: %v\n", connErr)
+				continue
+			}
+
+			ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			_, pubErr := nc.Publish(ctx, n.Ticket, pubTopic, publishData)
+			ctxCancel()
+			nc.Close()
+
+			if pubErr != nil {
+				fmt.Printf("  Failed to publish: %v\n", pubErr)
+				continue
+			}
+
+			if IsDebugMode() {
+				printDebugInfo(publishData, nodeAddr, pubTopic)
+			}
+
+			fmt.Printf("Published to %s (%s)\n", n.Address, source)
+			published = true
+			break
 		}
 
-		nodeClient, err := node.NewClient(bestNode.Address)
-		if err != nil {
-			return fmt.Errorf("failed to connect to node: %v", err)
+		if !published {
+			return fmt.Errorf("all %d node(s) failed to publish", len(sess.Nodes))
 		}
-		defer nodeClient.Close()
-
-		ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer ctxCancel()
-		_, err = nodeClient.Publish(ctx, bestNode.Ticket, pubTopic, publishData)
-		if err != nil {
-			return fmt.Errorf("publish failed: %v", err)
-		}
-
-		if IsDebugMode() {
-			printDebugInfo(publishData, nodeAddr, pubTopic)
-		}
-
-		fmt.Printf("Published (%s)\n", source)
 
 		if !IsAuthDisabled() {
 			if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {
