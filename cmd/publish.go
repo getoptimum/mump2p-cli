@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/getoptimum/mump2p-cli/internal/node"
 	"github.com/getoptimum/mump2p-cli/internal/ratelimit"
 	"github.com/getoptimum/mump2p-cli/internal/session"
+	pb "github.com/getoptimum/mump2p-cli/proto"
 	"github.com/spf13/cobra"
 )
 
@@ -37,6 +39,29 @@ func printDebugInfo(data []byte, addr string, topic string) {
 	hash := hex.EncodeToString(sum[:])
 	fmt.Printf("Publish:\tsender_info:%s, [send_time, size]:[%d, %d]\ttopic:%s\tmsg_hash:%s\tprotocol:gRPC-direct\n",
 		addr, currentTime, len(data), topic, hash[:8])
+}
+
+func shortMsgID(resp *pb.Response) string {
+	if resp == nil || len(resp.Data) == 0 {
+		return ""
+	}
+	var trace map[string]interface{}
+	if err := json.Unmarshal(resp.Data, &trace); err != nil {
+		return ""
+	}
+	if mid, ok := trace["messageID"].(string); ok && mid != "" {
+		if len(mid) > 8 {
+			return mid[:8]
+		}
+		return mid
+	}
+	if mid, ok := trace["message_id"].(string); ok && mid != "" {
+		if len(mid) > 8 {
+			return mid[:8]
+		}
+		return mid
+	}
+	return ""
 }
 
 var publishCmd = &cobra.Command{
@@ -76,10 +101,7 @@ var publishCmd = &cobra.Command{
 			}
 		}
 
-		var (
-			data   []byte
-			source string
-		)
+		var data []byte
 
 		if file != "" {
 			content, err := os.ReadFile(file)
@@ -87,10 +109,8 @@ var publishCmd = &cobra.Command{
 				return fmt.Errorf("failed to read file: %v", err)
 			}
 			data = content
-			source = file
 		} else {
 			data = []byte(pubMessage)
-			source = "inline message"
 		}
 
 		messageSize := int64(len(data))
@@ -110,6 +130,7 @@ var publishCmd = &cobra.Command{
 			proxyURL = serviceURL
 		}
 
+		sessionStart := time.Now()
 		sess, reused, err := session.GetOrCreateSession(
 			proxyURL,
 			clientIDToUse,
@@ -120,17 +141,23 @@ var publishCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("session creation failed: %v", err)
 		}
+		sessionDur := time.Since(sessionStart)
 
-		if reused {
-			fmt.Printf("Reusing session %s | %d node(s) available\n", sess.SessionID, len(sess.Nodes))
-		} else {
-			fmt.Printf("New session %s from %s | %d node(s) available\n", sess.SessionID, proxyURL, len(sess.Nodes))
+		if IsDebugMode() {
+			if reused {
+				fmt.Printf("Reusing session %s | %d node(s) available\n", sess.SessionID, len(sess.Nodes))
+			} else {
+				fmt.Printf("New session %s from %s (%s) | %d node(s) available\n",
+					sess.SessionID, proxyURL, humanDuration(sessionDur), len(sess.Nodes))
+			}
 		}
 
 		var published bool
 		for i, n := range sess.Nodes {
-			fmt.Printf("  Trying node %d/%d: %s (score: %.2f)...\n",
-				i+1, len(sess.Nodes), n.Address, n.Score)
+			if IsDebugMode() {
+				fmt.Printf("  Trying node %d/%d: %s (%s, score: %.2f)...\n",
+					i+1, len(sess.Nodes), n.Address, n.Region, n.Score)
+			}
 
 			nodeAddr := extractIPFromURL(n.Address)
 			if nodeAddr == "" {
@@ -142,19 +169,21 @@ var publishCmd = &cobra.Command{
 				publishData = addDebugPrefix(data, nodeAddr)
 			}
 
+			connectStart := time.Now()
 			nc, connErr := node.NewClient(n.Address)
 			if connErr != nil {
-				fmt.Printf("  Failed to connect: %v\n", connErr)
+				fmt.Printf("  Node %s unreachable: %v\n", n.Address, connErr)
 				continue
 			}
 
 			ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
-			_, pubErr := nc.Publish(ctx, n.Ticket, pubTopic, publishData)
+			resp, pubErr := nc.Publish(ctx, n.Ticket, pubTopic, publishData)
+			rpcDur := time.Since(connectStart)
 			ctxCancel()
 			nc.Close()
 
 			if pubErr != nil {
-				fmt.Printf("  Failed to publish: %v\n", pubErr)
+				fmt.Printf("  Node %s failed: %v\n", n.Address, pubErr)
 				continue
 			}
 
@@ -162,7 +191,37 @@ var publishCmd = &cobra.Command{
 				printDebugInfo(publishData, nodeAddr, pubTopic)
 			}
 
-			fmt.Printf("Published to %s (%s)\n", n.Address, source)
+			region := n.Region
+			if region == "" {
+				region = "unknown"
+			}
+
+			msgID := shortMsgID(resp)
+			suffix := ""
+			if msgID != "" {
+				suffix = fmt.Sprintf(" [msg: %s]", msgID)
+			}
+
+			if IsDebugMode() && !reused {
+				fmt.Printf("Session: %s | Published: %s | Total: %s\n",
+					humanDuration(sessionDur), humanDuration(rpcDur),
+					humanDuration(sessionDur+rpcDur))
+			}
+
+			fmt.Printf("Published to %s (%s) in %s%s\n",
+				n.Address, region, humanDuration(rpcDur), suffix)
+
+			if IsDebugMode() && resp != nil && msgID != "" {
+				var trace map[string]interface{}
+				if json.Unmarshal(resp.Data, &trace) == nil {
+					if mid, ok := trace["messageID"].(string); ok && mid != "" {
+						fmt.Printf("  message-id: %s\n", mid)
+					} else if mid, ok := trace["message_id"].(string); ok && mid != "" {
+						fmt.Printf("  message-id: %s\n", mid)
+					}
+				}
+			}
+
 			published = true
 			break
 		}

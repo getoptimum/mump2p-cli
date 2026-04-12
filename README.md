@@ -57,45 +57,41 @@ mump2p logout
 
 ## Subscribe
 
-Subscribe to a topic and stream messages directly from a P2P node.
+Subscribe to a topic and stream messages directly from a P2P node. By default, 3 nodes are requested for automatic failover.
 
 ```bash
 mump2p subscribe --topic test
 ```
 
 ```
-Requesting session from http://us1-proxy.getoptimum.io:8080...
-Session: a7a09ca6-772a-4c80-ae1f-cb7b2f2e8860 | 1 node(s) available
-  Trying node 1/1: 136.110.0.19:33211 (Singapore, score: 0.98)...
-Connected to 136.110.0.19:33211 (Singapore, score: 0.98)
-Subscribed to 'test' — listening for messages. Press Ctrl+C to exit
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 161ms — 2 backup nodes ready
+  backup: 34.141.111.130:33211 (Germany)
+  backup: 136.110.0.19:33211 (Singapore)
 [test] Hello from authenticated CLI!
 [test] Second authenticated message
+^C
+Disconnected — 2 messages in 14s
 ```
 
-### With multiple nodes
-
-Request multiple nodes from the proxy for automatic failover. The CLI tries nodes in order of score — if the best node is unreachable, it falls back to the next one.
+### With single node
 
 ```bash
-mump2p subscribe --topic test --expose-amount 3
+mump2p subscribe --topic test --expose-amount 1
 ```
 
 ```
-Requesting session from http://us1-proxy.getoptimum.io:8080...
-Session: f3446a52-8315-4ab9-9846-76ecfd8e3935 | 3 node(s) available
-  Trying node 1/3: 136.110.0.19:33211 (Singapore, score: 0.98)...
-Connected to 136.110.0.19:33211 (Singapore, score: 0.98)
-Subscribed to 'test' — listening for messages. Press Ctrl+C to exit
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 175ms
+[test] hello world
 ```
 
-If the first node fails, the CLI automatically tries the next:
+### Failover
+
+If the first node is unreachable, the CLI automatically falls back to the next one:
 
 ```
-  Trying node 1/3: 136.110.0.19:33211 (Singapore, score: 0.98)...
-  Failed to connect: ...
-  Trying node 2/3: 34.126.161.115:33211 (Singapore, score: 0.98)...
-Connected to 34.126.161.115:33211 (Singapore, score: 0.98)
+  Node 136.110.0.19:33211 unreachable, falling back...
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 312ms — 1 backup node ready
+  backup: 34.141.111.130:33211 (Germany)
 ```
 
 ### Persist messages to file
@@ -120,16 +116,44 @@ mump2p publish --topic test --message "Hello World"
 ```
 
 ```
-Requesting session from http://us1-proxy.getoptimum.io:8080...
-Session: 6028cca3-9ffb-47d5-b402-64d7ba99662b | 1 node(s) available
-  Trying node 1/1: 136.110.0.19:33211 (score: 0.98)...
-Published to 136.110.0.19:33211 (inline message)
+Published to 34.126.161.115:33211 (Singapore) in 259ms
 ```
 
 ### From file
 
 ```bash
 mump2p publish --topic test/data --file ./payload.json
+```
+
+## Debug Mode
+
+Use `--debug` to see session details, node scores, timing breakdowns, message IDs, and peer paths.
+
+```bash
+mump2p subscribe --topic test --debug
+```
+
+```
+New session 09ddc264-e0bd-42af-b768-feacd512e686 from http://us1-proxy.getoptimum.io:8080 (535ms) | 3 node(s) available
+  Trying node 1/3: 34.126.161.115:33211 (Singapore, score: 0.98)...
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 188ms — 2 backup nodes ready
+  backup: 34.141.111.130:33211 (Germany)
+  backup: 136.110.0.19:33211 (Singapore)
+Recv:	[1]	receiver_addr:34.126.161.115	[recv_time, size]:[1775977506353069000, 21]	topic:test	hash:65456d67	protocol:gRPC-direct
+  from: 12D3KooWSviMsA9yDTxmv1svvGrEPeW6F5DYzSFQihE9YrQW6vtm
+  via:  34.126.161.115:33211 (Singapore)
+  id:   65456d676c97...
+```
+
+```bash
+mump2p publish --topic test --message "hello" --debug
+```
+
+```
+New session 619ceb3b-9440-4654-923f-982bd6dba0be from http://us1-proxy.getoptimum.io:8080 (516ms) | 1 node(s) available
+  Trying node 1/1: 34.126.161.115:33211 (Singapore, score: 0.98)...
+Session: 516ms | Published: 261ms | Total: 777ms
+Published to 34.126.161.115:33211 (Singapore) in 261ms
 ```
 
 ## Health
@@ -226,9 +250,9 @@ mump2p list-topics --output json
 |------|-------------|
 | `--auth-path` | Custom path for auth file (default: `~/.mump2p/auth.yml`) |
 | `--client-id` | Client ID (required with `--disable-auth`) |
-| `--debug` | Debug mode with timing and node info |
+| `--debug` | Session detail, node scores, message IDs, peer paths, timing breakdowns |
 | `--disable-auth` | Skip Auth0 for testing |
-| `--expose-amount N` | Number of nodes to request for failover (default: `1`, applies to `subscribe` and `publish`) |
+| `--expose-amount N` | Number of nodes to request for failover (subscribe default: `3`, publish default: `1`) |
 | `--output` | Output format: `table`, `json`, `yaml` |
 
 ## Override Proxy

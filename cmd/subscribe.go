@@ -51,12 +51,12 @@ func printDebugReceiveInfo(message []byte, receiverAddr string, topic string, me
 		messageNum, receiverAddr, currentTime, messageSize, sendInfo, topic, hash[:8], protocol)
 }
 
-func decodeMessage(rawMsg []byte) (decoded []byte, topic string) {
-	p2pMsg, err := entities.UnmarshalP2PMessage(rawMsg)
+func decodeMessage(rawMsg []byte) (decoded []byte, topic string, p2pMsg *entities.P2PMessage) {
+	msg, err := entities.UnmarshalP2PMessage(rawMsg)
 	if err != nil {
-		return rawMsg, ""
+		return rawMsg, "", nil
 	}
-	return p2pMsg.Message, p2pMsg.Topic
+	return msg.Message, msg.Topic, msg
 }
 
 func isReadable(b []byte) bool {
@@ -149,6 +149,7 @@ var subscribeCmd = &cobra.Command{
 			proxyURL = subServiceURL
 		}
 
+		sessionStart := time.Now()
 		sess, reused, err := session.GetOrCreateSession(
 			proxyURL,
 			clientIDToUse,
@@ -159,34 +160,41 @@ var subscribeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("session creation failed: %v", err)
 		}
+		sessionDur := time.Since(sessionStart)
 
-		if reused {
-			fmt.Printf("Reusing session %s | %d node(s) available\n", sess.SessionID, len(sess.Nodes))
-		} else {
-			fmt.Printf("New session %s from %s | %d node(s) available\n", sess.SessionID, proxyURL, len(sess.Nodes))
+		if IsDebugMode() {
+			if reused {
+				fmt.Printf("Reusing session %s | %d node(s) available\n", sess.SessionID, len(sess.Nodes))
+			} else {
+				fmt.Printf("New session %s from %s (%s) | %d node(s) available\n",
+					sess.SessionID, proxyURL, humanDuration(sessionDur), len(sess.Nodes))
+			}
 		}
 
 		var (
-			nodeClient  *node.Client
+			nodeClient    *node.Client
 			connectedNode session.Node
-			msgChan     <-chan *pb.Response
+			msgChan       <-chan *pb.Response
 		)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
+		connectStart := time.Now()
 		for i, n := range sess.Nodes {
-			fmt.Printf("  Trying node %d/%d: %s (%s, score: %.2f)...\n",
-				i+1, len(sess.Nodes), n.Address, n.Region, n.Score)
+			if IsDebugMode() {
+				fmt.Printf("  Trying node %d/%d: %s (%s, score: %.2f)...\n",
+					i+1, len(sess.Nodes), n.Address, n.Region, n.Score)
+			}
 
 			nc, connErr := node.NewClient(n.Address)
 			if connErr != nil {
-				fmt.Printf("  Failed to connect: %v\n", connErr)
+				fmt.Printf("  Node %s unreachable, falling back...\n", n.Address)
 				continue
 			}
 
 			ch, subErr := nc.Subscribe(ctx, n.Ticket, subTopic, 100)
 			if subErr != nil {
-				fmt.Printf("  Failed to subscribe: %v\n", subErr)
+				fmt.Printf("  Node %s subscribe failed, falling back...\n", n.Address)
 				nc.Close()
 				continue
 			}
@@ -201,9 +209,37 @@ var subscribeCmd = &cobra.Command{
 			return fmt.Errorf("all %d node(s) failed to connect", len(sess.Nodes))
 		}
 		defer nodeClient.Close()
+		connectDur := time.Since(connectStart)
 
-		fmt.Printf("Connected to %s (%s, score: %.2f)\n", connectedNode.Address, connectedNode.Region, connectedNode.Score)
-		fmt.Printf("Subscribed to '%s' — listening for messages. Press Ctrl+C to exit\n", subTopic)
+		region := connectedNode.Region
+		if region == "" {
+			region = "unknown"
+		}
+
+		var backupNodes []session.Node
+		for _, n := range sess.Nodes {
+			if n.Address != connectedNode.Address {
+				backupNodes = append(backupNodes, n)
+			}
+		}
+
+		backupSuffix := ""
+		if len(backupNodes) == 1 {
+			backupSuffix = " — 1 backup node ready"
+		} else if len(backupNodes) > 1 {
+			backupSuffix = fmt.Sprintf(" — %d backup nodes ready", len(backupNodes))
+		}
+
+		fmt.Printf("Subscribed to '%s' on %s (%s) in %s%s\n",
+			subTopic, connectedNode.Address, region, humanDuration(connectDur), backupSuffix)
+
+		for _, bn := range backupNodes {
+			r := bn.Region
+			if r == "" {
+				r = "unknown"
+			}
+			fmt.Printf("  backup: %s (%s)\n", bn.Address, r)
+		}
 
 		receiverAddr := extractIPFromURL(connectedNode.Address)
 		if receiverAddr == "" {
@@ -213,8 +249,10 @@ var subscribeCmd = &cobra.Command{
 		type webhookMsg struct {
 			data []byte
 		}
-		wq := make(chan webhookMsg, webhookQueueSize)
-		if webhookURL != "" {
+
+		var wq chan webhookMsg
+		if webhookURL != "" && webhookQueueSize > 0 {
+			wq = make(chan webhookMsg, webhookQueueSize)
 			go func() {
 				for msg := range wq {
 					go func(payload []byte) {
@@ -232,7 +270,9 @@ var subscribeCmd = &cobra.Command{
 							fmt.Printf("Failed to create webhook request: %v\n", reqErr)
 							return
 						}
-						req.Header.Set("Content-Type", "application/json")
+						if webhookSchema != "" {
+							req.Header.Set("Content-Type", "application/json")
+						}
 						resp, doErr := http.DefaultClient.Do(req)
 						if doErr != nil {
 							fmt.Printf("Webhook request error: %v\n", doErr)
@@ -249,6 +289,8 @@ var subscribeCmd = &cobra.Command{
 
 		doneChan := make(chan struct{})
 		var messageCount int32
+		subscribeStart := time.Now()
+
 		go func() {
 			defer close(doneChan)
 			for resp := range msgChan {
@@ -259,25 +301,40 @@ var subscribeCmd = &cobra.Command{
 					}
 				}
 
-				decodedMsg, msgTopic := decodeMessage(resp.Data)
+				decodedMsg, msgTopic, p2pMsg := decodeMessage(resp.Data)
 
 				if msgTopic != "" && msgTopic != subTopic {
 					continue
 				}
 
-				if IsDebugMode() {
-					n := atomic.AddInt32(&messageCount, 1)
-					printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "gRPC-direct")
-				} else {
-					if !isReadable(decodedMsg) {
-						continue
+			if IsDebugMode() {
+				n := atomic.AddInt32(&messageCount, 1)
+				printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "gRPC-direct")
+				if p2pMsg != nil {
+					if p2pMsg.SourceNodeID != "" {
+						fmt.Printf("  from: %s\n", p2pMsg.SourceNodeID)
 					}
-					displayTopic := subTopic
-					if msgTopic != "" {
-						displayTopic = msgTopic
+					fmt.Printf("  via:  %s (%s)\n", connectedNode.Address, region)
+					if p2pMsg.MessageID != "" {
+						id := p2pMsg.MessageID
+						if len(id) > 12 {
+							id = id[:12] + "..."
+						}
+						fmt.Printf("  id:   %s\n", id)
 					}
-					fmt.Printf("[%s] %s\n", displayTopic, string(decodedMsg))
 				}
+			} else {
+				if !isReadable(decodedMsg) {
+					continue
+				}
+				atomic.AddInt32(&messageCount, 1)
+
+				displayTopic := subTopic
+				if msgTopic != "" {
+					displayTopic = msgTopic
+				}
+				fmt.Printf("[%s] %s\n", displayTopic, string(decodedMsg))
+			}
 
 				msgStr := formatMessage(decodedMsg)
 
@@ -288,7 +345,7 @@ var subscribeCmd = &cobra.Command{
 					}
 				}
 
-				if webhookURL != "" {
+				if wq != nil {
 					select {
 					case wq <- webhookMsg{data: decodedMsg}:
 					default:
@@ -300,11 +357,25 @@ var subscribeCmd = &cobra.Command{
 
 		select {
 		case <-sigChan:
-			fmt.Println("\nClosing connection...")
 			cancel()
 		case <-doneChan:
-			fmt.Println("\nConnection closed by server")
 		}
+
+		elapsed := time.Since(subscribeStart)
+		count := atomic.LoadInt32(&messageCount)
+
+		throughput := ""
+		if elapsed > time.Second && count > 0 {
+			rate := float64(count) / elapsed.Seconds()
+			throughput = fmt.Sprintf(" (%.1f msg/s)", rate)
+		}
+
+		if count == 1 {
+			fmt.Printf("\nDisconnected — 1 message in %s%s\n", humanDuration(elapsed), throughput)
+		} else {
+			fmt.Printf("\nDisconnected — %d messages in %s%s\n", count, humanDuration(elapsed), throughput)
+		}
+
 		return nil
 	},
 }
@@ -318,6 +389,6 @@ func init() {
 	subscribeCmd.Flags().IntVar(&webhookQueueSize, "webhook-queue-size", 100, "Max number of webhook messages to queue before dropping")
 	subscribeCmd.Flags().IntVar(&webhookTimeoutSecs, "webhook-timeout", 3, "Timeout in seconds for each webhook POST request")
 	subscribeCmd.Flags().StringVar(&subServiceURL, "service-url", "", "Override the default proxy URL")
-	subscribeCmd.Flags().Uint32Var(&subExposeAmount, "expose-amount", 1, "Number of nodes to request from proxy (enables failover if >1)")
+	subscribeCmd.Flags().Uint32Var(&subExposeAmount, "expose-amount", 3, "Number of nodes to request from proxy (enables failover if >1)")
 	rootCmd.AddCommand(subscribeCmd)
 }

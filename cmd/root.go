@@ -1,25 +1,27 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	authPath     string // Global flag for custom authentication file path
-	debug        bool   // Global flag for debug mode
-	disableAuth  bool   // Global flag to disable authentication checks
-	clientID     string // Global flag for client ID (used when auth is disabled)
-	outputFormat string // Global flag for output format (table, json, yaml)
+	authPath     string
+	debug        bool
+	disableAuth  bool
+	clientID     string
+	outputFormat string
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "mump2p",
-	Short: "CLI to interact with Optimum directly via Go",
-	Long: `mump2p is a developer tool for interacting with Optimum
-without relying on the HTTP server. It directly invokes Go services.`,
+	Short: "Direct P2P publish/subscribe on the Optimum Network",
+	Long: `mump2p connects you directly to the Optimum P2P network.
+Publish and subscribe with direct node connections for real-time, low-latency messaging.`,
 }
 
 func Execute() {
@@ -32,10 +34,7 @@ func init() {
 	// Add global flag for custom authentication path
 	rootCmd.PersistentFlags().StringVar(&authPath, "auth-path", os.Getenv("MUMP2P_AUTH_PATH"), "Custom path for authentication file (default: ~/.mump2p/auth.yml, env: MUMP2P_AUTH_PATH)")
 
-	// Add global debug flag
-	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode with detailed timing and proxy information")
-
-	// Add global disable auth flag
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode with session detail, node scores, message IDs, and peer paths")
 	rootCmd.PersistentFlags().BoolVar(&disableAuth, "disable-auth", false, "Disable authentication checks (for testing/development)")
 
 	// Add global client ID flag
@@ -80,4 +79,19 @@ func GetClientID() string {
 // GetOutputFormat returns the output format
 func GetOutputFormat() string {
 	return outputFormat
+}
+
+func humanDuration(d time.Duration) string {
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	}
+	m := int(d.Minutes())
+	s := int(d.Seconds()) % 60
+	if s == 0 {
+		return fmt.Sprintf("%dm", m)
+	}
+	return fmt.Sprintf("%dm%ds", m, s)
 }
