@@ -310,34 +310,40 @@ var subscribeCmd = &cobra.Command{
 					continue
 				}
 
-			if IsDebugMode() {
-				n := atomic.AddInt32(&messageCount, 1)
-				printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "gRPC-direct")
-				if p2pMsg != nil {
-					if p2pMsg.SourceNodeID != "" {
-						fmt.Printf("  from: %s\n", p2pMsg.SourceNodeID)
-					}
-					fmt.Printf("  via:  %s (%s)\n", connectedNode.Address, region)
-					if p2pMsg.MessageID != "" {
-						id := p2pMsg.MessageID
-						if len(id) > 12 {
-							id = id[:12] + "..."
+				if IsDebugMode() {
+					n := atomic.AddInt32(&messageCount, 1)
+					printDebugReceiveInfo(decodedMsg, receiverAddr, subTopic, n, "gRPC-direct")
+					if p2pMsg != nil {
+						if p2pMsg.SourceNodeID != "" {
+							fmt.Printf("  from: %s\n", p2pMsg.SourceNodeID)
 						}
-						fmt.Printf("  id:   %s\n", id)
+						fmt.Printf("  via:  %s (%s)\n", connectedNode.Address, region)
+						if p2pMsg.MessageID != "" {
+							id := p2pMsg.MessageID
+							if len(id) > 12 {
+								id = id[:12] + "..."
+							}
+							fmt.Printf("  id:   %s\n", id)
+						}
 					}
+				} else {
+					if !isReadable(decodedMsg) {
+						continue
+					}
+					atomic.AddInt32(&messageCount, 1)
+
+					displayTopic := subTopic
+					if msgTopic != "" {
+						displayTopic = msgTopic
+					}
+					fmt.Printf("[%s] %s\n", displayTopic, string(decodedMsg))
 				}
-			} else {
+
+				// Unreadable payloads are filtered from stdout in non-debug mode above; skip
+				// persistence and webhook for them in debug mode too (same as filtered topics).
 				if !isReadable(decodedMsg) {
 					continue
 				}
-				atomic.AddInt32(&messageCount, 1)
-
-				displayTopic := subTopic
-				if msgTopic != "" {
-					displayTopic = msgTopic
-				}
-				fmt.Printf("[%s] %s\n", displayTopic, string(decodedMsg))
-			}
 
 				msgStr := formatMessage(decodedMsg)
 
