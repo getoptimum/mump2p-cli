@@ -139,11 +139,19 @@ func (c *CachedSession) isExpired() bool {
 	return time.Now().UTC().After(ea)
 }
 
-func isUsable(cached *CachedSession, proxyURL, clientID string, topics, capabilities []string) bool {
-	return cached != nil &&
-		cached.matches(proxyURL, clientID, topics, capabilities) &&
-		!cached.isExpired() &&
-		!cached.needsRefresh()
+func isUsable(cached *CachedSession, proxyURL, clientID string, topics, capabilities []string, exposeAmount uint32) bool {
+	if cached == nil ||
+		!cached.matches(proxyURL, clientID, topics, capabilities) ||
+		cached.isExpired() ||
+		cached.needsRefresh() {
+		return false
+	}
+	// Cached session must cover the requested node count (e.g. cannot reuse a
+	// 1-node session when the user now asks for --expose-amount 3).
+	if exposeAmount > 0 && len(cached.Session.Nodes) < int(exposeAmount) {
+		return false
+	}
+	return true
 }
 
 // GetOrCreateSession returns a cached session if valid, refreshes if past
@@ -151,7 +159,7 @@ func isUsable(cached *CachedSession, proxyURL, clientID string, topics, capabili
 // concurrent processes from each creating separate sessions.
 func GetOrCreateSession(proxyURL, clientID, accessToken string, topics, capabilities []string, exposeAmount uint32) (*Session, bool, error) {
 	// Fast path: read without lock — if valid, return immediately.
-	if cached, err := loadCached(); err == nil && isUsable(cached, proxyURL, clientID, topics, capabilities) {
+	if cached, err := loadCached(); err == nil && isUsable(cached, proxyURL, clientID, topics, capabilities, exposeAmount) {
 		return &cached.Session, true, nil
 	}
 
@@ -164,7 +172,7 @@ func GetOrCreateSession(proxyURL, clientID, accessToken string, topics, capabili
 	}
 	defer releaseLock(lf)
 
-	if cached, err := loadCached(); err == nil && isUsable(cached, proxyURL, clientID, topics, capabilities) {
+	if cached, err := loadCached(); err == nil && isUsable(cached, proxyURL, clientID, topics, capabilities, exposeAmount) {
 		return &cached.Session, true, nil
 	}
 
