@@ -83,6 +83,7 @@ var subscribeCmd = &cobra.Command{
 	Short: "Subscribe to a topic and stream messages from the P2P network",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var clientIDToUse string
+		var accessToken string
 
 		if !IsAuthDisabled() {
 			authClient := auth.NewClient()
@@ -91,6 +92,7 @@ var subscribeCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("authentication required: %v", err)
 			}
+			accessToken = token.Token
 			parser := auth.NewTokenParser()
 			claims, err := parser.ParseToken(token.Token)
 			if err != nil {
@@ -153,6 +155,7 @@ var subscribeCmd = &cobra.Command{
 		sess, reused, err := session.GetOrCreateSession(
 			proxyURL,
 			clientIDToUse,
+			accessToken,
 			[]string{subTopic},
 			[]string{"subscribe"},
 			subExposeAmount,

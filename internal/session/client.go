@@ -33,7 +33,7 @@ type sessionRequest struct {
 	ExposeAmount uint32   `json:"expose_amount"`
 }
 
-func CreateSession(proxyURL, clientID string, topics, capabilities []string, exposeAmount uint32) (*Session, error) {
+func CreateSession(proxyURL, clientID, accessToken string, topics, capabilities []string, exposeAmount uint32) (*Session, error) {
 	reqData := sessionRequest{
 		ClientID:     clientID,
 		Topics:       topics,
@@ -52,6 +52,9 @@ func CreateSession(proxyURL, clientID string, topics, capabilities []string, exp
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if accessToken != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+accessToken)
+	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(httpReq)

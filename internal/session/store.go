@@ -149,7 +149,7 @@ func isUsable(cached *CachedSession, proxyURL, clientID string, topics, capabili
 // GetOrCreateSession returns a cached session if valid, refreshes if past
 // the refresh window, or creates a new session. Uses a file lock to prevent
 // concurrent processes from each creating separate sessions.
-func GetOrCreateSession(proxyURL, clientID string, topics, capabilities []string, exposeAmount uint32) (*Session, bool, error) {
+func GetOrCreateSession(proxyURL, clientID, accessToken string, topics, capabilities []string, exposeAmount uint32) (*Session, bool, error) {
 	// Fast path: read without lock — if valid, return immediately.
 	if cached, err := loadCached(); err == nil && isUsable(cached, proxyURL, clientID, topics, capabilities) {
 		return &cached.Session, true, nil
@@ -159,7 +159,7 @@ func GetOrCreateSession(proxyURL, clientID string, topics, capabilities []string
 	lf, lockErr := acquireLock()
 	if lockErr != nil {
 		// If locking fails, fall through to create without cache.
-		sess, err := CreateSession(proxyURL, clientID, topics, capabilities, exposeAmount)
+		sess, err := CreateSession(proxyURL, clientID, accessToken, topics, capabilities, exposeAmount)
 		return sess, false, err
 	}
 	defer releaseLock(lf)
@@ -168,7 +168,7 @@ func GetOrCreateSession(proxyURL, clientID string, topics, capabilities []string
 		return &cached.Session, true, nil
 	}
 
-	sess, err := CreateSession(proxyURL, clientID, topics, capabilities, exposeAmount)
+	sess, err := CreateSession(proxyURL, clientID, accessToken, topics, capabilities, exposeAmount)
 	if err != nil {
 		return nil, false, err
 	}

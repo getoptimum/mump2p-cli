@@ -77,6 +77,7 @@ var publishCmd = &cobra.Command{
 
 		var claims *auth.TokenClaims
 		var clientIDToUse string
+		var accessToken string
 
 		if !IsAuthDisabled() {
 			authClient := auth.NewClient()
@@ -85,6 +86,7 @@ var publishCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("authentication required: %v", err)
 			}
+			accessToken = token.Token
 			parser := auth.NewTokenParser()
 			claims, err = parser.ParseToken(token.Token)
 			if err != nil {
@@ -134,6 +136,7 @@ var publishCmd = &cobra.Command{
 		sess, reused, err := session.GetOrCreateSession(
 			proxyURL,
 			clientIDToUse,
+			accessToken,
 			[]string{pubTopic},
 			[]string{"publish"},
 			pubExposeAmount,
