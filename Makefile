@@ -2,8 +2,6 @@ GO_BIN       ?= go
 CLI_NAME     := mump2p
 BUILD_DIR    := dist
 
-VERSION      ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-COMMIT_HASH  ?= $(shell git rev-parse --short HEAD)
 DOMAIN       ?= ""
 CLIENT_ID    ?= ""
 AUDIENCE     ?= optimum-login
@@ -12,9 +10,7 @@ SERVICE_URL  ?= http://us1-proxy.getoptimum.io:8080
 LD_FLAGS := -X github.com/getoptimum/mump2p-cli/internal/config.Domain=$(DOMAIN) \
             -X github.com/getoptimum/mump2p-cli/internal/config.ClientID=$(CLIENT_ID) \
             -X github.com/getoptimum/mump2p-cli/internal/config.Audience=$(AUDIENCE) \
-            -X github.com/getoptimum/mump2p-cli/internal/config.ServiceURL=$(SERVICE_URL) \
-            -X github.com/getoptimum/mump2p-cli/internal/config.Version=$(VERSION) \
-            -X github.com/getoptimum/mump2p-cli/internal/config.CommitHash=$(COMMIT_HASH)
+            -X github.com/getoptimum/mump2p-cli/internal/config.ServiceURL=$(SERVICE_URL)
 
 .PHONY: all build run clean test lint tag release print-cli-name coverage
 
@@ -31,13 +27,14 @@ print-cli-name:
 	@echo "$(CLI_NAME)"
 
 release: build
-	@echo "Creating release for $(VERSION)"
-	mkdir -p $(BUILD_DIR)
-	gh release create $(VERSION) \
-		--title "Release $(VERSION)" \
-		--notes "Release notes for $(VERSION)" \
+	@tag=$$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0); \
+	echo "Creating release for $$tag"; \
+	mkdir -p $(BUILD_DIR); \
+	gh release create "$$tag" \
+		--title "Release $$tag" \
+		--notes "Release notes for $$tag" \
 		$(BUILD_DIR)/$(CLI_NAME)-mac \
-		$(BUILD_DIR)/$(CLI_NAME)-linux \
+		$(BUILD_DIR)/$(CLI_NAME)-linux
 		
 tag:
 	@echo "Calculating next RC tag..."

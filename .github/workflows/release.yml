@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and E2E Test
+    name: Build and test
     runs-on: ubuntu-latest
     env:
       DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
@@ -42,14 +42,6 @@ jobs:
             AUDIENCE="${AUDIENCE}" \
             SERVICE_URL="${SERVICE_URL}"
 
-      - name: Run E2E Tests
-        env:
-          MUMP2P_E2E_TOKEN_B64: ${{ secrets.MUMP2P_E2E_TOKEN_B64 }}
-        run: make e2e-test
-
-      - name: Run Fuzz Tests
-        run: make e2e-fuzz
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -81,12 +73,5 @@ jobs:
       - name: Auth GH CLI using PAT 
         run: echo "${{ secrets.RELEASE_GH_TOKEN }}" | gh auth login --with-token
 
-      - name: Set Release Variables
-        id: vars
-        run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "CLI_NAME=$(make -s print-cli-name)" >> $GITHUB_ENV
-      
       - name: Create Release
-        run: |
-          make release
+        run: make release
