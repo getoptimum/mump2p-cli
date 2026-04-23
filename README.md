@@ -1,249 +1,271 @@
 # mump2p CLI
 
-`mump2p-cli` is the command-line interface for interacting with [Optimum network](https://github.com/getoptimum/optimum-p2p) — a high-performance RLNC-enhanced pubsub network.
+CLI for interacting with the Optimum P2P network. Connects to a proxy for session management, then communicates directly with nodes for publish/subscribe.
 
-It supports authenticated publishing, subscribing, rate-limited usage tracking, and JWT session management.
+## Authentication
 
----
+### Login
 
-## Features
-
-- [x] Publish messages to topics
-- [x] Subscribe to real-time message streams
-- [x] List active topics
-- [x] gRPC support for high-performance streaming
-- [x] JWT-based login/logout and token refresh
-- [x] Local rate-limiting (publish count, quota, max size)
-- [x] Usage statistics reporting
-- [x] Persist messages to local storage
-- [x] Forward messages to webhook endpoints (POST method) with flexible JSON template formatting
-- [x] Health monitoring and system metrics
-- [x] Debug mode with detailed timing and proxy information
-- [x] Development mode with `--disable-auth` flag for testing
-- [x] Multiple output formats (table, JSON, YAML) for automation and scripting
-- [x] Interactive tracer dashboard for real-time metrics visualization
-  
----
-
-## Quick Start
-
-### 1. Installation
-
-**Quick Install (Recommended):**
-The install script automatically detects your OS (Linux/macOS), downloads the latest release binary, makes it executable, and verifies the installation.
-
-```sh
-curl -sSL https://raw.githubusercontent.com/getoptimum/mump2p-cli/main/install.sh | bash
+```bash
+mump2p login
 ```
 
-**Expected Output:**
-![CLI Installation Output](./docs/img/cli_command.png)
+```
+Initiating authentication...
 
-**Manual Installation:**
-Download from [releases](https://github.com/getoptimum/mump2p-cli/releases/latest) and make executable.
+To complete authentication:
+1. Visit: https://dev-d4be5uc4a3c311t3.us.auth0.com/activate?user_code=XXXX-XXXX
+2. Or go to https://dev-d4be5uc4a3c311t3.us.auth0.com/activate and enter code: XXXX-XXXX
 
-### 2. Authentication
+Waiting for you to complete authentication in the browser...
 
-```sh
-./mump2p login
-./mump2p whoami  # Check your session
+✅ Successfully authenticated
+Token expires at: 07 Apr 26 23:51 IST
 ```
 
-**Development/Testing Mode:**
-```sh
-# Skip authentication for testing (requires --client-id and --service-url)
-./mump2p --disable-auth --client-id="my-test-client" publish --topic=test --message="Hello" --service-url="http://34.146.222.111:8080"
-./mump2p --disable-auth --client-id="my-test-client" subscribe --topic=test --service-url="http://34.146.222.111:8080"
-./mump2p --disable-auth --client-id="my-test-client" list-topics --service-url="http://34.146.222.111:8080"
+### Who Am I
+
+```bash
+mump2p whoami
 ```
 
-### 3. Basic Usage
+```
+Authentication Status:
+----------------------
+Client ID: auth0|<USER_ID>
+Expires: 07 Apr 26 23:51 IST
+Valid for: 720h0m0s
+Is Active:  true
 
-```sh
-# Subscribe to a topic (WebSocket)
-./mump2p subscribe --topic=test-topic
-
-# Subscribe via gRPC stream
-./mump2p subscribe --topic=test-topic --grpc
-
-# Publish a message (HTTP)
-./mump2p publish --topic=test-topic --message='Hello World'
-
-# Publish via gRPC
-./mump2p publish --topic=test-topic --message='Hello World' --grpc
-
-# List your active topics
-./mump2p list-topics
-
-# Output formats - JSON/YAML for automation and scripting
-./mump2p list-topics --output=json
-./mump2p whoami --output=yaml
-
-# Debug mode - detailed timing and proxy information
-./mump2p --debug publish --topic=test-topic --message='Hello World'
-./mump2p --debug subscribe --topic=test-topic
-
-# Tracer dashboard - real-time metrics visualization
-./mump2p tracer dashboard
+Rate Limits:
+------------
+Publish Rate:  50000 per hour
+Publish Rate:  600 per second
+Max Message Size:  10.00 MB
+Daily Quota:       20480.00 MB
 ```
 
-### Transport Protocols
+### Logout
 
-- **HTTP/WebSocket (Default)**: Traditional REST API with WebSocket streaming
-- **gRPC**: High-performance binary protocol with streaming support
-- Use `--grpc` flag for both publishing and subscribing
-
----
-
-## 📚 Documentation
-
-- **[Complete User Guide](./docs/guide.md)** - Detailed setup, authentication, and usage instructions
-
----
-
-## Version Compatibility
-
-**Important:** Always use the latest version binaries (currently **v0.0.1-rc8**) from the releases page. 
-
-**Current Release:**
-- **v0.0.1-rc8** is the latest release
-- **v0.0.1-rc5** and earlier versions are deprecated
-
----
-
-## FAQ - Common Issues & Troubleshooting
-
-### **1. Available Service URLs**
-
-By default, the CLI uses the first proxy in the list below. You can override this using the `--service-url` flag or by rebuilding with a different `SERVICE_URL`.
-
-| **Proxy Address** | **Location** | **URL** | **Notes** |
-|---------------------|--------------|---------|-----------|
-| `34.146.222.111` | Tokyo | `http://34.146.222.111:8080` | **Default** |
-| `35.221.118.95` | Tokyo | `http://35.221.118.95:8080` | |
-| `34.142.205.26` | Singapore | `http://34.142.205.26:8080` | |
-
-> **Note:** More geo-locations coming soon!
-
-**Example: Using a different proxy:**
-
-```sh
-./mump2p-mac publish --topic=example-topic --message='Hello' --service-url="http://35.221.118.95:8080"
-./mump2p-mac subscribe --topic=example-topic --service-url="http://34.142.205.26:8080"
+```bash
+mump2p logout
 ```
 
-### **2. Authentication & Account Issues**
-
-#### **Error: Connection refused**
 ```
-Error: HTTP publish failed: dial tcp [::1]:8080: connect: connection refused
+✅ Successfully logged out
 ```
 
-**Causes:**
-- Proxy not running
-- Wrong port or hostname
-- Firewall blocking connection
-- Service not listening on specified port
+## Subscribe
 
-**Solutions:**
-- Start proxy service
-- Verify correct hostname and port
-- Check `docker ps` for running containers
-- Use correct service URL
-- Try a different proxy from the table above
+Subscribe to a topic and stream messages directly from a P2P node. By default, 3 nodes are requested for automatic failover.
 
-### **3. Rate Limiting & Usage Issues**
-
-#### **Error: Rate limit exceeded**
-```
-Error: per-hour limit reached (100/hour)
-Error: daily quota exceeded
-Error: message size exceeds limit
+```bash
+mump2p subscribe --topic test
 ```
 
-**Causes:**
-- Publishing too frequently
-- Message too large for tier
-- Daily quota exhausted
-- Per-second limit hit
-
-**Solutions:**
-- Wait for rate limit reset
-- Use smaller messages
-- Check usage: `./mump2p usage`
-- Contact admin for higher limits
-- Spread out publish operations
-
-#### **Error: Token expired**
 ```
-Error: token has expired, please login again
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 161ms — 2 backup nodes ready
+  backup: 34.141.111.130:33211 (Germany)
+  backup: 136.110.0.19:33211 (Singapore)
+[test] Hello from authenticated CLI!
+[test] Second authenticated message
+^C
+Disconnected — 2 messages in 14s
 ```
 
-**Causes:**
-- JWT token expired (24 hours)
-- Clock skew
-- Token corrupted
+### With single node
 
-**Solutions:**
-- Refresh token: `./mump2p refresh`
-- Login again: `./mump2p login`
-- Check system time
-
-
-
-### **4. CLI Usage & Syntax Issues**
-
-#### **Error: Missing required flags**
-```
-Error: required flag(s) "topic" not set
+```bash
+mump2p subscribe --topic test --expose-amount 1
 ```
 
-**Causes:**
-- Forgetting required command line arguments
-- Typos in flag names
-
-**Solutions:**
-- Use `--help` to see required flags
-- Include all required arguments
-- Check flag spelling and syntax
-
-### **5. Development Mode (`--disable-auth`)**
-
-For development and testing, you can bypass authentication:
-
-```sh
-# Requires --client-id and --service-url flags
-./mump2p --disable-auth --client-id="test-client" \
-  publish --topic=test --message="Hello" \
-  --service-url="http://34.146.222.111:8080"
+```
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 175ms
+[test] hello world
 ```
 
-> **Note:** This mode is for testing only. No rate limits enforced. See [guide](./docs/guide.md) for full details.
+### Failover
 
-### **6. Debug Mode & Performance Analysis**
+If the first node is unreachable, the CLI automatically falls back to the next one:
 
-The `--debug` flag provides detailed timing and proxy information for troubleshooting:
-
-```sh
-# Enable debug mode for operations
-./mump2p --debug publish --topic=test-topic --message='Hello World'
-./mump2p --debug subscribe --topic=test-topic
-
-# Combine with --disable-auth for testing
-./mump2p --disable-auth --client-id="test" --debug \
-  publish --topic=test --message="Hello" \
-  --service-url="http://34.146.222.111:8080"
+```
+  Node 136.110.0.19:33211 unreachable, falling back...
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 312ms — 1 backup node ready
+  backup: 34.141.111.130:33211 (Germany)
 ```
 
-For comprehensive debug mode usage, performance analysis, and blast testing examples, see the [Complete User Guide](./docs/guide.md#debug-mode).
+### Persist messages to file
 
----
+```bash
+mump2p subscribe --topic test --persist ./messages.log
+```
 
-**Pro Tips for First-Time Users:**
-- Always check `docker ps` and `docker logs` for container status
-- Use `--help` flag liberally to understand command options
-- Test authentication first with `whoami` before trying other operations
-- Start with simple publish/subscribe before advanced features
-- Keep proxy and CLI logs visible during troubleshooting
-- Check `usage` command regularly to monitor limits
-- For webhook integration and advanced features, see the [Complete User Guide](./docs/guide.md)
+### Forward to webhook
+
+```bash
+mump2p subscribe --topic test --webhook https://hooks.slack.com/services/xxx
+mump2p subscribe --topic test --webhook https://discord.com/api/webhooks/xxx --webhook-schema '{"content":"{{.Message}}"}'
+```
+
+## Publish
+
+Publish a message to a topic directly to a P2P node.
+
+```bash
+mump2p publish --topic test --message "Hello World"
+```
+
+```
+Published to 34.126.161.115:33211 (Singapore) in 259ms
+```
+
+### From file
+
+```bash
+mump2p publish --topic test/data --file ./payload.json
+```
+
+## Debug Mode
+
+Use `--debug` to see session details, node scores, timing breakdowns, message IDs, and peer paths.
+
+```bash
+mump2p subscribe --topic test --debug
+```
+
+```
+New session 09ddc264-e0bd-42af-b768-feacd512e686 from http://us1-proxy.getoptimum.io:8080 (535ms) | 3 node(s) available
+  Trying node 1/3: 34.126.161.115:33211 (Singapore, score: 0.98)...
+Subscribed to 'test' on 34.126.161.115:33211 (Singapore) in 188ms — 2 backup nodes ready
+  backup: 34.141.111.130:33211 (Germany)
+  backup: 136.110.0.19:33211 (Singapore)
+Recv:	[1]	receiver_addr:34.126.161.115	[recv_time, size]:[1775977506353069000, 21]	topic:test	hash:65456d67	protocol:gRPC-direct
+  from: 12D3KooWSviMsA9yDTxmv1svvGrEPeW6F5DYzSFQihE9YrQW6vtm
+  via:  34.126.161.115:33211 (Singapore)
+  id:   65456d676c97...
+```
+
+```bash
+mump2p publish --topic test --message "hello" --debug
+```
+
+```
+New session 619ceb3b-9440-4654-923f-982bd6dba0be from http://us1-proxy.getoptimum.io:8080 (516ms) | 1 node(s) available
+  Trying node 1/1: 34.126.161.115:33211 (Singapore, score: 0.98)...
+Session: 516ms | Published: 261ms | Total: 777ms
+Published to 34.126.161.115:33211 (Singapore) in 261ms
+```
+
+## Health
+
+```bash
+mump2p health
+```
+
+```
+Proxy Health Status:
+-------------------
+Status:      ok
+Memory Used: 51.30%
+CPU Used:    73.94%
+Disk Used:   9.41%
+Country:     United States (US)
+```
+
+## List Topics
+
+```bash
+mump2p list-topics
+```
+
+```
+📋 Subscribed Topics for Client: auth0|<USER_ID>
+═══════════════════════════════════════════════════════════════
+   Total Topics: 7
+
+   1. test/adr2-cli
+   2. test/cli-e2e
+   3. test
+   4. /eth2/c6ecb76c/beacon_block/ssz_snappy
+   5. mump2p_aggregated_messages
+   6. test/adr2-grpc
+   7. test/domain-e2e
+═══════════════════════════════════════════════════════════════
+```
+
+## Usage Stats
+
+```bash
+mump2p usage
+```
+
+```
+  Publish (hour):     2 / 50000
+  Publish (second):   1 / 600
+  Data Used:          0.0001 MB / 20480.0000 MB
+  Next Reset:         09 Mar 26 23:52 IST (23h58m10s from now)
+  Last Publish:       08 Mar 26 23:52 IST
+```
+
+## Version
+
+```bash
+mump2p version
+```
+
+```
+Version: v0.0.1-rc8
+Commit:  4f76630
+```
+
+## Update
+
+```bash
+mump2p update
+```
+
+## Without Auth (Testing)
+
+All commands support `--disable-auth --client-id <id>` to skip Auth0.
+
+```bash
+mump2p subscribe --topic test --disable-auth --client-id my-test-user
+mump2p publish --topic test --message "hello" --disable-auth --client-id my-test-user
+mump2p list-topics --disable-auth --client-id my-test-user
+```
+
+## Output Formats
+
+All read commands support `--output json` or `--output yaml`.
+
+```bash
+mump2p whoami --output json
+mump2p health --output yaml
+mump2p list-topics --output json
+```
+
+## Global Flags
+
+| Flag | Description |
+|------|-------------|
+| `--auth-path` | Custom path for auth file (default: `~/.mump2p/auth.yml`) |
+| `--client-id` | Client ID (required with `--disable-auth`) |
+| `--debug` | Session detail, node scores, message IDs, peer paths, timing breakdowns |
+| `--disable-auth` | Skip Auth0 for testing |
+| `--expose-amount N` | Number of nodes to request for failover (subscribe default: `3`, publish default: `1`) |
+| `--output` | Output format: `table`, `json`, `yaml` |
+
+## Override Proxy
+
+Any command that talks to the proxy accepts `--service-url`:
+
+```bash
+mump2p subscribe --topic test --service-url http://us2-proxy.getoptimum.io:8080
+mump2p publish --topic test --message "hi" --service-url http://us3-proxy.getoptimum.io:8080
+mump2p health --service-url http://us2-proxy.getoptimum.io:8080
+```
+
+Available proxies:
+- `http://us1-proxy.getoptimum.io:8080`
+- `http://us2-proxy.getoptimum.io:8080`
+- `http://us3-proxy.getoptimum.io:8080`

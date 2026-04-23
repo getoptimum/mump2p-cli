@@ -7,60 +7,66 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/config"
-	grpcclient "github.com/getoptimum/mump2p-cli/internal/grpc"
+	"github.com/getoptimum/mump2p-cli/internal/node"
 	"github.com/getoptimum/mump2p-cli/internal/ratelimit"
+	"github.com/getoptimum/mump2p-cli/internal/session"
+	pb "github.com/getoptimum/mump2p-cli/proto"
 	"github.com/spf13/cobra"
 )
 
 var (
-	pubTopic   string
-	pubMessage string
-	file       string
-	//optional
-	serviceURL string
-	useGRPCPub bool // gRPC flag for publish
+	pubTopic        string
+	pubMessage      string
+	file            string
+	serviceURL      string
+	pubExposeAmount uint32
 )
 
-// PublishPayload matches the expected JSON body on the server
-type PublishRequest struct {
-	ClientID  string `json:"client_id"`
-	Topic     string `json:"topic"`
-	Message   string `json:"message"`
-	Timestamp int64  `json:"timestamp"`
-}
-
-// addDebugPrefix adds debug information prefix to message data
-func addDebugPrefix(data []byte, proxyAddr string) []byte {
+func addDebugPrefix(data []byte, addr string) []byte {
 	currentTime := time.Now().UnixNano()
-	prefix := fmt.Sprintf("sender_addr:%s\t[send_time, size]:[%d, %d]\t", proxyAddr, currentTime, len(data))
-	prefixBytes := []byte(prefix)
-	return append(prefixBytes, data...)
+	prefix := fmt.Sprintf("sender_addr:%s\t[send_time, size]:[%d, %d]\t", addr, currentTime, len(data))
+	return append([]byte(prefix), data...)
 }
 
-// printDebugInfo prints debug information for publish operations
-func printDebugInfo(data []byte, proxyAddr string, topic string, isGRPC bool) {
+func printDebugInfo(data []byte, addr string, topic string) {
 	currentTime := time.Now().UnixNano()
 	sum := sha256.Sum256(data)
 	hash := hex.EncodeToString(sum[:])
-	protocol := "HTTP"
-	if isGRPC {
-		protocol = "gRPC"
+	fmt.Printf("Publish:\tsender_info:%s, [send_time, size]:[%d, %d]\ttopic:%s\tmsg_hash:%s\tprotocol:gRPC-direct\n",
+		addr, currentTime, len(data), topic, hash[:8])
+}
+
+func shortMsgID(resp *pb.Response) string {
+	if resp == nil || len(resp.Data) == 0 {
+		return ""
 	}
-	fmt.Printf("Publish:\tsender_info:%s, [send_time, size]:[%d, %d]\ttopic:%s\tmsg_hash:%s\tprotocol:%s\n",
-		proxyAddr, currentTime, len(data), topic, hash[:8], protocol)
+	var trace map[string]interface{}
+	if err := json.Unmarshal(resp.Data, &trace); err != nil {
+		return ""
+	}
+	if mid, ok := trace["messageID"].(string); ok && mid != "" {
+		if len(mid) > 8 {
+			return mid[:8]
+		}
+		return mid
+	}
+	if mid, ok := trace["message_id"].(string); ok && mid != "" {
+		if len(mid) > 8 {
+			return mid[:8]
+		}
+		return mid
+	}
+	return ""
 }
 
 var publishCmd = &cobra.Command{
 	Use:   "publish",
-	Short: "Publish a message to the Optimum Network via HTTP or gRPC",
+	Short: "Publish a message to the Optimum Network",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if pubMessage == "" && file == "" {
 			return errors.New("either --message or --file must be provided")
@@ -70,39 +76,34 @@ var publishCmd = &cobra.Command{
 		}
 
 		var claims *auth.TokenClaims
-		var token *auth.StoredToken
 		var clientIDToUse string
+		var accessToken string
 
 		if !IsAuthDisabled() {
 			authClient := auth.NewClient()
 			storage := auth.NewStorageWithPath(GetAuthPath())
-			var err error
-			token, err = authClient.GetValidToken(storage)
+			token, err := authClient.GetValidToken(storage)
 			if err != nil {
 				return fmt.Errorf("authentication required: %v", err)
 			}
-			// parse token to check if the account is active
+			accessToken = token.Token
 			parser := auth.NewTokenParser()
 			claims, err = parser.ParseToken(token.Token)
 			if err != nil {
 				return fmt.Errorf("error parsing token: %v", err)
 			}
-			// check if the account is active
 			if !claims.IsActive {
 				return fmt.Errorf("your account is inactive, please contact support")
 			}
 			clientIDToUse = claims.ClientID
 		} else {
-			// When auth is disabled, require client-id flag
 			clientIDToUse = GetClientID()
 			if clientIDToUse == "" {
 				return fmt.Errorf("--client-id is required when using --disable-auth")
 			}
 		}
-		var (
-			data   []byte
-			source string
-		)
+
+		var data []byte
 
 		if file != "" {
 			content, err := os.ReadFile(file)
@@ -110,135 +111,131 @@ var publishCmd = &cobra.Command{
 				return fmt.Errorf("failed to read file: %v", err)
 			}
 			data = content
-			source = file
 		} else {
 			data = []byte(pubMessage)
-			source = "inline message"
 		}
-		// message size
+
 		messageSize := int64(len(data))
 
-		// Skip rate limiting if auth is disabled
 		if !IsAuthDisabled() {
 			limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir())
 			if err != nil {
 				return fmt.Errorf("rate limiter setup failed: %v", err)
 			}
-
-			// check all rate limits: size, quota, per-hr, per-sec
 			if err := limiter.CheckPublishAllowed(messageSize); err != nil {
 				return err
 			}
 		}
 
-		// use custom service URL if provided, otherwise use the default
-		baseURL := config.LoadConfig().ServiceUrl
+		proxyURL := config.LoadConfig().ServiceUrl
 		if serviceURL != "" {
-			baseURL = serviceURL
+			proxyURL = serviceURL
 		}
 
-		if useGRPCPub {
-			// gRPC publish logic
-			grpcAddr := strings.Replace(baseURL, "http://", "", 1)
-			grpcAddr = strings.Replace(grpcAddr, "https://", "", 1)
-			// Replace the port with 50051 for gRPC (default gRPC port)
-			if strings.Contains(grpcAddr, ":") {
-				// Extract host part and append gRPC port
-				host := strings.Split(grpcAddr, ":")[0]
-				grpcAddr = host + ":50051"
+		sessionStart := time.Now()
+		sess, reused, err := session.GetOrCreateSession(
+			proxyURL,
+			clientIDToUse,
+			accessToken,
+			[]string{pubTopic},
+			[]string{"publish"},
+			pubExposeAmount,
+		)
+		if err != nil {
+			return fmt.Errorf("session creation failed: %v", err)
+		}
+		sessionDur := time.Since(sessionStart)
+
+		if IsDebugMode() {
+			if reused {
+				fmt.Printf("Reusing session %s | %d node(s) available\n", sess.SessionID, len(sess.Nodes))
 			} else {
-				grpcAddr += ":50051" // default port if not specified
+				fmt.Printf("New session %s from %s (%s) | %d node(s) available\n",
+					sess.SessionID, proxyURL, humanDuration(sessionDur), len(sess.Nodes))
 			}
-
-			// Extract proxy IP for debug mode
-			proxyAddr := extractIPFromURL(grpcAddr)
-			if proxyAddr == "" {
-				proxyAddr = grpcAddr // fallback to full address if no IP found
-			}
-
-			// Add debug prefix to data if debug mode is enabled
-			publishData := data
-			if IsDebugMode() {
-				publishData = addDebugPrefix(data, proxyAddr)
-			}
-
-			ctx := context.Background()
-			client, err := grpcclient.NewProxyClient(grpcAddr)
-			if err != nil {
-				return fmt.Errorf("failed to connect to gRPC proxy: %v", err)
-			}
-			defer client.Close() //nolint:errcheck
-
-			err = client.Publish(ctx, clientIDToUse, pubTopic, publishData)
-			if err != nil {
-				return fmt.Errorf("gRPC publish failed: %v", err)
-			}
-
-			// Print debug information if debug mode is enabled
-			if IsDebugMode() {
-				printDebugInfo(publishData, proxyAddr, pubTopic, true)
-			}
-
-			fmt.Println("✅ Published via gRPC", source)
-		} else {
-			// HTTP publish logic (existing)
-			// Extract proxy IP for debug mode
-			proxyAddr := extractIPFromURL(baseURL)
-			if proxyAddr == "" {
-				proxyAddr = baseURL // fallback to full URL if no IP found
-			}
-
-			// Add debug prefix to data if debug mode is enabled
-			publishData := data
-			if IsDebugMode() {
-				publishData = addDebugPrefix(data, proxyAddr)
-			}
-
-			reqData := PublishRequest{
-				ClientID:  clientIDToUse,
-				Topic:     pubTopic,
-				Message:   string(publishData), // use modified data with debug prefix if enabled
-				Timestamp: time.Now().UnixMilli(),
-			}
-			reqBytes, err := json.Marshal(reqData)
-			if err != nil {
-				return fmt.Errorf("failed to marshal publish request: %v", err)
-			}
-
-			url := baseURL + "/api/v1/publish"
-			req, err := http.NewRequest("POST", url, strings.NewReader(string(reqBytes)))
-			if err != nil {
-				return err
-			}
-			// Only set Authorization header if auth is enabled
-			if !IsAuthDisabled() && token != nil {
-				req.Header.Set("Authorization", "Bearer "+token.Token)
-			}
-			req.Header.Set("Content-Type", "application/json")
-
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				return fmt.Errorf("HTTP publish failed: %v", err)
-			}
-			defer resp.Body.Close() //nolint:errcheck
-			body, _ := io.ReadAll(resp.Body)
-			if resp.StatusCode != 200 {
-				return fmt.Errorf("publish error: %s", string(body))
-			}
-
-			// Print debug information if debug mode is enabled
-			if IsDebugMode() {
-				printDebugInfo(publishData, proxyAddr, pubTopic, false)
-			}
-
-			fmt.Println("✅ Published via HTTP", source)
-			fmt.Println(string(body))
 		}
 
-		// Only record publish if auth is enabled
+		var published bool
+		for i, n := range sess.Nodes {
+			if IsDebugMode() {
+				fmt.Printf("  Trying node %d/%d: %s (%s, score: %.2f)...\n",
+					i+1, len(sess.Nodes), n.Address, n.Region, n.Score)
+			}
+
+			nodeAddr := extractIPFromURL(n.Address)
+			if nodeAddr == "" {
+				nodeAddr = n.Address
+			}
+
+			publishData := data
+			if IsDebugMode() {
+				publishData = addDebugPrefix(data, nodeAddr)
+			}
+
+			connectStart := time.Now()
+			nc, connErr := node.NewClient(n.Address)
+			if connErr != nil {
+				fmt.Printf("  Node %s unreachable: %v\n", n.Address, connErr)
+				continue
+			}
+
+			ctx, ctxCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			resp, pubErr := nc.Publish(ctx, n.Ticket, pubTopic, publishData)
+			rpcDur := time.Since(connectStart)
+			ctxCancel()
+			nc.Close()
+
+			if pubErr != nil {
+				fmt.Printf("  Node %s failed: %v\n", n.Address, pubErr)
+				continue
+			}
+
+			if IsDebugMode() {
+				printDebugInfo(publishData, nodeAddr, pubTopic)
+			}
+
+			region := n.Region
+			if region == "" {
+				region = "unknown"
+			}
+
+			msgID := shortMsgID(resp)
+			suffix := ""
+			if msgID != "" {
+				suffix = fmt.Sprintf(" [msg: %s]", msgID)
+			}
+
+			if IsDebugMode() && !reused {
+				fmt.Printf("Session: %s | Published: %s | Total: %s\n",
+					humanDuration(sessionDur), humanDuration(rpcDur),
+					humanDuration(sessionDur+rpcDur))
+			}
+
+			fmt.Printf("Published to %s (%s) in %s%s\n",
+				n.Address, region, humanDuration(rpcDur), suffix)
+
+			if IsDebugMode() && resp != nil && msgID != "" {
+				var trace map[string]interface{}
+				if json.Unmarshal(resp.Data, &trace) == nil {
+					if mid, ok := trace["messageID"].(string); ok && mid != "" {
+						fmt.Printf("  message-id: %s\n", mid)
+					} else if mid, ok := trace["message_id"].(string); ok && mid != "" {
+						fmt.Printf("  message-id: %s\n", mid)
+					}
+				}
+			}
+
+			published = true
+			break
+		}
+
+		if !published {
+			return fmt.Errorf("all %d node(s) failed to publish", len(sess.Nodes))
+		}
+
 		if !IsAuthDisabled() {
 			if limiter, err := ratelimit.NewRateLimiterWithDir(claims, GetAuthDir()); err == nil {
-				_ = limiter.RecordPublish(messageSize) // update quota (fail silently)
+				_ = limiter.RecordPublish(messageSize)
 			}
 		}
 		return nil
@@ -247,10 +244,10 @@ var publishCmd = &cobra.Command{
 
 func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
-	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string to publish (max 10MB)")
-	publishCmd.Flags().StringVar(&file, "file", "", "Path of the file to publish (max 10MB)")
-	publishCmd.Flags().StringVar(&serviceURL, "service-url", "", "Override the default service URL")
-	publishCmd.Flags().BoolVar(&useGRPCPub, "grpc", false, "Use gRPC for publishing instead of HTTP")
+	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string to publish")
+	publishCmd.Flags().StringVar(&file, "file", "", "Path of the file to publish")
+	publishCmd.Flags().StringVar(&serviceURL, "service-url", "", "Override the default proxy URL")
+	publishCmd.Flags().Uint32Var(&pubExposeAmount, "expose-amount", 1, "Number of nodes to request from proxy")
 	publishCmd.MarkFlagRequired("topic") //nolint:errcheck
 	rootCmd.AddCommand(publishCmd)
 }

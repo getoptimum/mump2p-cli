@@ -6,6 +6,7 @@ import (
 
 	"github.com/getoptimum/mump2p-cli/internal/auth"
 	"github.com/getoptimum/mump2p-cli/internal/formatter"
+	"github.com/getoptimum/mump2p-cli/internal/session"
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +66,7 @@ var logoutCmd = &cobra.Command{
 		if err := storage.RemoveToken(); err != nil {
 			return err
 		}
+		session.InvalidateSession()
 
 		fmt.Println("✅ Successfully logged out")
 		return nil

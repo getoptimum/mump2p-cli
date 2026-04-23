@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/getoptimum/mump2p-cli/proto;proto";
+
+service SessionService {
+  rpc CreateSession(SessionRequest) returns (SessionResponse);
+}
+
+message SessionRequest {
+  string client_id = 1;
+  repeated string topics = 2;
+  string protocol = 3;
+  string region_hint = 4;
+  uint32 expose_amount = 5;
+  repeated string capabilities = 6;
+}
+
+message SessionNode {
+  string id = 1;
+  string address = 2;
+  string transport = 3;
+  string region = 4;
+  string ticket = 5;
+  float score = 6;
+}
+
+message SessionResponse {
+  string session_id = 1;
+  repeated SessionNode nodes = 2;
+  string expires_at = 3;
+  string refresh_after = 4;
+  string error = 5;
+}
