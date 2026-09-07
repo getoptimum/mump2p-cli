@@ -127,7 +127,7 @@ mump2p publish --topic test/data --file ./payload.json
 
 ### From stdin
 
-When neither `--message` nor `--file` is given, the payload is read from stdin, so `publish` works like any other Unix tool in a pipe:
+When stdin is a pipe or redirect, its contents are published (it takes precedence over `--message`), so `publish` works like any other Unix tool in a pipe:
 
 ```bash
 echo "Hello World" | mump2p publish --topic test
@@ -135,7 +135,7 @@ cat ./payload.json | mump2p publish --topic test/data
 curl -s https://api.example.com/status | mump2p publish --topic status
 ```
 
-`--file -` also reads from stdin explicitly.
+`--file -` also reads from stdin explicitly. Stdin is capped at your account's maximum message size.
 
 ## Debug Mode
 

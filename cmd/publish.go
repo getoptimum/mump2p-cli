@@ -65,41 +65,85 @@ func shortMsgID(resp *pb.Response) string {
 	return ""
 }
 
-// resolvePublishPayload picks the message payload from, in order of
-// preference: --message, --file, or stdin. Stdin is read to EOF and sent as
-// a single message. It is used when neither flag is given (and stdin is not
-// an interactive terminal), or when --file is "-", following the common
-// Unix convention.
-func resolvePublishPayload(message, filePath string, stdin *os.File) ([]byte, error) {
-	if message != "" {
-		return []byte(message), nil
+// payloadSource describes where the publish payload should come from, as
+// derived from the command flags.
+type payloadSource struct {
+	message    string
+	messageSet bool // --message was given explicitly (possibly empty)
+	filePath   string
+	fileSet    bool // --file was given explicitly (possibly empty)
+}
+
+// validatePayloadFlags rejects flag combinations that cannot be resolved.
+func validatePayloadFlags(src payloadSource) error {
+	if src.messageSet && src.fileSet {
+		return errors.New("only one of --message or --file should be used at a time")
+	}
+	if src.fileSet && src.filePath == "" {
+		return errors.New("--file requires a path (use - for stdin)")
+	}
+	return nil
+}
+
+// resolvePublishPayload returns the payload from --file, stdin, or --message.
+// Stdin (a pipe or redirect, never an interactive terminal) takes precedence
+// over --message when it carries data, as requested in #92; --file=- reads
+// stdin explicitly. Reads are capped at maxBytes to bound memory use.
+func resolvePublishPayload(src payloadSource, stdin *os.File, maxBytes int64) ([]byte, error) {
+	if err := validatePayloadFlags(src); err != nil {
+		return nil, err
 	}
 
-	if filePath != "" && filePath != "-" {
-		content, err := os.ReadFile(filePath)
+	if src.fileSet && src.filePath != "-" {
+		content, err := os.ReadFile(src.filePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read file: %v", err)
 		}
 		return content, nil
 	}
 
-	if filePath != "-" && isTerminal(stdin) {
-		return nil, errors.New("no message provided: use --message, --file, or pipe data via stdin")
+	stdinAvailable := src.filePath == "-" || !isTerminal(stdin)
+	if stdinAvailable {
+		content, err := readStdinBounded(stdin, maxBytes)
+		if err != nil {
+			return nil, err
+		}
+		if len(content) > 0 {
+			return content, nil
+		}
+		if src.filePath == "-" || !src.messageSet {
+			return nil, errors.New("stdin is empty: nothing to publish")
+		}
 	}
 
-	content, err := io.ReadAll(stdin)
+	if src.messageSet {
+		if src.message == "" {
+			return nil, errors.New("--message is empty: nothing to publish")
+		}
+		return []byte(src.message), nil
+	}
+
+	return nil, errors.New("no message provided: use --message, --file, or pipe data via stdin")
+}
+
+// readStdinBounded reads stdin to EOF, failing if it exceeds maxBytes.
+func readStdinBounded(stdin *os.File, maxBytes int64) ([]byte, error) {
+	var r io.Reader = stdin
+	if maxBytes > 0 {
+		r = io.LimitReader(stdin, maxBytes+1)
+	}
+	content, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read stdin: %v", err)
 	}
-	if len(content) == 0 {
-		return nil, errors.New("stdin is empty: nothing to publish")
+	if maxBytes > 0 && int64(len(content)) > maxBytes {
+		return nil, fmt.Errorf("stdin exceeds the maximum message size of %d bytes", maxBytes)
 	}
 	return content, nil
 }
 
-// isTerminal reports whether f is an interactive terminal (as opposed to a
-// pipe or a redirected file). A nil file is treated as a terminal so that
-// we never block waiting for input that cannot arrive.
+// isTerminal reports whether f is an interactive terminal. A nil or
+// unreadable file counts as one so we never block on input that cannot arrive.
 func isTerminal(f *os.File) bool {
 	if f == nil {
 		return true
@@ -116,8 +160,9 @@ var publishCmd = &cobra.Command{
 	Short: "Publish a message to the Optimum Network",
 	Long: `Publish a message to the Optimum Network.
 
-The payload comes from --message, --file, or stdin. When neither flag is
-given, the payload is read from stdin so the command can be used in pipes:
+The payload comes from --file, stdin, or --message. Piped stdin is used
+whenever it carries data (it takes precedence over --message), so the
+command composes in pipes:
 
   echo "hello" | mump2p publish --topic=test
   curl -s https://api.example.com/status | mump2p publish --topic=status
@@ -127,20 +172,20 @@ Use --file=- to read from stdin explicitly.`,
   mump2p publish --topic=test/data --file=./payload.json
   cat payload.json | mump2p publish --topic=test/data`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if pubMessage != "" && file != "" {
-			return errors.New("only one of --message or --file should be used at a time")
+		src := payloadSource{
+			message:    pubMessage,
+			messageSet: cmd.Flags().Changed("message"),
+			filePath:   file,
+			fileSet:    cmd.Flags().Changed("file"),
 		}
-
-		// Resolve the payload before authenticating so that flag/stdin
-		// errors surface immediately, without a login round-trip.
-		data, err := resolvePublishPayload(pubMessage, file, os.Stdin)
-		if err != nil {
+		if err := validatePayloadFlags(src); err != nil {
 			return err
 		}
 
 		var claims *auth.TokenClaims
 		var clientIDToUse string
 		var accessToken string
+		maxMessageSize := int64(config.DefaultMaxMessageSize)
 
 		if !IsAuthDisabled() {
 			authClient := auth.NewClient()
@@ -159,11 +204,20 @@ Use --file=- to read from stdin explicitly.`,
 				return fmt.Errorf("your account is inactive, please contact support")
 			}
 			clientIDToUse = claims.ClientID
+			if claims.MaxMessageSize > 0 {
+				maxMessageSize = claims.MaxMessageSize
+			}
 		} else {
 			clientIDToUse = GetClientID()
 			if clientIDToUse == "" {
 				return fmt.Errorf("--client-id is required when using --disable-auth")
 			}
+		}
+
+		// Read the payload only after the size limit is known so stdin is bounded.
+		data, err := resolvePublishPayload(src, os.Stdin, maxMessageSize)
+		if err != nil {
+			return err
 		}
 
 		messageSize := int64(len(data))

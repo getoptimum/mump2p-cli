@@ -254,14 +254,14 @@ mump2p publish --topic=your-topic-name --file=/path/to/your/file.json
 
 ### Publish from stdin
 
-If you omit both `--message` and `--file`, the payload is read from standard input. This lets you pipe output from other commands straight into the network:
+When standard input is a pipe or redirect, its contents are published; piped data takes precedence over `--message`, while `--file` always wins. This lets you pipe output from other commands straight into the network:
 
 ```sh
 echo "Your message content" | mump2p publish --topic=your-topic-name
 curl -s https://api.example.com/status | mump2p publish --topic=status
 ```
 
-You can also pass `--file=-` to read from stdin explicitly. Running `publish` with no payload flags in an interactive terminal (nothing piped in) returns an error instead of waiting for input.
+You can also pass `--file=-` to read from stdin explicitly. Running `publish` with no payload flags in an interactive terminal (nothing piped in) returns an error instead of waiting for input, and stdin larger than your account's maximum message size is rejected before it is buffered.
 
 Rate limits will be automatically applied based on your authentication token.
 
