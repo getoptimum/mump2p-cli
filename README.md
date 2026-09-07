@@ -127,7 +127,7 @@ mump2p publish --topic test/data --file ./payload.json
 
 ### From stdin
 
-When stdin is a pipe or redirect, its contents are published (it takes precedence over `--message`), so `publish` works like any other Unix tool in a pipe:
+When stdin is a pipe or redirect, its contents are published. Non-empty stdin takes precedence over `--message`; an empty pipe falls back to `--message`. This makes `publish` work like any other Unix tool in a pipe:
 
 ```bash
 echo "Hello World" | mump2p publish --topic test
