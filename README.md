@@ -125,6 +125,18 @@ Published to 34.126.161.115:33211 (Singapore) in 259ms
 mump2p publish --topic test/data --file ./payload.json
 ```
 
+### From stdin
+
+When stdin is a pipe or redirect, its contents are published. Non-empty stdin takes precedence over `--message`; an empty pipe falls back to `--message`. This makes `publish` work like any other Unix tool in a pipe:
+
+```bash
+echo "Hello World" | mump2p publish --topic test
+cat ./payload.json | mump2p publish --topic test/data
+curl -s https://api.example.com/status | mump2p publish --topic status
+```
+
+`--file -` also reads from stdin explicitly. Stdin is capped at your account's maximum message size.
+
 ## Debug Mode
 
 Use `--debug` to see session details, node scores, timing breakdowns, message IDs, and peer paths.
