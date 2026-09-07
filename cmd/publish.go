@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -64,15 +65,77 @@ func shortMsgID(resp *pb.Response) string {
 	return ""
 }
 
+// resolvePublishPayload picks the message payload from, in order of
+// preference: --message, --file, or stdin. Stdin is read to EOF and sent as
+// a single message. It is used when neither flag is given (and stdin is not
+// an interactive terminal), or when --file is "-", following the common
+// Unix convention.
+func resolvePublishPayload(message, filePath string, stdin *os.File) ([]byte, error) {
+	if message != "" {
+		return []byte(message), nil
+	}
+
+	if filePath != "" && filePath != "-" {
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file: %v", err)
+		}
+		return content, nil
+	}
+
+	if filePath != "-" && isTerminal(stdin) {
+		return nil, errors.New("no message provided: use --message, --file, or pipe data via stdin")
+	}
+
+	content, err := io.ReadAll(stdin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read stdin: %v", err)
+	}
+	if len(content) == 0 {
+		return nil, errors.New("stdin is empty: nothing to publish")
+	}
+	return content, nil
+}
+
+// isTerminal reports whether f is an interactive terminal (as opposed to a
+// pipe or a redirected file). A nil file is treated as a terminal so that
+// we never block waiting for input that cannot arrive.
+func isTerminal(f *os.File) bool {
+	if f == nil {
+		return true
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return true
+	}
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
 var publishCmd = &cobra.Command{
 	Use:   "publish",
 	Short: "Publish a message to the Optimum Network",
+	Long: `Publish a message to the Optimum Network.
+
+The payload comes from --message, --file, or stdin. When neither flag is
+given, the payload is read from stdin so the command can be used in pipes:
+
+  echo "hello" | mump2p publish --topic=test
+  curl -s https://api.example.com/status | mump2p publish --topic=status
+
+Use --file=- to read from stdin explicitly.`,
+	Example: `  mump2p publish --topic=test --message="Hello World"
+  mump2p publish --topic=test/data --file=./payload.json
+  cat payload.json | mump2p publish --topic=test/data`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if pubMessage == "" && file == "" {
-			return errors.New("either --message or --file must be provided")
-		}
 		if pubMessage != "" && file != "" {
 			return errors.New("only one of --message or --file should be used at a time")
+		}
+
+		// Resolve the payload before authenticating so that flag/stdin
+		// errors surface immediately, without a login round-trip.
+		data, err := resolvePublishPayload(pubMessage, file, os.Stdin)
+		if err != nil {
+			return err
 		}
 
 		var claims *auth.TokenClaims
@@ -101,18 +164,6 @@ var publishCmd = &cobra.Command{
 			if clientIDToUse == "" {
 				return fmt.Errorf("--client-id is required when using --disable-auth")
 			}
-		}
-
-		var data []byte
-
-		if file != "" {
-			content, err := os.ReadFile(file)
-			if err != nil {
-				return fmt.Errorf("failed to read file: %v", err)
-			}
-			data = content
-		} else {
-			data = []byte(pubMessage)
 		}
 
 		messageSize := int64(len(data))
@@ -244,8 +295,8 @@ var publishCmd = &cobra.Command{
 
 func init() {
 	publishCmd.Flags().StringVar(&pubTopic, "topic", "", "Topic to publish to")
-	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string to publish")
-	publishCmd.Flags().StringVar(&file, "file", "", "Path of the file to publish")
+	publishCmd.Flags().StringVar(&pubMessage, "message", "", "Message string to publish (reads stdin if neither --message nor --file is set)")
+	publishCmd.Flags().StringVar(&file, "file", "", "Path of the file to publish (use - for stdin)")
 	publishCmd.Flags().StringVar(&serviceURL, "service-url", "", "Override the default proxy URL")
 	publishCmd.Flags().Uint32Var(&pubExposeAmount, "expose-amount", 1, "Number of nodes to request from proxy")
 	publishCmd.MarkFlagRequired("topic") //nolint:errcheck
